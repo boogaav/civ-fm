@@ -117,3 +117,11 @@ Then open http://localhost:8737.
 Wildfire hotspots via FIRMS key behind a Cloudflare Worker proxy, OpenSky
 flights, freedom/passport layers (static bundles), per-channel audio
 signatures, shareable permalinks (channel + location in the URL hash).
+
+## Deploy
+
+Live at **https://civ.fm** — GitHub Pages from `main` on
+[boogaav/civ-fm](https://github.com/boogaav/civ-fm) (`CNAME` file sets the
+domain). Deploying = `git push`. DNS at Namecheap: apex A records to GitHub
+Pages IPs (185.199.108–111.153), `www` CNAME to `boogaav.github.io`.
+The GDACS proxy Worker deploys separately: `cd proxy && npx wrangler deploy`.
