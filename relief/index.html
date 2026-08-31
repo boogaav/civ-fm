@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relief — CIV FM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.css">
+<style>
+  :root {
+    --space: #0b0b0d;
+    --glass: rgba(28, 28, 30, .66);
+    --glass-2: rgba(255, 255, 255, .06);
+    --active: rgba(255, 255, 255, .14);
+    --hairline: rgba(255, 255, 255, .1);
+    --ink: #f5f5f7;
+    --muted: #98989d;
+    --accent: #0a84ff;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+  }
+  body.light {
+    --space: #e9eef2;
+    --glass: rgba(255, 255, 255, .72);
+    --glass-2: rgba(0, 0, 0, .05);
+    --active: rgba(0, 0, 0, .1);
+    --hairline: rgba(0, 0, 0, .12);
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --accent: #007aff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--space); color: var(--ink); font-family: var(--font); overflow: hidden; }
+  #map { position: absolute; inset: 0; }
+  .maplibregl-ctrl-attrib { background: rgba(127,127,127,.25) !important; font-size: 9px; }
+  .maplibregl-canvas { outline: none; }
+
+  header { position: absolute; top: 20px; left: 24px; z-index: 10; pointer-events: none; }
+  .title { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .sub { font-size: 12px; color: var(--muted); }
+  .back { pointer-events: auto; display: inline-block; margin-top: 10px;
+    font: 500 12px var(--font); color: var(--accent); text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+
+  .glass {
+    background: var(--glass); border: 1px solid var(--hairline); border-radius: 12px;
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+
+  #controls {
+    position: absolute; top: 20px; right: 24px; z-index: 10;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  }
+  .seg { display: flex; gap: 3px; padding: 3px; }
+  .seg button {
+    appearance: none; background: none; border: none; cursor: pointer;
+    font: 600 13px var(--font); color: var(--muted); padding: 5px 12px; border-radius: 8px;
+  }
+  .seg button:hover { color: var(--ink); background: var(--glass-2); }
+  .seg button.active { background: var(--active); color: var(--ink); }
+  .seg .lbl { font: 500 11px var(--font); color: var(--muted); align-self: center; padding: 0 4px 0 8px; }
+
+  #places {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 10;
+    display: flex; gap: 3px; padding: 4px; max-width: calc(100% - 48px); overflow-x: auto;
+  }
+  #places button {
+    appearance: none; background: none; border: none; cursor: pointer; white-space: nowrap;
+    font: 600 13px var(--font); color: var(--muted); padding: 7px 14px; border-radius: 9px;
+  }
+  #places button:hover { color: var(--ink); background: var(--glass-2); }
+  #places button.active { background: var(--active); color: var(--ink); }
+
+  #readout {
+    position: absolute; left: 24px; bottom: 78px; z-index: 10;
+    padding: 10px 14px; font-size: 13px; display: none;
+  }
+  #readout .ev { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #readout .co { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  #hint {
+    position: absolute; left: 24px; bottom: 78px; z-index: 10;
+    padding: 8px 12px; font-size: 11.5px; color: var(--muted);
+  }
+  @media (max-width: 640px) { #hint { display: none; } }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<header>
+  <div class="title">Relief</div>
+  <div class="sub">the actual shape of the planet</div>
+  <a class="back" href="../">← CIV FM</a>
+</header>
+
+<div id="controls">
+  <div class="seg glass" id="theme">
+    <span class="lbl">Style</span>
+    <button data-t="dark" class="active">Dark</button>
+    <button data-t="nature">Nature</button>
+  </div>
+  <div class="seg glass" id="exag">
+    <span class="lbl">Height</span>
+    <button data-x="1">1×</button>
+    <button data-x="1.5" class="active">1.5×</button>
+    <button data-x="2.5">2.5×</button>
+  </div>
+  <div class="seg glass">
+    <button id="btn-borders" aria-pressed="false">Borders</button>
+  </div>
+</div>
+
+<div id="hint" class="glass">Drag to pan · right-drag or two fingers to tilt · click for elevation</div>
+
+<div id="readout" class="glass">
+  <div class="ev"></div>
+  <div class="co"></div>
+</div>
+
+<div id="places" class="glass"></div>
+
+<script src="https://unpkg.com/maplibre-gl@5.7.0/dist/maplibre-gl.js"></script>
+<script>
+const PLACES = [
+  { name: "Everest",       c: [86.925, 27.90], z: 10.8, p: 68, b: 340 },
+  { name: "Matterhorn",    c: [7.658, 45.999],  z: 12.4, p: 74, b: 195 },
+  { name: "Grand Canyon",  c: [-112.14, 36.20], z: 11.8, p: 68, b: 30 },
+  { name: "Fuji",          c: [138.731, 35.42], z: 11.3, p: 66, b: 180 },
+  { name: "Fitz Roy",      c: [-73.02, -49.32], z: 11.9, p: 70, b: 290 },
+  { name: "Kilimanjaro",   c: [37.355, -3.13],  z: 11.2, p: 62, b: 350 },
+  { name: "Geirangerfjord",c: [7.09, 62.12],    z: 11.6, p: 70, b: 60 },
+  { name: "Table Mountain",c: [18.405, -34.02], z: 12.2, p: 68, b: 340 },
+];
+
+const DEM_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+
+const THEMES = {
+  dark: {
+    style: "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json",
+    hillshade: {
+      "hillshade-shadow-color": "#05070a",
+      "hillshade-highlight-color": "#c8d8e8",
+      "hillshade-accent-color": "#22303f",
+      "hillshade-exaggeration": 0.55,
+    },
+    sky: {
+      "sky-color": "#0b0b0d",
+      "horizon-color": "#16202c",
+      "fog-color": "#0d141d",
+      "sky-horizon-blend": 0.6,
+      "horizon-fog-blend": 0.6,
+    },
+    colorRelief: null, // monochrome sculpture
+  },
+  nature: {
+    style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
+    hillshade: {
+      "hillshade-shadow-color": "#4a3b28",
+      "hillshade-highlight-color": "#ffffff",
+      "hillshade-accent-color": "#5e6b52",
+      "hillshade-exaggeration": 0.5,
+    },
+    sky: {
+      "sky-color": "#a8cdf0",
+      "horizon-color": "#e6f0f8",
+      "fog-color": "#edf3f7",
+      "sky-horizon-blend": 0.7,
+      "horizon-fog-blend": 0.6,
+    },
+    // hypsometric tints + bathymetry (terrarium tiles carry ocean depth)
+    colorRelief: [
+      -6000, "#16354f",
+      -2000, "#2a5578",
+      -200,  "#4d83ab",
+      0,     "#79aac8",
+      1,     "#8fbc85",
+      250,   "#a6c98b",
+      600,   "#c2cf8e",
+      1200,  "#d8c885",
+      2000,  "#c0a06b",
+      3000,  "#9c7a55",
+      4000,  "#8a7466",
+      5000,  "#cfc8c0",
+      6000,  "#ffffff",
+    ],
+  },
+};
+
+// The basemaps ship these boundary layers, painted almost invisibly — the
+// Borders toggle restyles them and lifts them above the terrain layers.
+// Only the country line is drawn: the basemap's wide "outline" halo and its
+// overlapping state lines both muddy it against busy terrain, and county lines
+// are pure clutter at mountain zoom. Legibility comes from colour instead —
+// white loses against snow, so each theme takes a hue that contrasts with its
+// own relief palette.
+const BORDER_LAYERS = ["boundary_country_inner"];
+const HIDE_LAYERS = ["boundary_county", "boundary_state", "boundary_country_outline"];
+const BORDER_PAINT = {
+  dark:   { country: "#ff9f0a" },
+  nature: { country: "#c0392b" },
+};
+
+let theme = "dark";
+let exaggeration = 1.5;
+let bordersOn = false;
+
+function applyBorders() {
+  // county lines are noise at mountain zoom; the halo masks the border line
+  for (const id of HIDE_LAYERS)
+    if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+
+  const vis = bordersOn ? "visible" : "none";
+  for (const id of BORDER_LAYERS) {
+    if (!map.getLayer(id)) continue;
+    map.setLayoutProperty(id, "visibility", vis);
+    if (bordersOn) map.moveLayer(id); // draw above color-relief + hillshade
+  }
+  if (!bordersOn) return;
+
+  const p = BORDER_PAINT[theme];
+  // Solid, not dashed: terrain draping renders line dashes so faintly they
+  // effectively disappear, and thin lines wash out in the drape texture.
+  if (map.getLayer("boundary_country_inner")) {
+    map.setPaintProperty("boundary_country_inner", "line-color", p.country);
+    map.setPaintProperty("boundary_country_inner", "line-opacity", 1);
+    map.setPaintProperty("boundary_country_inner", "line-dasharray", null);
+    map.setPaintProperty("boundary_country_inner", "line-width",
+      ["interpolate", ["linear"], ["zoom"], 3, 2.5, 8, 5, 13, 7]);
+  }
+  map.triggerRepaint();
+}
+
+const start = PLACES[0];
+const map = new maplibregl.Map({
+  container: "map",
+  style: THEMES.dark.style,
+  center: start.c,
+  zoom: start.z,
+  pitch: start.p,
+  bearing: start.b,
+  maxPitch: 80,
+  attributionControl: { compact: true },
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+new ResizeObserver(() => map.resize()).observe(document.getElementById("map"));
+
+// re-applied after every setStyle (style.load fires each time)
+function setupTerrain() {
+  const t = THEMES[theme];
+  const dem = {
+    type: "raster-dem",
+    encoding: "terrarium",
+    tiles: [DEM_TILES],
+    tileSize: 256,
+    maxzoom: 15,
+    attribution: "Terrain: Mapzen via AWS Open Data",
+  };
+  if (!map.getSource("dem")) map.addSource("dem", dem);
+  if (!map.getSource("dem-hs")) map.addSource("dem-hs", { ...dem });
+  map.setTerrain({ source: "dem", exaggeration });
+
+  if (t.colorRelief && !map.getLayer("relief-color")) {
+    try {
+      map.addLayer({
+        id: "relief-color",
+        type: "color-relief",
+        source: "dem-hs",
+        paint: {
+          "color-relief-color": ["interpolate", ["linear"], ["elevation"], ...t.colorRelief],
+          "color-relief-opacity": 1,
+        },
+      });
+    } catch (e) { /* color-relief unavailable — basemap + hillshade still work */ }
+  }
+  if (!map.getLayer("hillshade")) {
+    map.addLayer({ id: "hillshade", type: "hillshade", source: "dem-hs", paint: t.hillshade });
+  }
+  try { map.setSky(t.sky); } catch (e) {}
+  applyBorders();
+}
+map.on("style.load", setupTerrain);
+
+/* borders toggle */
+const btnBorders = document.getElementById("btn-borders");
+btnBorders.addEventListener("click", () => {
+  bordersOn = !bordersOn;
+  btnBorders.classList.toggle("active", bordersOn);
+  btnBorders.setAttribute("aria-pressed", String(bordersOn));
+  applyBorders();
+});
+
+/* theme control */
+document.querySelectorAll("#theme button").forEach((b) =>
+  b.addEventListener("click", () => {
+    if (theme === b.dataset.t) return;
+    theme = b.dataset.t;
+    document.querySelectorAll("#theme button").forEach((x) => x.classList.toggle("active", x === b));
+    document.body.classList.toggle("light", theme === "nature");
+    map.setStyle(THEMES[theme].style); // style.load re-runs setupTerrain
+  })
+);
+
+/* exaggeration control */
+document.querySelectorAll("#exag button").forEach((b) =>
+  b.addEventListener("click", () => {
+    exaggeration = Number(b.dataset.x);
+    document.querySelectorAll("#exag button").forEach((x) => x.classList.toggle("active", x === b));
+    map.setTerrain({ source: "dem", exaggeration });
+  })
+);
+
+/* place chips */
+const placesEl = document.getElementById("places");
+placesEl.innerHTML = PLACES.map(
+  (p, i) => `<button data-i="${i}"${i === 0 ? ' class="active"' : ""}>${p.name}</button>`
+).join("");
+placesEl.querySelectorAll("button").forEach((b) =>
+  b.addEventListener("click", () => {
+    const p = PLACES[b.dataset.i];
+    placesEl.querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b));
+    map.flyTo({ center: p.c, zoom: p.z, pitch: p.p, bearing: p.b, duration: 3200 });
+  })
+);
+
+/* click → elevation (queryTerrainElevation returns exaggerated meters) */
+const readout = document.getElementById("readout");
+map.on("click", (e) => {
+  const ev = map.queryTerrainElevation(e.lngLat);
+  if (ev == null) return;
+  document.getElementById("hint").style.display = "none";
+  readout.style.display = "block";
+  readout.querySelector(".ev").textContent = `${Math.round(ev / exaggeration).toLocaleString()} m`;
+  readout.querySelector(".co").textContent = `${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`;
+});
+</script>
+</body>
+</html>

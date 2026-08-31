@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passport — CIV FM</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛂</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="../passport-map.css">
+<style>
+  html, body { height: 100%; margin: 0; background: #0b0b0d; }
+  #pm-root { width: 100%; height: 100%; }
+  .back {
+    position: absolute; top: 84px; left: 24px; z-index: 11;
+    font: 500 12px -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0a84ff; text-decoration: none;
+  }
+  .back:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div id="pm-root"></div>
+<a class="back" href="../">← CIV FM</a>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script src="../passport-map.js"></script>
+<script>
+  // permalink: /passport/#ESP opens the Spanish passport
+  const initial = /^#[A-Z]{3}$/.test(location.hash) ? location.hash.slice(1) : "UKR";
+
+  const pm = new PassportMap(document.getElementById("pm-root"), {
+    passport: initial,
+    modes: ["visa", "tax"],
+    showHeader: true,
+    // dataBaseUrl: "https://passport.booga.me/data/",  // once the subdomain exists
+    onSelectCountry: (iso3, req) => console.log("selected", iso3, req),
+    onReady: (m) => {
+      m.el.querySelector(".pm-passport").addEventListener("change", (e) => {
+        history.replaceState(null, "", "#" + e.target.value);
+      });
+    },
+  });
+</script>
+</body>
+</html>

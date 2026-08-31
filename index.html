@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CIV FM — Earth Platform</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- brand + active frequency -->
+<header id="brand">
+  <div class="logo">CIV FM</div>
+  <div class="freq-readout">
+    <span id="freq-name">Air</span>
+    <span id="freq-num">88.0</span>
+  </div>
+  <div id="freq-question" class="freq-question"></div>
+  <div id="subdial" class="hidden"></div>
+  <nav class="pages">
+    <a href="passport/">Passport</a>
+    <a href="relief/">Relief</a>
+  </nav>
+</header>
+
+<!-- HERE panel -->
+<aside id="here-panel">
+  <div class="here-head">
+    <span class="here-label">Here</span>
+    <span id="here-place" class="here-place">No location</span>
+    <button id="btn-locate" title="Use my location">Locate</button>
+  </div>
+  <div id="here-hint" class="here-hint">Click anywhere on the globe to set your point on Earth, or use Locate.</div>
+  <div id="here-body" class="here-body hidden"></div>
+</aside>
+
+<!-- legend -->
+<div id="legend"></div>
+
+<!-- status line -->
+<div id="statusline"><span id="status-text">Starting…</span></div>
+
+<!-- global disaster alerts (GDACS) -->
+<button id="alerts" class="hidden"></button>
+
+<!-- dial -->
+<nav id="dial">
+  <div class="dial-track">
+    <button class="chan" data-ch="air"><span class="n">Air</span><span class="f">88.0</span></button>
+    <button class="chan" data-ch="ground"><span class="n">Ground</span><span class="f">90.5</span></button>
+    <button class="chan" data-ch="water"><span class="n">Water</span><span class="f">93.0</span></button>
+    <button class="chan" data-ch="body"><span class="n">Body</span><span class="f">95.5</span></button>
+    <button class="chan" data-ch="grid"><span class="n">Grid</span><span class="f">98.0</span></button>
+    <button class="chan" data-ch="money"><span class="n">Money</span><span class="f">100.5</span></button>
+    <button class="chan" data-ch="people"><span class="n">People</span><span class="f">103.0</span></button>
+    <button class="chan" data-ch="signal"><span class="n">Signal</span><span class="f">105.5</span></button>
+  </div>
+</nav>
+
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script src="cities.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

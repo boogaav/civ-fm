@@ -1,0 +1,99 @@
+/* PassportMap component styles (pm-*) — Apple-minimal, matches CIV FM */
+.pm {
+  --pm-space: #0b0b0d;
+  --pm-glass: rgba(28, 28, 30, .66);
+  --pm-glass-2: rgba(255, 255, 255, .06);
+  --pm-hairline: rgba(255, 255, 255, .1);
+  --pm-ink: #f5f5f7;
+  --pm-muted: #98989d;
+  --pm-accent: #0a84ff;
+  position: relative;
+  width: 100%; height: 100%;
+  background: var(--pm-space);
+  color: var(--pm-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+.pm-map { position: absolute; inset: 0; }
+.pm-map .maplibregl-ctrl-attrib { background: rgba(11,11,13,.5) !important; font-size: 9px; }
+.pm-map .maplibregl-canvas { outline: none; }
+
+.pm-header {
+  position: absolute; top: 20px; left: 24px; z-index: 10; pointer-events: none;
+}
+.pm-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; display: block; }
+.pm-sub { font-size: 12px; color: var(--pm-muted); }
+
+.pm-controls {
+  position: absolute; top: 20px; right: 24px; z-index: 10;
+  display: flex; gap: 8px; align-items: center;
+}
+.pm-passport {
+  appearance: none;
+  font: 600 13px -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--pm-ink);
+  background: var(--pm-glass);
+  border: 1px solid var(--pm-hairline);
+  border-radius: 10px;
+  padding: 7px 26px 7px 12px;
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2398989d' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+  max-width: 220px;
+}
+.pm-modes {
+  display: flex; gap: 3px;
+  background: var(--pm-glass);
+  border: 1px solid var(--pm-hairline);
+  border-radius: 10px;
+  padding: 3px;
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+}
+.pm-modes button {
+  appearance: none; background: none; border: none;
+  font: 600 13px -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--pm-muted); cursor: pointer;
+  padding: 5px 14px; border-radius: 7px;
+}
+.pm-modes button:hover { color: var(--pm-ink); background: var(--pm-glass-2); }
+.pm-modes button.active { background: rgba(255,255,255,.14); color: var(--pm-ink); }
+
+.pm-panel {
+  position: absolute; left: 24px; bottom: 20px; z-index: 10;
+  max-width: min(560px, calc(100% - 48px));
+  background: var(--pm-glass);
+  border: 1px solid var(--pm-hairline);
+  border-radius: 14px;
+  padding: 12px 16px;
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  font-size: 13px;
+}
+.pm-status { color: var(--pm-muted); font-size: 12px; }
+.pm-status:empty { display: none; }
+.pm-summary { line-height: 1.5; }
+.pm-summary:empty { display: none; }
+.pm-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+.pm-legend:empty { display: none; }
+.pm-key { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--pm-muted); }
+.pm-key i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+.pm .maplibregl-popup-content {
+  background: var(--pm-glass) !important; color: var(--pm-ink) !important;
+  border: 1px solid var(--pm-hairline); border-radius: 10px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px;
+  padding: 8px 11px !important;
+}
+.pm .maplibregl-popup-tip { border-top-color: var(--pm-hairline) !important; border-bottom-color: var(--pm-hairline) !important; }
+
+@media (max-width: 640px) {
+  .pm-controls { top: auto; bottom: 20px; right: 24px; flex-direction: column; align-items: flex-end; }
+  .pm-panel { bottom: 20px; max-width: calc(100% - 200px); }
+}
