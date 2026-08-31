@@ -101,6 +101,7 @@
     <span class="lbl">Style</span>
     <button data-t="dark" class="active">Dark</button>
     <button data-t="nature">Nature</button>
+    <button data-t="satellite">Satellite</button>
   </div>
   <div class="seg glass" id="exag">
     <span class="lbl">Height</span>
@@ -137,6 +138,23 @@ const PLACES = [
 
 const DEM_TILES = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 
+// hypsometric tints + bathymetry (terrarium tiles carry ocean depth)
+const NATURE_RELIEF = [
+  -6000, "#16354f",
+  -2000, "#2a5578",
+  -200,  "#4d83ab",
+  0,     "#79aac8",
+  1,     "#8fbc85",
+  250,   "#a6c98b",
+  600,   "#c2cf8e",
+  1200,  "#d8c885",
+  2000,  "#c0a06b",
+  3000,  "#9c7a55",
+  4000,  "#8a7466",
+  5000,  "#cfc8c0",
+  6000,  "#ffffff",
+];
+
 const THEMES = {
   dark: {
     style: "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json",
@@ -170,22 +188,19 @@ const THEMES = {
       "sky-horizon-blend": 0.7,
       "horizon-fog-blend": 0.6,
     },
-    // hypsometric tints + bathymetry (terrarium tiles carry ocean depth)
-    colorRelief: [
-      -6000, "#16354f",
-      -2000, "#2a5578",
-      -200,  "#4d83ab",
-      0,     "#79aac8",
-      1,     "#8fbc85",
-      250,   "#a6c98b",
-      600,   "#c2cf8e",
-      1200,  "#d8c885",
-      2000,  "#c0a06b",
-      3000,  "#9c7a55",
-      4000,  "#8a7466",
-      5000,  "#cfc8c0",
-      6000,  "#ffffff",
-    ],
+    colorRelief: NATURE_RELIEF,
+  },
+  satellite: {
+    style: null, // built lazily by getSatelliteStyle()
+    hillshade: null, // real imagery carries its own shading
+    sky: {
+      "sky-color": "#8ec1ec",
+      "horizon-color": "#dcebf7",
+      "fog-color": "#e6eef5",
+      "sky-horizon-blend": 0.7,
+      "horizon-fog-blend": 0.6,
+    },
+    colorRelief: null,
   },
 };
 
@@ -199,9 +214,52 @@ const THEMES = {
 const BORDER_LAYERS = ["boundary_country_inner"];
 const HIDE_LAYERS = ["boundary_county", "boundary_state", "boundary_country_outline"];
 const BORDER_PAINT = {
-  dark:   { country: "#ff9f0a" },
-  nature: { country: "#c0392b" },
+  dark:      { country: "#ff9f0a" },
+  nature:    { country: "#c0392b" },
+  satellite: { country: "#ffd60a" },
 };
+
+// Satellite style is raster-only, so it carries no boundary layers of its own.
+// Build it lazily: Esri World Imagery tiles + the Carto vector source lifted
+// from the dark style, with one line layer named "boundary_country_inner" so
+// the Borders toggle works identically across all three styles.
+let satStylePromise = null;
+function getSatelliteStyle() {
+  return (satStylePromise ??= (async () => {
+    let cartoSource = null;
+    try {
+      cartoSource = (await (await fetch(THEMES.dark.style)).json()).sources.carto;
+    } catch (e) { /* imagery still works, borders just unavailable */ }
+    return {
+      version: 8,
+      sources: {
+        sat: {
+          type: "raster",
+          tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution: "Imagery: Esri, Maxar, Earthstar Geographics",
+        },
+        ...(cartoSource ? { carto: cartoSource } : {}),
+      },
+      layers: [
+        { id: "sat", type: "raster", source: "sat" },
+        ...(cartoSource ? [{
+          id: "boundary_country_inner",
+          type: "line",
+          source: "carto",
+          "source-layer": "boundary",
+          filter: ["all", ["==", "admin_level", 2], ["==", "maritime", 0]],
+          layout: { visibility: "none" },
+          paint: { "line-color": "#ffd60a", "line-width": 3 },
+        }] : []),
+      ],
+    };
+  })());
+}
+
+const styleFor = (t) =>
+  t === "satellite" ? getSatelliteStyle() : Promise.resolve(THEMES[t].style);
 
 let theme = "dark";
 let exaggeration = 1.5;
@@ -275,7 +333,7 @@ function setupTerrain() {
       });
     } catch (e) { /* color-relief unavailable — basemap + hillshade still work */ }
   }
-  if (!map.getLayer("hillshade")) {
+  if (t.hillshade && !map.getLayer("hillshade")) {
     map.addLayer({ id: "hillshade", type: "hillshade", source: "dem-hs", paint: t.hillshade });
   }
   try { map.setSky(t.sky); } catch (e) {}
@@ -294,12 +352,12 @@ btnBorders.addEventListener("click", () => {
 
 /* theme control */
 document.querySelectorAll("#theme button").forEach((b) =>
-  b.addEventListener("click", () => {
+  b.addEventListener("click", async () => {
     if (theme === b.dataset.t) return;
     theme = b.dataset.t;
     document.querySelectorAll("#theme button").forEach((x) => x.classList.toggle("active", x === b));
     document.body.classList.toggle("light", theme === "nature");
-    map.setStyle(THEMES[theme].style); // style.load re-runs setupTerrain
+    map.setStyle(await styleFor(theme)); // style.load re-runs setupTerrain
   })
 );
 

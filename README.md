@@ -81,10 +81,14 @@ amber on Dark, deep red on Nature. Only the country line is drawn; the wide
 `boundary_country_outline` halo, `boundary_state`, and `boundary_county` are
 hidden (clutter/muddiness over mountains).
 
-Two styles: **Dark** (monochrome sculpture) and **Nature** — a light theme
+Three styles: **Dark** (monochrome sculpture), **Nature** — a light theme
 using MapLibre's `color-relief` layer for hypsometric tinting (greens →
 tans → browns → snow, plus blue bathymetry: terrarium tiles carry ocean
-depth), with the page UI switching to light glass to match.
+depth), with the page UI switching to light glass to match — and
+**Satellite**: real Esri World Imagery draped over the terrain (built as a
+raster style with the Carto vector boundary source grafted in, so the
+Borders toggle works there too; no hillshade — imagery carries its own
+shading).
 
 Version note: relief pins maplibre-gl **5.7.0** (first with `color-relief`).
 5.24.0 breaks terrain here (tile-bounds + shader errors) — do not bump
