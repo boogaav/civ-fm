@@ -140,7 +140,7 @@ function fmtBig(n) {
 /* ---------------- data loaders (cached with TTLs) ---------------- */
 
 // live feeds expire so the map stays current without a reload
-const TTL = { quakes: 120e3, gdacs: 300e3, eonet: 900e3, cityTemps: 600e3 };
+const TTL = { quakes: 120e3, gdacs: 300e3, eonet: 900e3, cityTemps: 600e3, flights: 300e3, launches: 900e3 };
 
 async function cached(key, loader) {
   const e = state.cache[key];
@@ -242,13 +242,80 @@ async function loadEonetFresh() {
 
 async function loadNews() {
   if (state.cache.news) return state.cache.news;
-  const data = await getJSON(
-    "https://api.gdeltproject.org/api/v2/geo/geo?query=world&format=geojson&timespan=60min&maxpoints=300"
-  );
+  // via the proxy: solves CORS permanently, lights up when GDELT recovers
+  const data = await getJSON(`${PROXY}/gdelt`);
   const features = (data.features || []).filter((f) => f.geometry?.type === "Point");
   state.cache.news = { type: "FeatureCollection", features };
   return state.cache.news;
 }
+
+// Flights are dormant until the Worker can reach a provider (OpenSky blocks
+// datacenter egress anonymously; an OAuth secret on the Worker revives this
+// with zero client changes). The renderer below extrapolates positions from
+// each snapshot using velocity + heading.
+async function loadFlights() {
+  return cached("flights", async () => {
+    const d = await getJSON(`${PROXY}/opensky`);
+    if (!d.states?.length) throw new Error("no flights");
+    return d; // {t, states: [[lon,lat,v_ms,track,callsign],...]}
+  });
+}
+
+async function loadLaunches() {
+  return cached("launches", async () => {
+    const d = await getJSON("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5", 15000);
+    return (d.results || [])
+      .map((r) => ({
+        name: r.name,
+        net: r.net,
+        provider: r.launch_service_provider?.name,
+        pad: r.pad?.name,
+        lat: Number(r.pad?.latitude),
+        lon: Number(r.pad?.longitude),
+      }))
+      .filter((l) => Number.isFinite(l.lat) && Number.isFinite(l.lon));
+  });
+}
+
+// Wikipedia language → country centroid(s); multi-country languages spread
+// their pulses across the countries where the language lives.
+const WIKI_LANGS = {
+  en: [[-98, 39], [-2, 54], [78, 22], [-106, 56], [134, -25], [8, 9]],
+  es: [[-4, 40], [-102, 23], [-64, -34], [-74, 4], [-76, -10], [-71, -33]],
+  de: [[10, 51], [14, 47], [8, 47]],
+  fr: [[2, 46], [-73, 46], [3, 28], [23, -3]],
+  ru: [[90, 60], [37, 55]],
+  ja: [[138, 36]],
+  zh: [[104, 35], [121, 24]],
+  pt: [[-53, -11], [-8, 39]],
+  it: [[12, 43]],
+  ar: [[30, 26], [45, 24], [-7, 32], [44, 33]],
+  uk: [[31, 49]],
+  pl: [[19, 52]],
+  nl: [[5, 52]],
+  id: [[113, -1]],
+  tr: [[35, 39]],
+  vi: [[106, 16]],
+  fa: [[53, 32]],
+  ko: [[128, 36]],
+  sv: [[15, 62]],
+  he: [[35, 31]],
+  cs: [[15, 50]],
+  fi: [[26, 64]],
+  hu: [[19, 47]],
+  th: [[101, 15]],
+  da: [[9, 56]],
+  no: [[9, 61]],
+  ro: [[25, 46]],
+  el: [[22, 39]],
+  hi: [[78, 22]],
+  bn: [[90, 24]],
+  uz: [[64, 41]],
+  ca: [[1.5, 41.5]],
+  sr: [[21, 44]],
+  sk: [[19, 48]],
+  bg: [[25, 43]],
+};
 
 // country polygons, id = ISO alpha-3
 async function loadCountryShapes() {
@@ -410,14 +477,18 @@ function renderHere() {
 
 /* ---------------- channel plumbing ---------------- */
 
-const LAYER_IDS = ["choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news"];
-const SOURCE_IDS = ["choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news"];
+const LAYER_IDS = ["choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news", "wiki", "flights", "iss-trail"];
+const SOURCE_IDS = ["choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news", "wiki", "flights", "iss-trail"];
 
 function clearChannelLayers() {
   for (const id of LAYER_IDS) if (map.getLayer(id)) map.removeLayer(id);
   for (const id of SOURCE_IDS) if (map.getSource(id)) map.removeSource(id);
-  if (state.timers.iss) { clearInterval(state.timers.iss); state.timers.iss = null; }
+  for (const t of ["iss", "flights"]) {
+    if (state.timers[t]) { clearInterval(state.timers[t]); state.timers[t] = null; }
+  }
+  stopWiki();
   if (issMarker) { issMarker.remove(); issMarker = null; }
+  if (launchMarker) { launchMarker.remove(); launchMarker = null; }
 }
 
 function legend(title, rows) {
@@ -468,6 +539,100 @@ const wbHere = (code) => {
 /* ---------------- channels ---------------- */
 
 let issMarker = null;
+let launchMarker = null;
+
+/* ---- Signal helpers ---- */
+
+function startWiki() {
+  stopWiki();
+  const w = (state.wiki = { events: [], stamps: [], es: null });
+  const es = new EventSource("https://stream.wikimedia.org/v2/stream/recentchange");
+  es.onmessage = (m) => {
+    let d;
+    try { d = JSON.parse(m.data); } catch (e) { return; }
+    if (d.type !== "edit" || d.bot) return;
+    const dom = d.meta?.domain || "";
+    if (!dom.endsWith("wikipedia.org")) return;
+    const pts = WIKI_LANGS[dom.split(".")[0]];
+    if (!pts) return;
+    const [lon, lat] = pts[(Math.random() * pts.length) | 0];
+    w.events.push({
+      lon: lon + (Math.random() - 0.5) * 7,
+      lat: lat + (Math.random() - 0.5) * 4,
+      t: Date.now(),
+    });
+    if (w.events.length > 400) w.events.splice(0, w.events.length - 400);
+    w.stamps.push(Date.now());
+  };
+  w.es = es;
+  state.timers.wiki = setInterval(() => {
+    const now = Date.now();
+    w.stamps = w.stamps.filter((t) => now - t < 60000);
+    const src = map.getSource("wiki");
+    if (!src) return;
+    src.setData({
+      type: "FeatureCollection",
+      features: w.events
+        .filter((e) => now - e.t < 2500)
+        .map((e) => ({
+          type: "Feature",
+          properties: { age: (now - e.t) / 2500 },
+          geometry: { type: "Point", coordinates: [e.lon, e.lat] },
+        })),
+    });
+  }, 400);
+}
+
+function stopWiki() {
+  state.wiki?.es?.close();
+  if (state.timers.wiki) { clearInterval(state.timers.wiki); state.timers.wiki = null; }
+}
+
+// dead-reckon each aircraft along its heading from the snapshot timestamp
+function flightsFC() {
+  const base = state.cache.flightsBase;
+  if (!base) return { type: "FeatureCollection", features: [] };
+  const rad = Math.PI / 180;
+  const dt = Date.now() / 1000 - base.t;
+  const features = [];
+  for (const [lon, lat, v, track, callsign] of base.states) {
+    const d = v * dt;
+    const la = lat + (d * Math.cos(track * rad)) / 111320;
+    const lo = lon + (d * Math.sin(track * rad)) / (111320 * Math.cos(lat * rad) || 1);
+    if (Math.abs(la) > 85) continue;
+    features.push({
+      type: "Feature",
+      properties: { callsign },
+      geometry: { type: "Point", coordinates: [((lo + 540) % 360) - 180, la] },
+    });
+  }
+  return { type: "FeatureCollection", features };
+}
+
+function fmtCountdown(net) {
+  const ms = new Date(net) - Date.now();
+  if (isNaN(ms)) return "—";
+  if (ms <= 0) return "T−0";
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return d > 0
+    ? `T−${d}d ${h}h ${m}m`
+    : `T−${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+// spare the SSE connection and timers while the tab is hidden
+document.addEventListener("visibilitychange", () => {
+  if (state.channel !== "signal") return;
+  if (document.hidden) {
+    stopWiki();
+    if (state.timers.flights) { clearInterval(state.timers.flights); state.timers.flights = null; }
+  } else {
+    startWiki();
+    if (map.getSource("flights") && !state.timers.flights)
+      state.timers.flights = setInterval(() => map.getSource("flights")?.setData(flightsFC()), 2000);
+  }
+});
 
 const RAMPS = {
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
@@ -873,13 +1038,14 @@ const CHANNELS = {
     num: "105.5", name: "Signal",
     q: "What is humanity doing and talking about right now?",
     async activate() {
+      // news via proxy (best-effort — revives automatically when GDELT does)
       loadNews()
         .then((news) => {
           if (state.channel !== "signal" || map.getSource("news")) return;
           map.addSource("news", { type: "geojson", data: news });
           map.addLayer({
             id: "news", type: "circle", source: "news",
-            paint: { "circle-radius": 2.5, "circle-color": "#ffffff", "circle-opacity": 0.5 },
+            paint: { "circle-radius": 2.5, "circle-color": "#ffd60a", "circle-opacity": 0.6 },
           });
           popupOnHover("news", (p) => `${(p.name || "news cluster")}`);
           renderHere();
@@ -889,15 +1055,80 @@ const CHANNELS = {
           if (state.channel === "signal") renderHere();
         });
 
+      // Wikipedia pulses — live SSE heartbeat
+      map.addSource("wiki", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "wiki", type: "circle", source: "wiki",
+        paint: {
+          "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 3.5, 1, 1],
+          "circle-color": "#ffffff",
+          "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.9, 1, 0],
+        },
+      });
+      startWiki();
+
+      // flights (dormant until the proxy can reach a provider)
+      loadFlights()
+        .then((base) => {
+          if (state.channel !== "signal" || map.getSource("flights")) return;
+          state.cache.flightsBase = base;
+          map.addSource("flights", { type: "geojson", data: flightsFC() });
+          map.addLayer({
+            id: "flights", type: "circle", source: "flights",
+            paint: {
+              "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 1.3, 6, 3],
+              "circle-color": "#64d2ff", "circle-opacity": 0.75,
+            },
+          });
+          state.timers.flights = setInterval(() => {
+            map.getSource("flights")?.setData(flightsFC());
+          }, 2000);
+          renderHere();
+        })
+        .catch(() => {});
+
+      // next rocket launch — pad marker
+      loadLaunches()
+        .then((launches) => {
+          const L = launches[0];
+          if (!L || state.channel !== "signal" || launchMarker) return;
+          state.cache.nextLaunch = L;
+          const el = document.createElement("div");
+          el.className = "launch-marker";
+          el.innerHTML = "<span></span>LAUNCH";
+          el.title = `${L.name} · ${L.pad}`;
+          launchMarker = new maplibregl.Marker({ element: el }).setLngLat([L.lon, L.lat]).addTo(map);
+          renderHere();
+        })
+        .catch(() => {});
+
+      // ISS + fading trail
+      map.addSource("iss-trail", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: "iss-trail", type: "line", source: "iss-trail",
+        paint: { "line-color": "#64d2ff", "line-width": 1.5, "line-opacity": 0.35 },
+      });
       const el = document.createElement("div");
       el.className = "iss-marker";
       el.innerHTML = "<span></span>ISS";
       issMarker = new maplibregl.Marker({ element: el }).setLngLat([0, 0]).addTo(map);
+      state.cache.issTrail = [[]];
       const tick = async () => {
         try {
           const d = await getJSON("https://api.wheretheiss.at/v1/satellites/25544");
           state.cache.iss = d;
           issMarker.setLngLat([d.longitude, d.latitude]);
+          const segs = state.cache.issTrail;
+          const seg = segs[segs.length - 1];
+          const prev = seg[seg.length - 1];
+          if (prev && Math.abs(d.longitude - prev[0]) > 180) segs.push([[d.longitude, d.latitude]]);
+          else seg.push([d.longitude, d.latitude]);
+          let n = segs.reduce((a, s) => a + s.length, 0);
+          while (n > 120) { if (!segs[0].length) segs.shift(); else segs[0].shift(); n--; }
+          map.getSource("iss-trail")?.setData({
+            type: "Feature", properties: {},
+            geometry: { type: "MultiLineString", coordinates: segs.filter((s) => s.length > 1) },
+          });
           if (state.channel === "signal") renderHere();
         } catch (e) {}
       };
@@ -905,9 +1136,10 @@ const CHANNELS = {
       state.timers.iss = setInterval(tick, 5000);
 
       legend("Signal — right now", [
-        { color: "#ffffff", label: "News events · last 60 min" },
-        { color: "#64d2ff", label: "ISS · live position" },
-        { color: "#3a3a3c", label: "Night side of Earth" },
+        { color: "#ffffff", label: "Wikipedia edits · live, placed by language" },
+        { color: "#64d2ff", label: "ISS · live position + trail" },
+        { color: "#ff9f0a", label: "Next rocket launch" },
+        { color: "#ffd60a", label: "News events (when GDELT is up)" },
       ]);
     },
     async here(el) {
@@ -922,13 +1154,27 @@ const CHANNELS = {
         ) / rad;
       const issDist = iss ? Math.round(haversine(me, { lat: iss.latitude, lng: iss.longitude })) : null;
       const newsCount = state.cache.news?.features?.length;
+      const editsPerMin = state.wiki ? state.wiki.stamps.length : null;
+      let planesNear = null;
+      if (state.cache.flightsBase) {
+        planesNear = flightsFC().features.filter((f) =>
+          haversine(me, { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }) < 300
+        ).length;
+      }
+      const L = state.cache.nextLaunch;
       el.innerHTML =
         `<div class="readouts">` +
         ro("UTC", new Date().toISOString().slice(11, 16)) +
         ro("Sun here", elev > 0 ? "Day" : "Night", "", `elevation ${Math.round(elev)}°`) +
+        ro("Wiki edits", editsPerMin ?? "—", editsPerMin ? "good" : "",
+           "per minute · live, all languages") +
+        ro("Aircraft", planesNear ?? "—", "",
+           planesNear != null ? "within 300 km · extrapolated" : "feed offline") +
         ro("ISS", issDist != null ? `${fmtBig(issDist)} <small>km</small>` : "—",
            issDist != null && issDist < 2000 ? "good" : "",
            iss ? `alt ${Math.round(iss.altitude)} km · ${fmtBig(Math.round(iss.velocity))} km/h` : "acquiring…", true) +
+        ro("Next launch", L ? fmtCountdown(L.net) : "—", "",
+           L ? `${L.name.slice(0, 44)} · ${L.provider || ""}` : "loading…", true) +
         ro("News pulses", newsCount ?? (state.cache.newsDown ? "Offline" : "—"), "",
            state.cache.newsDown ? "GDELT feed unreachable" : "geocoded events · last 60 min", true) +
         `</div>`;

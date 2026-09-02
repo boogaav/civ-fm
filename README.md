@@ -17,7 +17,7 @@ Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt choropleths | GDP, inflation, gold, debt, currency, live USD rate |
 | 103.0 | People  | Population-density choropleth | Population, density, languages, capital |
-| 105.5 | Signal  | ISS live + GDELT news pulses + terminator | UTC, sun elevation, ISS distance |
+| 105.5 | Signal  | Live Wikipedia edit pulses (SSE, placed by language) + ISS with trail + next-launch pad marker + GDELT news (auto-revives) + terminator | UTC, sun, wiki edits/min, aircraft nearby, ISS, launch countdown |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
 (backdrop blur + hairlines), segmented-control dial, Apple system colors,
@@ -37,6 +37,22 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
 - Feeds auto-refresh in place: quakes every 2 min, GDACS every 5 min,
   EONET every 15 min — no reload needed.
 - Ground's HERE panel includes the nearest Orange/Red alert and distance.
+
+## Signal v2 — the live nervous system
+
+- **Wikipedia pulses**: one SSE connection to Wikimedia EventStreams; every
+  human (non-bot) edit becomes a fading blip placed by the wiki's language →
+  country centroid(s), plus a live edits/min counter. Pauses when the tab is
+  hidden.
+- **Next launch**: pad marker + T-countdown from Launch Library (fetched
+  directly — they send CORS `*`; 15-min client cache respects their rate limit).
+- **ISS trail**: fading MultiLineString of sampled positions (antimeridian-safe).
+- **News (GDELT)** routes via the proxy — dormant while their API is down,
+  lights up automatically when it returns.
+- **Flights are dormant**: OpenSky 522s and adsb.fi/adsb.lol 403 Cloudflare
+  Worker egress, and all block browser CORS. The `/opensky` route + the
+  client's dead-reckoning renderer are in place; adding OpenSky OAuth
+  credentials to the Worker later revives planes with zero client changes.
 
 ## /passport — PassportMap component
 
