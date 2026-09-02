@@ -30,8 +30,40 @@ new ResizeObserver(() => map.resize()).observe(document.getElementById("map"));
 map.on("style.load", () => {
   map.setProjection({ type: "globe" });
   addTerminator();
+  applyBorders();
   tune("air");
   setStatus(LIVE);
+});
+
+/* ---------------- borders toggle ---------------- */
+// Off keeps the map quiet (spec rule 6). On emphasizes the basemap's own
+// country lines and lifts them above the choropleths so the toggle works on
+// data channels too. Remembered per-browser.
+
+const BOUNDARY_IDS = ["boundary_county", "boundary_state", "boundary_country_outline", "boundary_country_inner"];
+try { state.borders = localStorage.getItem("civfm-borders") === "on"; } catch (e) { state.borders = false; }
+
+function applyBorders() {
+  const on = state.borders;
+  for (const id of BOUNDARY_IDS) {
+    if (!map.getLayer(id)) continue;
+    map.setLayoutProperty(id, "visibility", on && id === "boundary_country_inner" ? "visible" : "none");
+  }
+  const btn = $("#btn-borders");
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-pressed", String(on));
+  if (!on) return;
+  map.moveLayer("boundary_country_inner"); // above choropleths and rasters
+  map.setPaintProperty("boundary_country_inner", "line-color", "#8b99a8");
+  map.setPaintProperty("boundary_country_inner", "line-opacity", 0.75);
+  map.setPaintProperty("boundary_country_inner", "line-width",
+    ["interpolate", ["linear"], ["zoom"], 1, 0.5, 4, 1, 8, 1.6]);
+}
+
+$("#btn-borders").addEventListener("click", () => {
+  state.borders = !state.borders;
+  try { localStorage.setItem("civfm-borders", state.borders ? "on" : "off"); } catch (e) {}
+  applyBorders();
 });
 
 ["pointerdown", "wheel"].forEach((ev) =>
