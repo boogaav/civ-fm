@@ -185,6 +185,54 @@ body {
   #alerts { top: 96px; max-width: calc(100% - 48px); }
 }
 
+/* ---------- Signal ticker + caption ---------- */
+#ticker {
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+  z-index: 14;
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 8px 12px;
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  width: min(440px, 60vw);
+}
+#btn-sound {
+  appearance: none; background: none; border: none; cursor: pointer;
+  font-size: 14px; padding: 2px 4px; border-radius: 6px; opacity: .7;
+}
+#btn-sound:hover { background: var(--glass-2); opacity: 1; }
+#btn-sound.on { opacity: 1; }
+#ticker-lines { flex: 1; overflow: hidden; height: 54px; }
+#ticker-lines .tline {
+  font-size: 12px; line-height: 18px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ticker-lines .tline:nth-child(2) { opacity: .55; }
+#ticker-lines .tline:nth-child(3) { opacity: .3; }
+#ticker-lines .tl {
+  display: inline-block; min-width: 22px; margin-right: 6px;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.channel-caption {
+  position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
+  z-index: 12; pointer-events: none;
+  font-size: 17px; font-weight: 600; color: var(--ink);
+  text-shadow: 0 1px 8px rgba(0,0,0,.8);
+  white-space: nowrap;
+  animation: captionfade 6.5s ease forwards;
+}
+@keyframes captionfade {
+  0% { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  8%, 75% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .channel-caption { animation: none; } }
+@media (max-width: 720px) { #ticker { display: none !important; } }
+
 /* ---------- dial ---------- */
 #dial {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;

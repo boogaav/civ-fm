@@ -483,7 +483,7 @@ const SOURCE_IDS = ["choro", "grid-lights", "air-cities", "quakes", "eonet", "gd
 function clearChannelLayers() {
   for (const id of LAYER_IDS) if (map.getLayer(id)) map.removeLayer(id);
   for (const id of SOURCE_IDS) if (map.getSource(id)) map.removeSource(id);
-  for (const t of ["iss", "flights"]) {
+  for (const t of ["iss", "flights", "launch"]) {
     if (state.timers[t]) { clearInterval(state.timers[t]); state.timers[t] = null; }
   }
   stopWiki();
@@ -543,6 +543,8 @@ let launchMarker = null;
 
 /* ---- Signal helpers ---- */
 
+const BLIP_LIFE = 5000; // ms a blip stays visible — slow enough for the eye
+
 function startWiki() {
   stopWiki();
   const w = (state.wiki = { events: [], stamps: [], es: null });
@@ -553,7 +555,8 @@ function startWiki() {
     if (d.type !== "edit" || d.bot) return;
     const dom = d.meta?.domain || "";
     if (!dom.endsWith("wikipedia.org")) return;
-    const pts = WIKI_LANGS[dom.split(".")[0]];
+    const lang = dom.split(".")[0];
+    const pts = WIKI_LANGS[lang];
     if (!pts) return;
     const [lon, lat] = pts[(Math.random() * pts.length) | 0];
     w.events.push({
@@ -563,6 +566,8 @@ function startWiki() {
     });
     if (w.events.length > 400) w.events.splice(0, w.events.length - 400);
     w.stamps.push(Date.now());
+    if (d.title) tickerPush(lang, d.title);
+    plink((d.length?.new || 0) - (d.length?.old || 0));
   };
   w.es = es;
   state.timers.wiki = setInterval(() => {
@@ -573,14 +578,80 @@ function startWiki() {
     src.setData({
       type: "FeatureCollection",
       features: w.events
-        .filter((e) => now - e.t < 2500)
+        .filter((e) => now - e.t < BLIP_LIFE)
         .map((e) => ({
           type: "Feature",
-          properties: { age: (now - e.t) / 2500 },
+          properties: { age: (now - e.t) / BLIP_LIFE },
           geometry: { type: "Point", coordinates: [e.lon, e.lat] },
         })),
     });
   }, 400);
+}
+
+/* live edit ticker — the blips, in words */
+
+function tickerPush(lang, title) {
+  const lines = $("#ticker-lines");
+  if (!lines) return;
+  const div = document.createElement("div");
+  div.className = "tline";
+  const tl = document.createElement("span");
+  tl.className = "tl";
+  tl.textContent = lang;
+  div.appendChild(tl);
+  div.appendChild(document.createTextNode(title));
+  lines.prepend(div);
+  while (lines.children.length > 4) lines.lastChild.remove();
+}
+
+/* "Listen to Wikipedia" — one soft note per edit, pitch by edit size */
+
+let audioCtx = null;
+let lastPlink = 0;
+function plink(delta) {
+  if (!state.soundOn) return;
+  const now = performance.now();
+  if (now - lastPlink < 180) return; // don't machine-gun at high edit rates
+  lastPlink = now;
+  audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const mag = Math.min(Math.abs(delta || 50), 2000);
+  o.type = "sine";
+  o.frequency.value = 720 - (mag / 2000) * 480 + Math.random() * 40; // big edits ring lower
+  g.gain.setValueAtTime(0.055, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+  o.connect(g).connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.5);
+}
+
+$("#btn-sound")?.addEventListener("click", () => {
+  state.soundOn = !state.soundOn;
+  const b = $("#btn-sound");
+  b.textContent = state.soundOn ? "🔊" : "🔈";
+  b.classList.toggle("on", state.soundOn);
+  if (state.soundOn) audioCtx?.resume?.();
+});
+
+/* one-sentence channel framing, fades on its own */
+
+function signalLegend(withNews) {
+  legend("Signal — right now", [
+    { color: "#ffffff", label: "Each flash: a person editing Wikipedia" },
+    { color: "#64d2ff", label: "ISS · live position + trail" },
+    { color: "#ff9f0a", label: "Next rocket launch" },
+    ...(withNews ? [{ color: "#ffd60a", label: "News events · last 60 min" }] : []),
+  ]);
+}
+
+function showCaption(text) {
+  document.querySelectorAll(".channel-caption").forEach((c) => c.remove());
+  const div = document.createElement("div");
+  div.className = "channel-caption";
+  div.textContent = text;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 7000);
 }
 
 function stopWiki() {
@@ -1048,6 +1119,7 @@ const CHANNELS = {
             paint: { "circle-radius": 2.5, "circle-color": "#ffd60a", "circle-opacity": 0.6 },
           });
           popupOnHover("news", (p) => `${(p.name || "news cluster")}`);
+          signalLegend(true); // only advertise news once it actually shows
           renderHere();
         })
         .catch(() => {
@@ -1060,9 +1132,9 @@ const CHANNELS = {
       map.addLayer({
         id: "wiki", type: "circle", source: "wiki",
         paint: {
-          "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 3.5, 1, 1],
+          "circle-radius": ["interpolate", ["linear"], ["get", "age"], 0, 4.5, 1, 1.2],
           "circle-color": "#ffffff",
-          "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.9, 1, 0],
+          "circle-opacity": ["interpolate", ["linear"], ["get", "age"], 0, 0.95, 1, 0],
         },
       });
       startWiki();
@@ -1087,7 +1159,7 @@ const CHANNELS = {
         })
         .catch(() => {});
 
-      // next rocket launch — pad marker
+      // next rocket launch — pad marker with a live countdown
       loadLaunches()
         .then((launches) => {
           const L = launches[0];
@@ -1095,9 +1167,13 @@ const CHANNELS = {
           state.cache.nextLaunch = L;
           const el = document.createElement("div");
           el.className = "launch-marker";
-          el.innerHTML = "<span></span>LAUNCH";
+          el.innerHTML = "<span></span><b>LAUNCH</b>";
           el.title = `${L.name} · ${L.pad}`;
           launchMarker = new maplibregl.Marker({ element: el }).setLngLat([L.lon, L.lat]).addTo(map);
+          const label = el.querySelector("b");
+          state.timers.launch = setInterval(() => {
+            label.textContent = `LAUNCH ${fmtCountdown(L.net)}`;
+          }, 1000);
           renderHere();
         })
         .catch(() => {});
@@ -1135,12 +1211,7 @@ const CHANNELS = {
       tick();
       state.timers.iss = setInterval(tick, 5000);
 
-      legend("Signal — right now", [
-        { color: "#ffffff", label: "Wikipedia edits · live, placed by language" },
-        { color: "#64d2ff", label: "ISS · live position + trail" },
-        { color: "#ff9f0a", label: "Next rocket launch" },
-        { color: "#ffd60a", label: "News events (when GDELT is up)" },
-      ]);
+      signalLegend(false);
     },
     async here(el) {
       const me = state.here;
@@ -1209,6 +1280,14 @@ async function tune(ch) {
   }
   setStatus("Tuning…");
   clearChannelLayers();
+  const ticker = $("#ticker");
+  if (ch === "signal") {
+    $("#ticker-lines").innerHTML = "";
+    ticker.classList.remove("hidden");
+    showCaption("Every flash is a person editing Wikipedia — live.");
+  } else {
+    ticker.classList.add("hidden");
+  }
   // day/night shading only where it means something; data channels get full clarity
   if (map.getLayer("terminator-fill"))
     map.setLayoutProperty(
