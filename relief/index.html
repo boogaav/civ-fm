@@ -73,6 +73,29 @@
   #places button:hover { color: var(--ink); background: var(--glass-2); }
   #places button.active { background: var(--active); color: var(--ink); }
 
+  /* sea-level rise bar */
+  #searise {
+    position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+    z-index: 10;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 10px 8px;
+  }
+  #searise .lbl {
+    font: 600 10px var(--font); letter-spacing: .12em; color: var(--muted);
+  }
+  #searise input[type="range"] {
+    writing-mode: vertical-lr; direction: rtl;
+    width: 20px; height: 150px;
+    accent-color: #4da3ff;
+    cursor: ns-resize;
+  }
+  #searise .val {
+    font: 700 12px var(--font); color: var(--ink);
+    font-variant-numeric: tabular-nums; min-width: 44px; text-align: center;
+  }
+  #searise .val.active { color: #4da3ff; }
+  @media (max-width: 640px) { #searise { right: 12px; } }
+
   #readout {
     position: absolute; left: 24px; bottom: 78px; z-index: 10;
     padding: 10px 14px; font-size: 13px; display: none;
@@ -115,6 +138,12 @@
 </div>
 
 <div id="hint" class="glass">Drag to pan · right-drag or two fingers to tilt · click for elevation</div>
+
+<div id="searise" class="glass" title="Raise the sea and watch what drowns">
+  <span class="lbl">SEA</span>
+  <input type="range" id="searise-input" min="0" max="100" step="1" value="0" aria-label="Sea level rise, meters">
+  <span class="val" id="searise-val">+0 m</span>
+</div>
 
 <div id="readout" class="glass">
   <div class="ev"></div>
@@ -337,8 +366,53 @@ function setupTerrain() {
     map.addLayer({ id: "hillshade", type: "hillshade", source: "dem-hs", paint: t.hillshade });
   }
   try { map.setSky(t.sky); } catch (e) {}
+  applyFlood();
   applyBorders();
 }
+
+/* ---- sea-level rise: flood everything below the chosen height ---- */
+
+let seaRise = 0;
+const FLOOD_RGB = { dark: "77,163,255", nature: "45,120,190", satellite: "56,150,220" };
+
+function applyFlood() {
+  const has = map.getLayer("flood");
+  if (seaRise < 1) {
+    if (has) map.setLayoutProperty("flood", "visibility", "none");
+    return;
+  }
+  const rgb = FLOOD_RGB[theme] || FLOOD_RGB.dark;
+  const ramp = [
+    "interpolate", ["linear"], ["elevation"],
+    -11000, `rgba(${rgb},0)`,
+    -1, `rgba(${rgb},0)`,      // existing ocean stays the basemap's
+    0, `rgba(${rgb},1)`,       // newly drowned land lights up
+    seaRise, `rgba(${rgb},1)`,
+    seaRise + 1, `rgba(${rgb},0)`,
+  ];
+  if (!has) {
+    try {
+      map.addLayer({
+        id: "flood", type: "color-relief", source: "dem-hs",
+        paint: { "color-relief-color": ramp, "color-relief-opacity": 0.55 },
+      });
+      applyBorders(); // keep border lines above the water
+    } catch (e) {}
+  } else {
+    map.setLayoutProperty("flood", "visibility", "visible");
+    map.setPaintProperty("flood", "color-relief-color", ramp);
+  }
+}
+
+const seaVal = document.getElementById("searise-val");
+let floodPending = null;
+document.getElementById("searise-input").addEventListener("input", (e) => {
+  seaRise = Number(e.target.value);
+  seaVal.textContent = `+${seaRise} m`;
+  seaVal.classList.toggle("active", seaRise > 0);
+  if (floodPending) return;
+  floodPending = setTimeout(() => { floodPending = null; applyFlood(); }, 120);
+});
 map.on("style.load", setupTerrain);
 
 /* borders toggle */

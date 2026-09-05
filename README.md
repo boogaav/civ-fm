@@ -97,6 +97,12 @@ amber on Dark, deep red on Nature. Only the country line is drawn; the wide
 `boundary_country_outline` halo, `boundary_state`, and `boundary_county` are
 hidden (clutter/muddiness over mountains).
 
+A **SEA bar** (right edge, 0–100 m) raises the ocean: a second `color-relief`
+layer paints everything between 0 m and the chosen height flood-blue, so
+drowned land follows the actual DEM contours live as you drag. Existing ocean
+keeps the basemap's styling; only newly drowned land lights up. Works on all
+three styles.
+
 Three styles: **Dark** (monochrome sculpture), **Nature** — a light theme
 using MapLibre's `color-relief` layer for hypsometric tinting (greens →
 tans → browns → snow, plus blue bathymetry: terrarium tiles carry ocean
