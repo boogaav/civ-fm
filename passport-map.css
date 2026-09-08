@@ -94,6 +94,19 @@
 .pm .maplibregl-popup-tip { border-top-color: var(--pm-hairline) !important; border-bottom-color: var(--pm-hairline) !important; }
 
 @media (max-width: 640px) {
-  .pm-controls { top: auto; bottom: 20px; right: 24px; flex-direction: column; align-items: flex-end; }
-  .pm-panel { bottom: 20px; max-width: calc(100% - 200px); }
+  /* phones: controls become a full-width row under the header; the summary
+     card becomes a compact full-width strip at the bottom — nothing overlaps */
+  .pm-controls {
+    top: 118px; left: 16px; right: 16px;
+    flex-direction: row; align-items: stretch;
+  }
+  .pm-passport { flex: 1; min-width: 0; max-width: none; }
+  .pm-modes { flex: none; }
+  .pm-panel {
+    left: 12px; right: 12px; bottom: 12px;
+    max-width: none; padding: 10px 12px; font-size: 12px;
+  }
+  .pm-summary { line-height: 1.4; }
+  .pm-legend { gap: 3px 10px; margin-top: 6px; }
+  .pm-key { font-size: 11px; }
 }
