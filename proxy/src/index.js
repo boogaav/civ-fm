@@ -2,6 +2,14 @@
 // feeds that don't send Access-Control-Allow-Origin themselves.
 // Allowlist only: this is not a general-purpose proxy.
 
+const ELECTIONS_SPARQL = `SELECT ?item ?itemLabel ?date ?cc ?countryLabel ?typeLabel WHERE {
+  ?item wdt:P31 ?type . ?type wdt:P279* wd:Q40231 .
+  ?item wdt:P585 ?date .
+  OPTIONAL { ?item wdt:P17 ?country . OPTIONAL { ?country wdt:P297 ?cc } }
+  FILTER(?date >= NOW() && ?date <= "2027-12-31T00:00:00Z"^^xsd:dateTime)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+} ORDER BY ?date LIMIT 1000`;
+
 const ROUTES = {
   "/gdacs": {
     url: "https://www.gdacs.org/xml/gdacs.geojson",
@@ -26,7 +34,72 @@ const ROUTES = {
     ttl: 900,
     transform: trimLaunches,
   },
+  // Upcoming elections from Wikidata (SPARQL, ~12s upstream) — 24h edge cache
+  "/elections": {
+    url: "https://query.wikidata.org/sparql?query=" + encodeURIComponent(ELECTIONS_SPARQL),
+    ttl: 86400,
+    headers: { Accept: "application/json" },
+    transform: trimElections,
+  },
 };
+
+// Wikidata rows repeat an item once per date/country/type combination —
+// dedupe by item, keep the earliest future date, classify the tier.
+const NATIONAL = /general|presidential|parliamentary|legislative|federal|referendum|senate|congress|house of representatives|national assembly/;
+const REGIONAL = /\bstate\b|provincial|gubernatorial|regional|\blocal\b|municipal|mayoral|council|county|city|territorial|cantonal|prefectural/;
+const BYELECTION = /by-election|by election|special election/;
+
+function tierOf(label, type) {
+  const t = `${label} ${type}`.toLowerCase();
+  if (BYELECTION.test(t)) return "by-election";
+  if (REGIONAL.test(t)) return "regional";
+  if (NATIONAL.test(t)) return "national";
+  return "regional"; // unknown: never light a country up for it
+}
+
+function trimElections(data) {
+  const byItem = new Map();
+  for (const r of data.results?.bindings || []) {
+    const qid = (r.item?.value || "").split("/").pop();
+    const date = (r.date?.value || "").slice(0, 10);
+    if (!qid || !date) continue;
+    const prev = byItem.get(qid);
+    if (prev && prev.date <= date) continue;
+    const label = r.itemLabel?.value || qid;
+    byItem.set(qid, {
+      qid, label, date,
+      cc: r.cc?.value || null,
+      countryLabel: r.countryLabel?.value || null,
+      tier: tierOf(label, r.typeLabel?.value || ""),
+    });
+  }
+  const elections = [...byItem.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return { fetched: new Date().toISOString(), elections };
+}
+
+// /trends?geo=CC — Google's daily search trends RSS (no CORS upstream).
+// Google may refuse datacenter egress; the client degrades silently.
+function trendsRoute(url) {
+  const geo = url.searchParams.get("geo") || "";
+  if (!/^[A-Z]{2}$/.test(geo)) return null;
+  return {
+    url: `https://trends.google.com/trending/rss?geo=${geo}`,
+    ttl: 900,
+    cachePath: `/trends/${geo}`,
+    text: true,
+    transform: (xml) => {
+      const items = [];
+      const re = /<item>([\s\S]*?)<\/item>/g;
+      let m;
+      while ((m = re.exec(xml)) && items.length < 20) {
+        const title = (m[1].match(/<title>(?:<!\[CDATA\[)?([^<\]]*)/) || [])[1];
+        const traffic = (m[1].match(/<ht:approx_traffic>([^<]*)/) || [])[1];
+        if (title) items.push({ title: title.trim(), traffic: (traffic || "").trim() });
+      }
+      return { geo, items };
+    },
+  };
+}
 
 // states[i]: [0]=icao24 [1]=callsign [5]=lon [6]=lat [8]=on_ground
 // [9]=velocity m/s [10]=true_track — trim ~4MB to a compact ~60KB array
@@ -104,7 +177,10 @@ function adsbRoute(url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const route = url.pathname === "/adsb" ? adsbRoute(url) : ROUTES[url.pathname];
+    const route =
+      url.pathname === "/adsb" ? adsbRoute(url)
+      : url.pathname === "/trends" ? trendsRoute(url)
+      : ROUTES[url.pathname];
     if (!route) return json({ error: "unknown route" }, 404);
 
     const cache = caches.default;
@@ -113,13 +189,16 @@ export default {
     if (hit) return hit;
 
     const upstream = await fetch(route.url, {
-      headers: { "User-Agent": "civfm (civ.fm)" },
+      headers: { "User-Agent": "civfm/0.1 (civ.fm; boogaav@gmail.com)", ...(route.headers || {}) },
     });
-    if (!upstream.ok) return json({ error: `upstream ${upstream.status}` }, 502);
+    if (!upstream.ok) {
+      const detail = (await upstream.text().catch(() => "")).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 240);
+      return json({ error: `upstream ${upstream.status}`, detail }, 502);
+    }
 
     let res;
     if (route.transform) {
-      const body = route.transform(await upstream.json());
+      const body = route.transform(route.text ? await upstream.text() : await upstream.json());
       res = json(body, 200, route.ttl);
     } else {
       res = new Response(upstream.body, {

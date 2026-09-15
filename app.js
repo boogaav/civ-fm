@@ -13,6 +13,7 @@ const state = {
   interacted: false,
   timers: {},
   cache: { wb: {} },
+  subs: {}, // active sub-dial per channel
 };
 
 /* ---------------- map ---------------- */
@@ -172,7 +173,7 @@ function fmtBig(n) {
 /* ---------------- data loaders (cached with TTLs) ---------------- */
 
 // live feeds expire so the map stays current without a reload
-const TTL = { quakes: 120e3, gdacs: 300e3, eonet: 900e3, cityTemps: 600e3, flights: 300e3, launches: 900e3 };
+const TTL = { quakes: 120e3, gdacs: 300e3, eonet: 900e3, cityTemps: 600e3, flights: 300e3, launches: 900e3, elections: 6 * 3600e3 };
 
 async function cached(key, loader) {
   const e = state.cache[key];
@@ -422,6 +423,10 @@ async function addChoropleth({ values, ramp, fmt, opacity = 0.55, input }) {
     "terminator-fill"
   );
   state.choroFmt = fmt;
+  ensureChoroHover();
+}
+
+function ensureChoroHover() {
   if (!state.choroHoverBound) {
     state.choroHoverBound = true;
     const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
@@ -504,7 +509,12 @@ $("#btn-locate").addEventListener("click", () => {
 
 function renderHere() {
   if (!state.here || !state.channel) return;
-  CHANNELS[state.channel].here($("#here-body"));
+  // each render gets its own container, so a slow async renderer from a
+  // previous channel writes into a detached node instead of clobbering us
+  const host = $("#here-body");
+  const el = document.createElement("div");
+  host.replaceChildren(el);
+  CHANNELS[state.channel].here(el);
 }
 
 /* ---------------- channel plumbing ---------------- */
@@ -519,6 +529,7 @@ function clearChannelLayers() {
     if (state.timers[t]) { clearInterval(state.timers[t]); state.timers[t] = null; }
   }
   stopWiki();
+  if (typeof clearPeopleExtras === "function") clearPeopleExtras();
   if (issMarker) { issMarker.remove(); issMarker = null; }
   if (launchMarker) { launchMarker.remove(); launchMarker = null; }
 }
@@ -726,6 +737,7 @@ function fmtCountdown(net) {
 
 // spare the SSE connection and timers while the tab is hidden
 document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && READING.active) scheduleReading();
   if (state.channel !== "signal") return;
   if (document.hidden) {
     stopWiki();
@@ -737,7 +749,416 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+/* ---------------- People sub-dials: Reading + Ballot ---------------- */
+
+// country centroids from the shapes file: bbox centre of each country's
+// largest ring (so Alaska/Hawaii don't drag the USA into the Pacific)
+async function loadCentroids() {
+  if (state.cache.centroids) return state.cache.centroids;
+  const [shapes, facts] = await Promise.all([loadCountryShapes(), loadFacts()]);
+  const out = {};
+  for (const f of shapes.features) {
+    const cc2 = facts.by3[f.id]?.cca2;
+    if (!cc2) continue;
+    const rings = f.geometry.type === "Polygon"
+      ? [f.geometry.coordinates[0]]
+      : f.geometry.coordinates.map((p) => p[0]);
+    let best = null, bestA = -1;
+    for (const r of rings) {
+      let a = 0;
+      for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+      a = Math.abs(a);
+      if (a > bestA) { bestA = a; best = r; }
+    }
+    if (!best) continue;
+    let minX = 180, maxX = -180, minY = 90, maxY = -90;
+    for (const [x, y] of best) {
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    out[cc2] = { lon: (minX + maxX) / 2, lat: (minY + maxY) / 2, iso3: f.id, name: f.properties.name };
+  }
+  state.cache.centroids = out;
+  return out;
+}
+
+function angDist(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180;
+  return Math.acos(Math.min(1, Math.max(-1,
+    Math.sin(lat1 * r) * Math.sin(lat2 * r) +
+    Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r)))) / r;
+}
+
+function clearPeopleExtras() {
+  for (const id of ["reading-labels", "ballot-regional-fill", "ballot-regional-line", "ballot-today"])
+    if (map.getLayer(id)) map.removeLayer(id);
+  for (const id of ["reading", "ballot-regional", "ballot-today"])
+    if (map.getSource(id)) map.removeSource(id);
+  for (const t of ["ballotTick", "ballotCycle", "ballotPulse"])
+    if (state.timers[t]) { clearInterval(state.timers[t]); state.timers[t] = null; }
+  $("#ballot")?.classList.add("hidden");
+  READING.active = false;
+}
+
+/* ---- Reading: what each country read yesterday on Wikipedia ---- */
+
+const READING = { data: {}, inflight: new Set(), active: false, t: null };
+
+// the top rows of every country's list are main pages, search and
+// maintenance pages in a dozen languages — strip them before taking the top 10
+const READ_NOISE_NS = /^(Special|Служебная|Спеціальна|Especial|Spezial|Spécial|Speciale|Speciaal|Specjalna|特別|特殊|특수|Специални|Speciális|Toiminnot|Ειδικό|Özel|ویژه|Đặc_biệt|Wikipedia|Wikipédia|Википедия|Вікіпедія|Portal|Портал|File|Файл|Category|Категория|Категорія|Kategorie|Categoría|Catégorie|Talk|Обсуждение|Обговорення|Help|Довідка|Template|Шаблон|User|Участник|Користувач|Datei|Archivo|Fichier|Plantilla|Vorlage|Modèle|Discusión|Diskussion|Discussion|Utilisateur|Benutzer|Usuario|Ficheiro|Categoria|Usuário|Predefinição|Ajuda|Hilfe|Aide|Ayuda|Media|Медиа|Медіа):/i;
+const READ_NOISE_TITLE = /main_page|search|mudanças_recentes|recent_changes|заглавная_страница|головна_сторінка|hauptseite|accueil|portada|página_principal|pagina_principale|strona_główna|メインページ|首页|首頁|대문|الصفحة_الرئيسية|anasayfa|hoofdpagina|huvudsida|صفحهٔ_اصلی|עמוד_ראשי|halaman_utama|trang_chính|hlavní_strana|kezdőlap|etusivu|κύρια_σελίδα|pagina_principală|หน้าหลัก|forside|मुखपृष्ठ|প্রধান_পাতা|bosh_sahifa|главна_страна|hlavná_stránka|начална_страница|^undefined$|^-$/i;
+
+function isReadingNoise(a) {
+  const t = a.article || "";
+  if (!/wikipedia$/.test(a.project || "")) return true; // commons, wikisource, wikivoyage…
+  if (READ_NOISE_NS.test(t) || READ_NOISE_TITLE.test(t)) return true;
+  // footer/consent-link artifacts that top the charts in several countries
+  if (/^(cookie|http_cookie|cookie_\(|cookies?_\(|wikimedia_foundation|privacy_policy|terms_of_use)/i.test(t)) return true;
+  if (a.rank <= 3 && /page|sahifa|strona|strana|стор|страниц|principal|principale/i.test(t)) return true;
+  return false;
+}
+
+// pageviews lag one day (UTC); fall back one more day if yesterday isn't published yet
+function readingDates() {
+  const f = (x) => `${x.getUTCFullYear()}/${String(x.getUTCMonth() + 1).padStart(2, "0")}/${String(x.getUTCDate()).padStart(2, "0")}`;
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  const y = f(d);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return [y, f(d)];
+}
+
+async function fetchReading(cc) {
+  if (READING.data[cc]) return READING.data[cc];
+  const [d1, d2] = readingDates();
+  const key = `civfm-reading-${cc}-${d1.replace(/\//g, "")}`;
+  try {
+    const c = localStorage.getItem(key);
+    if (c) return (READING.data[cc] = JSON.parse(c));
+  } catch (e) {}
+  // no custom headers: an Api-User-Agent header forces a CORS preflight that
+  // the pageviews API doesn't answer, while the plain GET is CORS-open
+  let res = null;
+  try {
+    for (const day of [d1, d2]) {
+      const r = await fetch(`https://wikimedia.org/api/rest_v1/metrics/pageviews/top-per-country/${cc}/all-access/${day}`);
+      if (r.ok) { res = { day, json: await r.json() }; break; }
+      if (r.status !== 404) break;
+    }
+  } catch (e) {
+    // network/CORS failure: remember it for this session so the scheduler
+    // never spins on the same country
+    return (READING.data[cc] = { date: null, articles: [], failed: true });
+  }
+  const items = res?.json?.items?.[0]?.articles || [];
+  const articles = items.filter((a) => !isReadingNoise(a)).slice(0, 10).map((a) => ({
+    title: a.article.replace(/_/g, " "),
+    article: a.article,
+    project: a.project,
+    views: a.views_ceil,
+  }));
+  const rec = { date: res ? res.day.replace(/\//g, "-") : null, articles };
+  READING.data[cc] = rec;
+  if (res) try { localStorage.setItem(key, JSON.stringify(rec)); } catch (e) {}
+  return rec;
+}
+
+// countries whose centroid is on the visible hemisphere and inside the canvas
+function readingVisible() {
+  const cents = state.cache.centroids || {};
+  const c = map.getCenter(), z = map.getZoom();
+  const canvas = map.getCanvas(), W = canvas.clientWidth, H = canvas.clientHeight;
+  const maxAng = z < 2.5 ? 80 : z < 4 ? 45 : 25;
+  const out = [];
+  for (const [cc, p] of Object.entries(cents)) {
+    if (angDist(c.lat, c.lng, p.lat, p.lon) > maxAng) continue;
+    const pt = map.project([p.lon, p.lat]);
+    if (pt.x < -60 || pt.y < -60 || pt.x > W + 60 || pt.y > H + 60) continue;
+    out.push(cc);
+  }
+  return out;
+}
+
+// lazy, throttled: only what's in view (HERE first, then by population), 6 at a time
+function scheduleReading() {
+  if (!READING.active || document.hidden) return;
+  const pop = state.cache.wb["SP.POP.TOTL"] || {};
+  const cents = state.cache.centroids || {};
+  const here = state.here?.country?.cca2;
+  let want = readingVisible().filter((cc) => !READING.data[cc] && !READING.inflight.has(cc));
+  want.sort((a, b) => (pop[cents[b]?.iso3]?.value || 0) - (pop[cents[a]?.iso3]?.value || 0));
+  if (here && !READING.data[here] && !READING.inflight.has(here)) want = [here, ...want.filter((cc) => cc !== here)];
+  const slots = 6 - READING.inflight.size;
+  for (const cc of want.slice(0, Math.max(0, slots))) {
+    READING.inflight.add(cc);
+    fetchReading(cc).catch(() => {}).finally(() => {
+      READING.inflight.delete(cc);
+      updateReadingLabels();
+      if (here === cc) renderHere();
+      scheduleReading();
+    });
+  }
+}
+
+function updateReadingLabels() {
+  const src = map.getSource("reading");
+  if (!src) return;
+  const cents = state.cache.centroids || {};
+  const rows = [];
+  for (const [cc, rec] of Object.entries(READING.data)) {
+    const top = rec.articles?.[0], c = cents[cc];
+    if (top && c) rows.push({ cc, c, top });
+  }
+  rows.sort((a, b) => b.top.views - a.top.views);
+  src.setData({
+    type: "FeatureCollection",
+    features: rows.map((r, i) => ({
+      type: "Feature",
+      properties: {
+        title: r.top.title, views: r.top.views, cc: r.cc, order: i,
+        bucket: r.top.views >= 100000 ? 3 : r.top.views >= 20000 ? 2 : 1,
+      },
+      geometry: { type: "Point", coordinates: [r.c.lon, r.c.lat] },
+    })),
+  });
+}
+
+async function applyReading() {
+  await loadCentroids();
+  // muted fill so the labels carry the channel
+  removeChoro();
+  const [shapes, facts] = await Promise.all([loadCountryShapes(), loadFacts()]);
+  map.addSource("choro", {
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: shapes.features
+        .filter((f) => facts.by3[f.id])
+        .map((f) => ({ ...f, properties: { name: f.properties.name, value: facts.by3[f.id].cca2, year: "" } })),
+    },
+  });
+  map.addLayer(
+    { id: "choro", type: "fill", source: "choro", paint: { "fill-color": "#ffffff", "fill-opacity": 0.05 } },
+    "terminator-fill"
+  );
+  state.choroFmt = (cc) => {
+    const t = READING.data[cc]?.articles?.[0]?.title;
+    return t ? `Reading: ${t}` : READING.data[cc] ? "no data" : "loading…";
+  };
+  ensureChoroHover();
+
+  map.addSource("reading", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  map.addLayer({
+    id: "reading-labels",
+    type: "symbol",
+    source: "reading",
+    // ~40 most-read countries at globe zoom, more as you zoom in; collision does the rest
+    filter: ["<", ["get", "order"], ["step", ["zoom"], 40, 2.5, 90, 3.5, 400]],
+    layout: {
+      "text-field": ["get", "title"],
+      "text-font": ["Noto Sans Regular", "HanWangHeiLight Regular", "NanumBarunGothic Regular"],
+      "text-size": ["match", ["get", "bucket"], 3, 14, 2, 12, 10],
+      "text-max-width": 8,
+      "text-line-height": 1.1,
+      "text-padding": 4,
+      "symbol-sort-key": ["-", 0, ["get", "views"]],
+    },
+    paint: {
+      "text-color": "#f5f5f7",
+      "text-halo-color": "#0b0b0d",
+      "text-halo-width": 1.3,
+      "text-opacity": ["match", ["get", "bucket"], 3, 1, 2, 0.9, 0.75],
+    },
+  });
+  legend("People — what each country read yesterday", [
+    { color: "#f5f5f7", label: "Label = #1 Wikipedia article · size = views" },
+    { color: "#636366", label: "Wikimedia pageviews · yesterday, UTC" },
+  ]);
+  showCaption("What each country read yesterday on Wikipedia.");
+  READING.active = true;
+  updateReadingLabels();
+  scheduleReading();
+}
+
+map.on("moveend", () => {
+  if (!READING.active) return;
+  clearTimeout(READING.t);
+  READING.t = setTimeout(scheduleReading, 400);
+});
+
+async function fetchTrends(cc) {
+  const c = state.cache.trends?.[cc];
+  if (c && Date.now() - c.t < 900e3) return c.items;
+  const d = await getJSON(`${PROXY}/trends?geo=${cc}`, 10000);
+  (state.cache.trends ??= {})[cc] = { t: Date.now(), items: d.items || [] };
+  return d.items || [];
+}
+
+async function hereReading(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country, cc = c.cca2;
+  el.innerHTML = tuningHTML;
+  let rec = null;
+  try { rec = await fetchReading(cc); } catch (e) {}
+  if (state.channel !== "people" || state.subs.people !== "reading") return;
+  if (!rec || !rec.articles.length) {
+    el.innerHTML = `<div class="here-hint">Wikipedia's top list for ${c.name.common} is unavailable right now.</div>`;
+    return;
+  }
+  const items = rec.articles.map((a, i) =>
+    `<li><span class="n">${i + 1}</span><a href="https://${a.project}.org/wiki/${encodeURIComponent(a.article)}" target="_blank" rel="noopener">${a.title}</a><span class="v">${fmtBig(a.views)}</span></li>`
+  ).join("");
+  el.innerHTML =
+    `<div class="ro wide"><span class="k">${c.name.common} read yesterday · UTC ${rec.date || ""}</span>` +
+    `<ul class="plist">${items}</ul>` +
+    `<div class="psrc">Wikimedia pageviews · top-per-country</div></div>` +
+    `<div id="trends-slot"></div>`;
+  fetchTrends(cc).then((items) => {
+    const slot = $("#trends-slot");
+    if (!slot || !items.length) return;
+    slot.innerHTML =
+      `<div class="ro wide" style="margin-top:7px"><span class="k">Searching now · Google Trends</span>` +
+      `<ul class="plist">${items.slice(0, 5).map((t) => `<li><a>${t.title}</a><span class="v">${t.traffic}</span></li>`).join("")}</ul></div>`;
+  }).catch(() => {}); // trends are a bonus — silence is the failure mode
+}
+
+/* ---- Ballot: days until each country votes (Wikidata) ---- */
+
+const BALLOT = { natByCc: {}, allByCc: {}, next: [], idx: 0 };
+
+async function loadElections() {
+  return cached("elections", async () => {
+    try {
+      const d = await getJSON(`${PROXY}/elections`, 30000);
+      if (!d.elections) throw new Error("bad payload");
+      try { localStorage.setItem("civfm-elections", JSON.stringify(d)); } catch (e) {}
+      return d;
+    } catch (e) {
+      // last good copy beats a blank globe
+      try { const c = localStorage.getItem("civfm-elections"); if (c) return JSON.parse(c); } catch (e2) {}
+      throw e;
+    }
+  });
+}
+
+function daysUntil(dateStr) {
+  const t = Date.UTC(+dateStr.slice(0, 4), +dateStr.slice(5, 7) - 1, +dateStr.slice(8, 10));
+  const n = new Date();
+  return Math.round((t - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())) / 86400000);
+}
+
+const shortKind = (label) =>
+  (label.toLowerCase().match(/presidential|legislative|parliamentary|general|federal|referendum|senate|congress/) || ["election"])[0];
+
+const ballotColor = (days) => ["interpolate", ["linear"], days, ...RAMPS.ballot.flatMap(([v, c]) => [v, c])];
+
+async function applyBallot() {
+  showCaption("Days until each country votes. Source: Wikidata.");
+  let data = null;
+  try { data = await loadElections(); } catch (e) {}
+  const [shapes, facts] = await Promise.all([loadCountryShapes(), loadFacts(), loadCentroids()]);
+  if (!data) {
+    removeChoro();
+    legend("People — upcoming elections", [{ color: "#636366", label: "Wikidata is unavailable right now" }]);
+    return;
+  }
+  const natByCc = {}, allByCc = {};
+  for (const e of data.elections) {
+    if (!e.cc || daysUntil(e.date) < 0) continue;
+    (allByCc[e.cc] ??= []).push(e);
+    if (e.tier === "national" && !natByCc[e.cc]) natByCc[e.cc] = e; // list is date-sorted
+  }
+  BALLOT.natByCc = natByCc; BALLOT.allByCc = allByCc;
+
+  const values = {};
+  for (const [cc, e] of Object.entries(natByCc)) {
+    const iso3 = facts.by2[cc]?.cca3;
+    if (iso3) values[iso3] = { value: daysUntil(e.date), year: `${e.label} · ${e.date}` };
+  }
+  await addChoropleth({
+    values, ramp: RAMPS.ballot, opacity: 0.6,
+    fmt: (d) => (d === 0 ? "Votes today" : `National vote in ${d} days`),
+  });
+
+  // regional / by-election only: light tint + dashed outline, never a full fill
+  const regional = [];
+  for (const f of shapes.features) {
+    const cc = facts.by3[f.id]?.cca2;
+    if (!cc || natByCc[cc] || !allByCc[cc]) continue;
+    const e = allByCc[cc][0];
+    regional.push({ ...f, properties: { name: f.properties.name, days: daysUntil(e.date), label: e.label } });
+  }
+  map.addSource("ballot-regional", { type: "geojson", data: { type: "FeatureCollection", features: regional } });
+  map.addLayer({ id: "ballot-regional-fill", type: "fill", source: "ballot-regional",
+    paint: { "fill-color": ballotColor(["get", "days"]), "fill-opacity": 0.16 } }, "terminator-fill");
+  map.addLayer({ id: "ballot-regional-line", type: "line", source: "ballot-regional",
+    paint: { "line-color": ballotColor(["get", "days"]), "line-width": 1, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
+
+  // election day: pulse
+  const today = shapes.features.filter((f) => {
+    const cc = facts.by3[f.id]?.cca2;
+    return cc && natByCc[cc] && daysUntil(natByCc[cc].date) === 0;
+  });
+  if (today.length) {
+    map.addSource("ballot-today", { type: "geojson", data: { type: "FeatureCollection", features: today } });
+    map.addLayer({ id: "ballot-today", type: "fill", source: "ballot-today", paint: { "fill-color": "#ff453a", "fill-opacity": 0.5 } });
+    state.timers.ballotPulse = setInterval(() => {
+      if (document.hidden || !map.getLayer("ballot-today")) return;
+      map.setPaintProperty("ballot-today", "fill-opacity", 0.3 + 0.35 * Math.abs(Math.sin(Date.now() / 450)));
+    }, 60);
+  }
+
+  legend("People — days until the next national vote", [
+    { gradient: gradientCSS(RAMPS.ballot.slice(0, 5)), from: "Today", to: "1 year" },
+    { color: "#3a3a3c", label: "Grey = beyond a year · dashed = regional or by-election only" },
+    { color: "#636366", label: "Wikidata · scheduled elections through 2027" },
+  ]);
+  startBallotPill(Object.values(natByCc).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3));
+}
+
+function startBallotPill(next) {
+  const pill = $("#ballot");
+  BALLOT.next = next; BALLOT.idx = 0;
+  if (!next.length) return pill.classList.add("hidden");
+  const render = () => {
+    const e = next[BALLOT.idx % next.length];
+    pill.innerHTML =
+      `<span class="bdot"></span><span class="bk">NEXT VOTE</span>` +
+      `<span>${e.countryLabel || e.cc} ${shortKind(e.label)}</span>` +
+      `<span class="bt">${fmtCountdown(e.date + "T00:00:00Z")}</span>`;
+    pill.onclick = () => {
+      const c = state.cache.centroids?.[e.cc];
+      if (!c) return;
+      state.interacted = true;
+      map.flyTo({ center: [c.lon, c.lat], zoom: 4, duration: 1800 });
+    };
+  };
+  render();
+  pill.classList.remove("hidden");
+  state.timers.ballotTick = setInterval(() => { if (!document.hidden) render(); }, 1000);
+  state.timers.ballotCycle = setInterval(() => { BALLOT.idx++; }, 6000);
+}
+
+function hereBallot(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country, cc = c.cca2;
+  const list = BALLOT.allByCc[cc] || [];
+  const nat = BALLOT.natByCc[cc];
+  const head = nat
+    ? ro("Next national election here", `${daysUntil(nat.date)} <small>days</small>`, daysUntil(nat.date) <= 30 ? "bad" : daysUntil(nat.date) <= 180 ? "warn" : "", `${nat.label} · ${nat.date}`, true)
+    : ro("Next election here", Object.keys(BALLOT.allByCc).length ? "None" : "—", "", Object.keys(BALLOT.allByCc).length ? "no national vote scheduled on Wikidata" : "Wikidata unavailable", true);
+  const items = list.slice(0, 8).map((e) =>
+    `<li><span class="v">${e.date}</span><a href="https://www.wikidata.org/wiki/${e.qid}" target="_blank" rel="noopener" title="Open on Wikidata">${e.label}</a><span class="tier ${e.tier}">${e.tier}</span></li>`
+  ).join("");
+  el.innerHTML =
+    `<div class="readouts">${head}` +
+    (items ? `<div class="ro wide"><span class="k">Scheduled in ${c.name.common}</span><ul class="plist">${items}</ul><div class="psrc">Each line links to its Wikidata item</div></div>` : "") +
+    `</div>`;
+}
+
 const RAMPS = {
+  ballot: [[0, "#ff453a"], [30, "#ff453a"], [90, "#ff9f0a"], [180, "#ffd60a"], [365, "#5e8fb8"], [366, "#3a3a3c"], [900, "#3a3a3c"]],
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
   inflation: [[0, "#30d158"], [4, "#ffd60a"], [10, "#ff9f0a"], [25, "#ff453a"]],
   gold: [[7, "#2a251a"], [9, "#57491d"], [10.5, "#a8871f"], [12, "#ffd60a"]], // log10 USD
@@ -1037,7 +1458,7 @@ const CHANNELS = {
         values: () => state.cache.wb["GC.DOD.TOTL.GD.ZS"] },
     ],
     async applySub(id) {
-      state.moneySub = id;
+      state.subs.money = id;
       const sub = this.subs.find((s) => s.id === id);
       document.querySelectorAll("#subdial button").forEach((b) =>
         b.classList.toggle("active", b.dataset.sub === id)
@@ -1068,7 +1489,7 @@ const CHANNELS = {
         }
         state.cache.gold = gold;
       }
-      await this.applySub(state.moneySub || "gdp");
+      await this.applySub(state.subs.money || "gdp");
     },
     async here(el) {
       if (needCountry(el)) return;
@@ -1106,21 +1527,42 @@ const CHANNELS = {
 
   people: {
     num: "103.0", name: "People",
-    q: "Who lives here, and how?",
+    q: "Who lives here, what are they reading, and when do they vote?",
+    subs: [
+      { id: "density", label: "Density" },
+      { id: "reading", label: "Reading" },
+      { id: "ballot", label: "Ballot" },
+    ],
+    async applySub(id) {
+      state.subs.people = id;
+      document.querySelectorAll("#subdial button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.sub === id)
+      );
+      clearPeopleExtras();
+      removeChoro();
+      if (id === "reading") await applyReading();
+      else if (id === "ballot") await applyBallot();
+      else {
+        await addChoropleth({
+          values: state.cache.wb["EN.POP.DNST"] || {},
+          ramp: RAMPS.people,
+          fmt: (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} people / km²`,
+        });
+        legend("People — population density", [
+          { gradient: gradientCSS(RAMPS.people), from: "2 /km²", to: "2,000 /km²" },
+        ]);
+      }
+      if (state.borders) applyBorders(); // keep country lines above the new fills
+      renderHere();
+    },
     async activate() {
-      const [density] = await Promise.all([
-        wb("EN.POP.DNST"), wb("SP.POP.TOTL"), loadFacts(),
-      ]);
-      await addChoropleth({
-        values: density,
-        ramp: RAMPS.people,
-        fmt: (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} people / km²`,
-      });
-      legend("People — population density", [
-        { gradient: gradientCSS(RAMPS.people), from: "2 /km²", to: "2,000 /km²" },
-      ]);
+      await Promise.all([wb("EN.POP.DNST"), wb("SP.POP.TOTL"), loadFacts()]);
+      await this.applySub(state.subs.people || "density");
     },
     async here(el) {
+      const sub = state.subs.people || "density";
+      if (sub === "reading") return hereReading(el);
+      if (sub === "ballot") return hereBallot(el);
       if (needCountry(el)) return;
       const c = state.here.country;
       const langs = Object.values(c.languages || {}).slice(0, 4).join(", ");
@@ -1299,7 +1741,7 @@ async function tune(ch) {
   $("#freq-question").textContent = def.q;
   const sd = $("#subdial");
   if (def.subs) {
-    const current = state.moneySub || def.subs[0].id;
+    const current = state.subs[ch] || def.subs[0].id;
     sd.innerHTML = def.subs
       .map((s) => `<button data-sub="${s.id}"${s.id === current ? ' class="active"' : ""}>${s.label}</button>`)
       .join("");

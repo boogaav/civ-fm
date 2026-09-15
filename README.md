@@ -16,7 +16,7 @@ Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 | 95.5  | Body    | Life-expectancy choropleth | Life expectancy, physicians, health spend |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt choropleths | GDP, inflation, gold, debt, currency, live USD rate |
-| 103.0 | People  | Population-density choropleth | Population, density, languages, capital |
+| 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) | Population/density/languages, top-10 articles + Google Trends, upcoming elections with Wikidata links |
 | 105.5 | Signal  | Live Wikipedia edit pulses (SSE, placed by language) + ISS with trail + next-launch pad marker + GDELT news (auto-revives) + terminator | UTC, sun, wiki edits/min, aircraft nearby, ISS, launch countdown |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
@@ -53,6 +53,36 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   Worker egress, and all block browser CORS. The `/opensky` route + the
   client's dead-reckoning renderer are in place; adding OpenSky OAuth
   credentials to the Worker later revives planes with zero client changes.
+
+## People sub-dials — Reading and Ballot
+
+**Reading** — one floating label per country: its #1 Wikipedia article
+yesterday, from Wikimedia's `top-per-country` pageviews API (keyless,
+CORS-open, fetched directly by the browser). Label size scales with views
+(three buckets); at globe zoom only the ~40 most-read countries show, more
+appear as you zoom, and MapLibre collision keeps them from overlapping.
+Fetching is lazy — only countries in view plus HERE, six at a time, HERE
+first then by population — and cached in memory + localStorage per day.
+Main pages, Special/maintenance namespaces (a dozen languages), non-Wikipedia
+projects and footer-link artifacts are filtered before taking the top 10.
+Click a country: the panel lists its top 10 with views and links, dated
+"yesterday · UTC", plus a "Searching now" section from Google Trends via the
+Worker's `/trends?geo=CC` route (15-min cache) — omitted silently if Google
+refuses. Data realities: Wikimedia publishes nothing for privacy-protected
+countries (Russia, Egypt, Iran… → 404, no label) and small countries' lists
+are often only main/search pages, so ~40 labels at globe zoom is the ceiling.
+
+**Ballot** — Wikidata SPARQL (all scheduled elections through 2027) via the
+Worker's `/elections` route (24-h cache; rows deduped by item, classified
+national / regional / by-election from type + label; ISO codes via `P297`).
+Countries fill by days until their next *national* vote (red ≤30 d → orange
+90 → yellow 180 → blue 365 → grey beyond); regional/by-election-only
+countries get a light tint + dashed outline instead. A top-center pill cycles
+the next three national votes every 6 s (`NEXT VOTE · Russia legislative ·
+T−4d 12h`), click flies there; on election day the country pulses. The
+panel lists a country's upcoming elections, every line linking to its
+Wikidata item. Last good copy is kept in localStorage so the sub-dial
+survives the Worker being down.
 
 ## /passport — PassportMap component
 

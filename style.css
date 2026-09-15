@@ -247,6 +247,45 @@ body {
 @media (prefers-reduced-motion: reduce) { .channel-caption { animation: none; } }
 @media (max-width: 720px) { #ticker { display: none !important; } }
 
+
+/* ---------- People › Ballot countdown pill ---------- */
+#ballot {
+  position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+  z-index: 14;
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  border-radius: 99px;
+  padding: 6px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  max-width: min(70vw, 520px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ballot .bdot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--warn); animation: adotpulse 2s ease-in-out infinite; }
+#ballot .bk { font-size: 10px; letter-spacing: .12em; color: var(--muted); }
+#ballot .bt { color: var(--warn); font-variant-numeric: tabular-nums; }
+#ballot:hover { background: rgba(255,255,255,.1); }
+@media (max-width: 720px) { #ballot { top: 140px; max-width: calc(100% - 48px); } }
+
+/* ---------- People panels: reading + elections lists ---------- */
+.plist { list-style: none; margin: 6px 0 0; padding: 0; }
+.plist li { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; border-top: 1px solid var(--hairline); font-size: 12.5px; }
+.plist li:first-child { border-top: 0; }
+.plist .n { font-size: 10.5px; color: var(--faint); min-width: 16px; font-variant-numeric: tabular-nums; }
+.plist a { color: var(--ink); text-decoration: none; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plist a:hover { color: var(--accent); }
+.plist .v { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plist .tier { font-size: 9.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--hairline); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+.plist .tier.national { color: var(--warn); border-color: rgba(255,159,10,.4); }
+.plist .wd { font-size: 10.5px; color: var(--faint); text-decoration: none; }
+.plist .wd:hover { color: var(--accent); }
+.psrc { font-size: 10.5px; color: var(--faint); margin-top: 6px; }
+
 /* ---------- dial ---------- */
 #dial {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
