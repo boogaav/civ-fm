@@ -13,7 +13,7 @@ Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 | 88.0  | Air     | Live city temperatures (Open-Meteo) + day/night | Temp, AQI, UV, wind, sun, 24 h sparkline |
 | 90.5  | Ground  | USGS quakes + NASA EONET fires/storms/volcanoes | Nearest hazards + distances |
 | 93.0  | Water   | Water-stress choropleth (World Bank SDG 6.4.2) | Stress %, soil moisture, GloFAS river discharge, rain |
-| 95.5  | Body    | Life-expectancy choropleth | Life expectancy, physicians, health spend |
+| 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt choropleths | GDP, inflation, gold, debt, currency, live USD rate |
 | 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) | Population/density/languages, top-10 articles + Google Trends, upcoming elections with Wikidata links |
@@ -53,6 +53,21 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   Worker egress, and all block browser CORS. The `/opensky` route + the
   client's dead-reckoning renderer are in place; adding OpenSky OAuth
   credentials to the Worker later revives planes with zero client changes.
+
+## Body sub-dials — what's legal here
+
+`substances.js` is a curated snapshot (dated in the file, shown in the UI)
+of substance law by country: **cannabis** (legal / varies by state /
+decriminalised-tolerated / medical / illegal / severe), **alcohol** (legal /
+restricted / banned), **tobacco & nicotine vapes** (legal / restricted /
+vapes banned), **psychedelics** (psilocybin and natural psychedelics) and
+**decrim** (personal use of all drugs decriminalised / cannabis only / no).
+Each entry carries a one-line note that appears on hover and in the HERE
+card, which shows all five statuses for the pinned country at once. Unlisted
+countries take the layer default (cannabis and psychedelics: illegal;
+alcohol, tobacco: legal; decrim: no). There is no keyless API for drug law,
+so this is maintained by hand — the caption says so and tells you to verify
+locally. Edit `substances.js` to update; no code changes needed.
 
 ## People sub-dials — Reading and Ballot
 

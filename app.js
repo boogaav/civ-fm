@@ -36,6 +36,22 @@ map.on("style.load", () => {
   setStatus(LIVE);
 });
 
+/* ---------------- mobile pill placement ---------------- */
+// On phones the header block (title, sub-dial, links) varies in height, so
+// the alert and ballot pills anchor just below it instead of at fixed offsets.
+function placePills() {
+  const alerts = $("#alerts"), ballot = $("#ballot"), brand = $("#brand");
+  if (!alerts || !brand) return;
+  if (window.innerWidth > 720) { alerts.style.top = ""; if (ballot) ballot.style.top = ""; return; }
+  let y = brand.getBoundingClientRect().bottom + 8;
+  alerts.style.top = `${y}px`;
+  if (!alerts.classList.contains("hidden")) y += alerts.getBoundingClientRect().height + 8;
+  if (ballot) ballot.style.top = `${y}px`;
+}
+new ResizeObserver(placePills).observe(document.getElementById("brand"));
+window.addEventListener("resize", placePills);
+new MutationObserver(placePills).observe($("#alerts"), { attributes: true, attributeFilter: ["class"] });
+
 /* ---------------- borders toggle ---------------- */
 // Off keeps the map quiet (spec rule 6). On emphasizes the basemap's own
 // country lines and lifts them above the choropleths so the toggle works on
@@ -1157,6 +1173,77 @@ function hereBallot(el) {
     `</div>`;
 }
 
+
+/* ---------------- Body sub-dials: what's legal here ---------------- */
+
+const SUBST_COLORS = {
+  legal: "#30d158", yes: "#30d158",
+  decrim: "#66d4cf", partial: "#66d4cf",
+  medical: "#ffd60a", restricted: "#ffd60a",
+  mixed: "#bf5af2",
+  illegal: "#48484a", no: "#48484a",
+  severe: "#ff453a", banned: "#ff453a",
+};
+
+const SUBST_LAYERS = {
+  cannabis: { label: "Cannabis", title: "Body — cannabis law",
+    statuses: { legal: "Legal (recreational)", mixed: "Varies by state / region", decrim: "Decriminalised / tolerated", medical: "Medical only", illegal: "Illegal", severe: "Illegal · severe penalties" } },
+  alcohol: { label: "Alcohol", title: "Body — alcohol law",
+    statuses: { legal: "Legal", restricted: "Restricted (permits, dry regions)", banned: "Banned" } },
+  tobacco: { label: "Tobacco", title: "Body — tobacco & nicotine vapes",
+    statuses: { legal: "Tobacco and vapes legal", restricted: "Vapes prescription-only / tobacco sales restricted", banned: "Nicotine vapes banned" } },
+  psychedelics: { label: "Psychedelics", title: "Body — psilocybin & natural psychedelics",
+    statuses: { legal: "Legal / unregulated", decrim: "Decriminalised / traditional use", medical: "Medical only", mixed: "Varies by state", illegal: "Illegal", severe: "Illegal · severe penalties" } },
+  decrim: { label: "Decrim", title: "Body — personal drug use decriminalised",
+    statuses: { yes: "All drugs (personal use)", partial: "Cannabis only", no: "Not decriminalised" } },
+};
+
+const substStatus = (layer, cc) => {
+  const table = SUBSTANCES[layer];
+  const rec = cc && table[cc];
+  return rec ? { status: rec[0], note: rec[1] } : { status: table.default, note: "" };
+};
+
+// categorical sibling of addChoropleth: value is a status string, "year" carries the note
+async function addCategoricalChoro({ layer, opacity = 0.62 }) {
+  removeChoro();
+  const def = SUBST_LAYERS[layer];
+  const [shapes, facts] = await Promise.all([loadCountryShapes(), loadFacts()]);
+  const features = [];
+  for (const f of shapes.features) {
+    const cc = facts.by3[f.id]?.cca2;
+    if (!cc) continue;
+    const { status, note } = substStatus(layer, cc);
+    features.push({ ...f, properties: { name: f.properties.name, value: status, year: note } });
+  }
+  map.addSource("choro", { type: "geojson", data: { type: "FeatureCollection", features } });
+  const match = ["match", ["get", "value"]];
+  for (const [st, col] of Object.entries(SUBST_COLORS)) match.push(st, col);
+  match.push("#48484a");
+  map.addLayer(
+    { id: "choro", type: "fill", source: "choro", paint: { "fill-color": match, "fill-opacity": opacity } },
+    "terminator-fill"
+  );
+  state.choroFmt = (st) => def.statuses[st] || st;
+  ensureChoroHover();
+  legend(def.title, [
+    ...Object.entries(def.statuses).map(([st, label]) => ({ color: SUBST_COLORS[st], label })),
+    { color: "transparent", label: `Curated snapshot · ${SUBSTANCES.updated} · verify locally` },
+  ]);
+}
+
+function hereSubstances(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country, cc = c.cca2;
+  const rows = Object.entries(SUBST_LAYERS).map(([layer, def]) => {
+    const { status, note } = substStatus(layer, cc);
+    return `<li><span class="sk">${def.label}</span><span><span class="st"><i style="background:${SUBST_COLORS[status]}"></i>${def.statuses[status] || status}</span>${note ? `<span class="sn">${note}</span>` : ""}</span></li>`;
+  }).join("");
+  el.innerHTML =
+    `<div class="ro wide"><span class="k">What's legal in ${c.name.common}</span><ul class="subst">${rows}</ul>` +
+    `<div class="psrc">Curated snapshot, ${SUBSTANCES.updated}. Laws change — verify before you travel.</div></div>`;
+}
+
 const RAMPS = {
   ballot: [[0, "#ff453a"], [30, "#ff453a"], [90, "#ff9f0a"], [180, "#ffd60a"], [365, "#5e8fb8"], [366, "#3a3a3c"], [900, "#3a3a3c"]],
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
@@ -1368,21 +1455,42 @@ const CHANNELS = {
 
   body: {
     num: "95.5", name: "Body",
-    q: "Will this place keep me healthy?",
+    q: "Will this place keep me healthy — and what may I legally consume?",
+    subs: [
+      { id: "life", label: "Life" },
+      { id: "cannabis", label: "Cannabis" },
+      { id: "alcohol", label: "Alcohol" },
+      { id: "tobacco", label: "Tobacco" },
+      { id: "psychedelics", label: "Psychedelics" },
+      { id: "decrim", label: "Decrim" },
+    ],
+    async applySub(id) {
+      state.subs.body = id;
+      document.querySelectorAll("#subdial button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.sub === id)
+      );
+      if (id === "life") {
+        await addChoropleth({
+          values: state.cache.wb["SP.DYN.LE00.IN"] || {},
+          ramp: RAMPS.body,
+          fmt: (v) => `Life expectancy ${v.toFixed(1)} yrs`,
+        });
+        legend("Body — life expectancy", [
+          { gradient: gradientCSS(RAMPS.body), from: "55 yrs", to: "86 yrs" },
+        ]);
+      } else {
+        await addCategoricalChoro({ layer: id });
+        showCaption("What's legal here — curated, mid-2026. Laws change; verify before you travel.");
+      }
+      if (state.borders) applyBorders();
+      renderHere();
+    },
     async activate() {
-      const [life] = await Promise.all([
-        wb("SP.DYN.LE00.IN"), wb("SH.MED.PHYS.ZS"), wb("SH.XPD.CHEX.GD.ZS"),
-      ]);
-      await addChoropleth({
-        values: life,
-        ramp: RAMPS.body,
-        fmt: (v) => `Life expectancy ${v.toFixed(1)} yrs`,
-      });
-      legend("Body — life expectancy", [
-        { gradient: gradientCSS(RAMPS.body), from: "55 yrs", to: "86 yrs" },
-      ]);
+      await Promise.all([wb("SP.DYN.LE00.IN"), wb("SH.MED.PHYS.ZS"), wb("SH.XPD.CHEX.GD.ZS"), loadFacts()]);
+      await this.applySub(state.subs.body || "life");
     },
     async here(el) {
+      if ((state.subs.body || "life") !== "life") return hereSubstances(el);
       if (needCountry(el)) return;
       const life = wbHere("SP.DYN.LE00.IN");
       const phys = wbHere("SH.MED.PHYS.ZS");

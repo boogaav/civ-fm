@@ -53,7 +53,7 @@ body {
 /* ---------- sub-dial (channel subsections) ---------- */
 #subdial {
   margin-top: 10px;
-  display: flex; gap: 4px;
+  display: flex; flex-wrap: wrap; gap: 4px;
   background: var(--glass);
   border: 1px solid var(--hairline);
   border-radius: 10px;
@@ -236,7 +236,7 @@ body {
   z-index: 12; pointer-events: none;
   font-size: 17px; font-weight: 600; color: var(--ink);
   text-shadow: 0 1px 8px rgba(0,0,0,.8);
-  white-space: nowrap;
+  max-width: min(86vw, 640px); text-align: center; line-height: 1.35;
   animation: captionfade 6.5s ease forwards;
 }
 @keyframes captionfade {
@@ -285,6 +285,16 @@ body {
 .plist .wd { font-size: 10.5px; color: var(--faint); text-decoration: none; }
 .plist .wd:hover { color: var(--accent); }
 .psrc { font-size: 10.5px; color: var(--faint); margin-top: 6px; }
+
+
+/* ---------- Body › substances card ---------- */
+.subst { list-style: none; margin: 0; padding: 0; }
+.subst li { display: grid; grid-template-columns: 82px 1fr; gap: 6px 10px; padding: 6px 0; border-top: 1px solid var(--hairline); font-size: 12px; align-items: start; }
+.subst li:first-child { border-top: 0; padding-top: 0; }
+.subst .sk { font-size: 11px; font-weight: 600; color: var(--muted); padding-top: 1px; }
+.subst .st { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
+.subst .st i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.subst .sn { display: block; font-size: 11px; color: var(--muted); line-height: 1.35; margin-top: 2px; }
 
 /* ---------- dial ---------- */
 #dial {
