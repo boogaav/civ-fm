@@ -1174,6 +1174,27 @@ function hereBallot(el) {
 }
 
 
+/* ---------------- Money: curated tax rates ---------------- */
+
+function taxValues(layer) {
+  const key = `tax:${layer}`;
+  if (state.cache[key]) return state.cache[key];
+  const facts = state.cache.facts;
+  if (!facts) return {};
+  const out = {};
+  for (const [cc, [rate, note]] of Object.entries(TAXES[layer])) {
+    const iso3 = facts.by2[cc]?.cca3;
+    if (iso3) out[iso3] = { value: rate, year: note };
+  }
+  return (state.cache[key] = out);
+}
+
+const taxHere = (layer) => {
+  const cc = state.here?.country?.cca2;
+  const rec = cc && TAXES[layer][cc];
+  return rec ? { rate: rec[0], note: rec[1] } : null;
+};
+
 /* ---------------- Body sub-dials: what's legal here ---------------- */
 
 const SUBST_COLORS = {
@@ -1245,6 +1266,8 @@ function hereSubstances(el) {
 }
 
 const RAMPS = {
+  income: [[0, "#30d158"], [15, "#66d4cf"], [30, "#ffd60a"], [45, "#ff9f0a"], [57, "#ff453a"]],
+  corporate: [[0, "#30d158"], [10, "#66d4cf"], [20, "#ffd60a"], [28, "#ff9f0a"], [35, "#ff453a"]],
   ballot: [[0, "#ff453a"], [30, "#ff453a"], [90, "#ff9f0a"], [180, "#ffd60a"], [365, "#5e8fb8"], [366, "#3a3a3c"], [900, "#3a3a3c"]],
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
   inflation: [[0, "#30d158"], [4, "#ffd60a"], [10, "#ff9f0a"], [25, "#ff453a"]],
@@ -1564,6 +1587,14 @@ const CHANNELS = {
         ramp: "debt", from: "20%", to: "130%+",
         fmt: (v) => `Debt ${Math.round(v)}% of GDP`,
         values: () => state.cache.wb["GC.DOD.TOTL.GD.ZS"] },
+      { id: "income", label: "Income tax", title: "Money — top personal income-tax rate",
+        ramp: "income", from: "0%", to: "57%",
+        fmt: (v) => `Top income tax ${v}%`,
+        values: () => taxValues("income"), curated: true },
+      { id: "corporate", label: "Corporate tax", title: "Money — corporate income-tax rate",
+        ramp: "corporate", from: "0%", to: "35%",
+        fmt: (v) => `Corporate tax ${v}%`,
+        values: () => taxValues("corporate"), curated: true },
     ],
     async applySub(id) {
       state.subs.money = id;
@@ -1579,12 +1610,16 @@ const CHANNELS = {
       });
       legend(sub.title, [
         { gradient: gradientCSS(RAMPS[sub.ramp]), from: sub.from, to: sub.to },
+        ...(sub.curated ? [{ color: "transparent", label: `Statutory headline rates · curated ${TAXES.updated} · before deductions` }] : []),
       ]);
+      if (sub.curated) showCaption("Statutory tax rates — curated, mid-2026. Effective rates differ; verify locally.");
+      if (state.borders) applyBorders();
+      renderHere();
     },
     async activate() {
       const [, , , resTotal, resNoGold] = await Promise.all([
         wb("NY.GDP.PCAP.PP.CD"), wb("FP.CPI.TOTL.ZG"), wb("GC.DOD.TOTL.GD.ZS"),
-        wb("FI.RES.TOTL.CD"), wb("FI.RES.XGLD.CD"),
+        wb("FI.RES.TOTL.CD"), wb("FI.RES.XGLD.CD"), loadFacts(),
       ]);
       // gold reserves (USD) = total reserves − reserves excluding gold
       if (!state.cache.gold) {
@@ -1617,6 +1652,7 @@ const CHANNELS = {
       }
       const gold = state.cache.gold?.[c.cca3];
       const debt = wbHere("GC.DOD.TOTL.GD.ZS");
+      const inc = taxHere("income"), corp = taxHere("corporate");
       el.innerHTML =
         `<div class="readouts">` +
         ro("GDP / capita", gdp ? `$${fmtBig(gdp.value)}` : "—", "", gdp ? `PPP · ${gdp.year}` : "") +
@@ -1629,6 +1665,12 @@ const CHANNELS = {
            debt ? `of GDP · ${debt.year}` : "no data") +
         ro("Currency", curCode ? `${cur?.symbol || ""} ${curCode}` : "—", "", cur?.name || "") +
         ro("US dollar", fx ? `${fx.toFixed(fx > 20 ? 0 : 2)}` : "—", "", curCode ? `1 USD in ${curCode} · daily rate` : "") +
+        ro("Top income tax", inc ? `${inc.rate}<small>%</small>` : "—",
+           inc ? (inc.rate >= 45 ? "bad" : inc.rate >= 25 ? "warn" : "good") : "",
+           inc ? inc.note : "no curated data", true) +
+        ro("Corporate tax", corp ? `${corp.rate}<small>%</small>` : "—",
+           corp ? (corp.rate >= 28 ? "bad" : corp.rate >= 15 ? "warn" : "good") : "",
+           corp ? corp.note : "no curated data", true) +
         `</div>`;
     },
   },

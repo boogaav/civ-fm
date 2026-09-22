@@ -15,7 +15,7 @@ Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 | 93.0  | Water   | Water-stress choropleth (World Bank SDG 6.4.2) | Stress %, soil moisture, GloFAS river discharge, rain |
 | 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
-| 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt choropleths | GDP, inflation, gold, debt, currency, live USD rate |
+| 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
 | 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) | Population/density/languages, top-10 articles + Google Trends, upcoming elections with Wikidata links |
 | 105.5 | Signal  | Live Wikipedia edit pulses (SSE, placed by language) + ISS with trail + next-launch pad marker + GDELT news (auto-revives) + terminator | UTC, sun, wiki edits/min, aircraft nearby, ISS, launch countdown |
 
@@ -53,6 +53,19 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   Worker egress, and all block browser CORS. The `/opensky` route + the
   client's dead-reckoning renderer are in place; adding OpenSky OAuth
   credentials to the Worker later revives planes with zero client changes.
+
+## Money sub-dials — tax
+
+`taxes.js` is a curated snapshot (dated in the file, shown in the UI) of
+statutory headline rates: **top personal income-tax rate** (national; typical
+sub-national or surtaxes in the note — e.g. US 37% federal + state, Japan
+45% + 10% local) and **corporate income-tax rate** (combined where
+sub-national applies, e.g. Germany ≈29.9%, Canada ≈26.2%). ~135 countries
+each; unlisted countries show no data. Rates are before deductions, credits,
+treaties and special regimes — Malta's 35% headline is ≈5% effective after
+refunds, which the note says. There is no keyless API for statutory rates
+(the World Bank only has tax *revenue* % of GDP), so this is hand-maintained;
+edit `taxes.js` to update.
 
 ## Body sub-dials — what's legal here
 
