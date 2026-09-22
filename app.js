@@ -32,7 +32,7 @@ map.on("style.load", () => {
   map.setProjection({ type: "globe" });
   addTerminator();
   applyBorders();
-  tune("air");
+  tune("earth");
   setStatus(LIVE);
 });
 
@@ -1476,6 +1476,36 @@ const CHANNELS = {
     },
   },
 
+  earth: {
+    num: "88.0", name: "Earth",
+    q: "Can I breathe, is the ground safe, can I drink?",
+    subs: [
+      { id: "air", label: "Air" },
+      { id: "ground", label: "Ground" },
+      { id: "water", label: "Water" },
+    ],
+    async applySub(id) {
+      state.subs.earth = id;
+      document.querySelectorAll("#subdial button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.sub === id)
+      );
+      clearChannelLayers();
+      // day/night shading belongs to the sky and the ground, not to a data map
+      map.getLayer("terminator-fill") &&
+        map.setLayoutProperty("terminator-fill", "visibility", id === "water" ? "none" : "visible");
+      $("#freq-question").textContent = CHANNELS[id].q;
+      await CHANNELS[id].activate();
+      if (state.borders) applyBorders();
+      renderHere();
+    },
+    async activate() {
+      await this.applySub(state.subs.earth || "air");
+    },
+    here(el) {
+      return CHANNELS[state.subs.earth || "air"].here(el);
+    },
+  },
+
   body: {
     num: "95.5", name: "Body",
     q: "Will this place keep me healthy — and what may I legally consume?",
@@ -1917,7 +1947,7 @@ async function tune(ch) {
     map.setLayoutProperty(
       "terminator-fill",
       "visibility",
-      ["air", "ground", "signal"].includes(ch) ? "visible" : "none"
+      ch === "signal" || (ch === "earth" && (state.subs.earth || "air") !== "water") ? "visible" : "none"
     );
   try {
     await def.activate();
@@ -1952,9 +1982,10 @@ async function refreshAlerts() {
     pill.classList.toggle("red", red > 0);
     pill.innerHTML = `<span class="adot"></span>${active.length} active alert${active.length > 1 ? "s" : ""} · ${top.properties.name}`;
     pill.classList.remove("hidden");
-    pill.onclick = () => {
+    pill.onclick = async () => {
       state.interacted = true;
-      tune("ground");
+      await tune("earth");
+      if (state.subs.earth !== "ground") await CHANNELS.earth.applySub("ground");
       map.flyTo({ center: top.geometry.coordinates.slice(0, 2), zoom: 4.5, duration: 2200 });
     };
   } catch (e) {
@@ -1967,7 +1998,7 @@ setInterval(refreshAlerts, 300e3);
 
 // keep Ground's live layers fresh in place (cached() enforces the TTLs)
 setInterval(async () => {
-  if (state.channel !== "ground") return;
+  if (state.channel !== "earth" || state.subs.earth !== "ground") return;
   try { map.getSource("quakes")?.setData(await loadQuakes()); } catch (e) {}
   try { map.getSource("gdacs")?.setData(await loadGdacs()); } catch (e) {}
 }, 120e3);

@@ -6,13 +6,13 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## v0.2 — all eight channels live, Apple-style UI
+## The dial — six channels, Apple-style UI
+
+Air, Ground and Water were merged into one **Earth** channel with a sub-dial (2026-09-22); the original three implementations live on as its sub-views.
 
 | Freq  | Channel | Globe layer | HERE readouts |
 |-------|---------|-------------|----------------|
-| 88.0  | Air     | Live city temperatures (Open-Meteo) + day/night | Temp, AQI, UV, wind, sun, 24 h sparkline |
-| 90.5  | Ground  | USGS quakes + NASA EONET fires/storms/volcanoes | Nearest hazards + distances |
-| 93.0  | Water   | Water-stress choropleth (World Bank SDG 6.4.2) | Stress %, soil moisture, GloFAS river discharge, rain |
+| 88.0  | Earth   | Sub-dial: Air (live city temperatures + day/night) · Ground (USGS quakes, GDACS alerts, EONET events) · Water (water-stress choropleth) | Air: temp, AQI, UV, wind, sun, 24 h sparkline · Ground: nearest hazards · Water: stress %, soil moisture, river discharge, rain |
 | 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
