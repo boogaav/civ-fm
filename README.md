@@ -6,9 +6,9 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## The dial — six channels, Apple-style UI
+## The dial — five channels, Apple-style UI
 
-Air, Ground and Water were merged into one **Earth** channel with a sub-dial (2026-09-22); the original three implementations live on as its sub-views.
+Air, Ground and Water were merged into one **Earth** channel, and Signal into **People**, each as a sub-dial (2026-09-22); the original implementations live on as sub-views.
 
 | Freq  | Channel | Globe layer | HERE readouts |
 |-------|---------|-------------|----------------|
@@ -16,8 +16,7 @@ Air, Ground and Water were merged into one **Earth** channel with a sub-dial (20
 | 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
-| 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) | Population/density/languages, top-10 articles + Google Trends, upcoming elections with Wikidata links |
-| 105.5 | Signal  | Live Wikipedia edit pulses (SSE, placed by language) + ISS with trail + next-launch pad marker + GDELT news (auto-revives) + terminator | UTC, sun, wiki edits/min, aircraft nearby, ISS, launch countdown |
+| 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) · Signal (live Wikipedia edit pulses, ISS with trail, next-launch marker, GDELT news when up, terminator) | Population/density/languages · top-10 articles + Google Trends · upcoming elections with Wikidata links · UTC, sun, wiki edits/min, ISS, launch countdown |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
 (backdrop blur + hairlines), segmented-control dial, Apple system colors,
@@ -38,7 +37,7 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   EONET every 15 min — no reload needed.
 - Ground's HERE panel includes the nearest Orange/Red alert and distance.
 
-## Signal v2 — the live nervous system
+## People › Signal — the live nervous system
 
 - **Wikipedia pulses**: one SSE connection to Wikimedia EventStreams; every
   human (non-bot) edit becomes a fading blip placed by the wiki's language →

@@ -754,7 +754,7 @@ function fmtCountdown(net) {
 // spare the SSE connection and timers while the tab is hidden
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && READING.active) scheduleReading();
-  if (state.channel !== "signal") return;
+  if (!signalActive()) return;
   if (document.hidden) {
     stopWiki();
     if (state.timers.flights) { clearInterval(state.timers.flights); state.timers.flights = null; }
@@ -1194,6 +1194,9 @@ const taxHere = (layer) => {
   const rec = cc && TAXES[layer][cc];
   return rec ? { rate: rec[0], note: rec[1] } : null;
 };
+
+// Signal lives inside People now; every live-feed guard asks this instead of the channel
+const signalActive = () => state.channel === "people" && state.subs.people === "signal";
 
 /* ---------------- Body sub-dials: what's legal here ---------------- */
 
@@ -1712,15 +1715,24 @@ const CHANNELS = {
       { id: "density", label: "Density" },
       { id: "reading", label: "Reading" },
       { id: "ballot", label: "Ballot" },
+      { id: "signal", label: "Signal" },
     ],
     async applySub(id) {
       state.subs.people = id;
       document.querySelectorAll("#subdial button").forEach((b) =>
         b.classList.toggle("active", b.dataset.sub === id)
       );
-      clearPeopleExtras();
-      removeChoro();
-      if (id === "reading") await applyReading();
+      clearChannelLayers(); // choropleths, people extras, and Signal's live layers/timers
+      const ticker = $("#ticker");
+      ticker.classList.toggle("hidden", id !== "signal");
+      map.getLayer("terminator-fill") &&
+        map.setLayoutProperty("terminator-fill", "visibility", id === "signal" ? "visible" : "none");
+      $("#freq-question").textContent = id === "signal" ? CHANNELS.signal.q : this.q;
+      if (id === "signal") {
+        $("#ticker-lines").innerHTML = "";
+        showCaption("Every flash is a person editing Wikipedia — live.");
+        await CHANNELS.signal.activate();
+      } else if (id === "reading") await applyReading();
       else if (id === "ballot") await applyBallot();
       else {
         await addChoropleth({
@@ -1741,6 +1753,7 @@ const CHANNELS = {
     },
     async here(el) {
       const sub = state.subs.people || "density";
+      if (sub === "signal") return CHANNELS.signal.here(el);
       if (sub === "reading") return hereReading(el);
       if (sub === "ballot") return hereBallot(el);
       if (needCountry(el)) return;
@@ -1766,7 +1779,7 @@ const CHANNELS = {
       // news via proxy (best-effort — revives automatically when GDELT does)
       loadNews()
         .then((news) => {
-          if (state.channel !== "signal" || map.getSource("news")) return;
+          if (!signalActive() || map.getSource("news")) return;
           map.addSource("news", { type: "geojson", data: news });
           map.addLayer({
             id: "news", type: "circle", source: "news",
@@ -1778,7 +1791,7 @@ const CHANNELS = {
         })
         .catch(() => {
           state.cache.newsDown = true;
-          if (state.channel === "signal") renderHere();
+          if (signalActive()) renderHere();
         });
 
       // Wikipedia pulses — live SSE heartbeat
@@ -1796,7 +1809,7 @@ const CHANNELS = {
       // flights (dormant until the proxy can reach a provider)
       loadFlights()
         .then((base) => {
-          if (state.channel !== "signal" || map.getSource("flights")) return;
+          if (!signalActive() || map.getSource("flights")) return;
           state.cache.flightsBase = base;
           map.addSource("flights", { type: "geojson", data: flightsFC() });
           map.addLayer({
@@ -1817,7 +1830,7 @@ const CHANNELS = {
       loadLaunches()
         .then((launches) => {
           const L = launches[0];
-          if (!L || state.channel !== "signal" || launchMarker) return;
+          if (!L || !signalActive() || launchMarker) return;
           state.cache.nextLaunch = L;
           const el = document.createElement("div");
           el.className = "launch-marker";
@@ -1859,7 +1872,7 @@ const CHANNELS = {
             type: "Feature", properties: {},
             geometry: { type: "MultiLineString", coordinates: segs.filter((s) => s.length > 1) },
           });
-          if (state.channel === "signal") renderHere();
+          if (signalActive()) renderHere();
         } catch (e) {}
       };
       tick();
@@ -1934,20 +1947,13 @@ async function tune(ch) {
   }
   setStatus("Tuning…");
   clearChannelLayers();
-  const ticker = $("#ticker");
-  if (ch === "signal") {
-    $("#ticker-lines").innerHTML = "";
-    ticker.classList.remove("hidden");
-    showCaption("Every flash is a person editing Wikipedia — live.");
-  } else {
-    ticker.classList.add("hidden");
-  }
+  $("#ticker").classList.add("hidden"); // People › Signal shows it again
   // day/night shading only where it means something; data channels get full clarity
   if (map.getLayer("terminator-fill"))
     map.setLayoutProperty(
       "terminator-fill",
       "visibility",
-      ch === "signal" || (ch === "earth" && (state.subs.earth || "air") !== "water") ? "visible" : "none"
+      ch === "earth" && (state.subs.earth || "air") !== "water" ? "visible" : "none"
     );
   try {
     await def.activate();
