@@ -535,8 +535,8 @@ function renderHere() {
 
 /* ---------------- channel plumbing ---------------- */
 
-const LAYER_IDS = ["choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news", "wiki", "flights", "iss-trail"];
-const SOURCE_IDS = ["choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news", "wiki", "flights", "iss-trail"];
+const LAYER_IDS = ["future-line", "future", "choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news", "wiki", "flights", "iss-trail"];
+const SOURCE_IDS = ["future", "choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news", "wiki", "flights", "iss-trail"];
 
 function clearChannelLayers() {
   for (const id of LAYER_IDS) if (map.getLayer(id)) map.removeLayer(id);
@@ -546,6 +546,7 @@ function clearChannelLayers() {
   }
   stopWiki();
   if (typeof clearPeopleExtras === "function") clearPeopleExtras();
+  if (typeof futureTeardown === "function") futureTeardown();
   if (issMarker) { issMarker.remove(); issMarker = null; }
   if (launchMarker) { launchMarker.remove(); launchMarker = null; }
 }

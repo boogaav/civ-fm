@@ -385,3 +385,46 @@ body {
   .freq-question { display: none; }
   .chan { padding: 8px 10px; }
 }
+
+/* ---------- Future: year bar + HERE lists ---------- */
+#future-bar {
+  position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 11;
+  width: min(480px, calc(100% - 640px)); min-width: 300px; box-sizing: border-box;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--glass); border: 1px solid var(--hairline); border-radius: var(--radius);
+  backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  padding: 8px 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+#fut-play {
+  appearance: none; flex: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  background: var(--glass-2); border: 1px solid var(--hairline); display: grid; place-items: center;
+}
+#fut-play svg { width: 11px; height: 11px; fill: var(--ink); }
+#fut-play:hover { background: rgba(255,255,255,.14); }
+.fut-yearbox { display: flex; flex-direction: column; flex: none; min-width: 72px; }
+.fut-yearbox b { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.fut-yearbox span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#fut-slider { flex: 1; min-width: 0; accent-color: var(--accent); }
+.fut-mode { display: flex; flex: none; gap: 2px; background: var(--glass-2); border-radius: 8px; padding: 2px; }
+.fut-mode button {
+  appearance: none; border: none; background: none; cursor: pointer; border-radius: 6px;
+  font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 8px;
+}
+.fut-mode button.active { background: rgba(255,255,255,.14); color: var(--ink); }
+#future-bar button:focus-visible, #fut-slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; }
+.fut-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.fut-list li { display: flex; flex-direction: column; gap: 1px; padding: 5px 0 5px 9px; border-top: 1px solid var(--hairline); position: relative; }
+.fut-list li:first-child { border-top: 0; }
+.fut-list li::before { content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 2px; border-radius: 1px; }
+.fut-list li.g::before { background: var(--ok); }
+.fut-list li.r::before { background: var(--bad); }
+.fut-list b { font-size: 12px; font-weight: 600; }
+.fut-list span { font-size: 11px; color: var(--muted); line-height: 1.35; }
+@media (max-width: 1000px) { #future-bar { width: calc(100% - 48px); bottom: auto; top: 150px; } }
+@media (max-width: 720px) {
+  #future-bar { top: auto; bottom: 88px; min-width: 0; gap: 8px; padding: 6px 10px; }
+  body.ch-future #here-panel { bottom: 146px; max-height: 42vh; }
+  .fut-yearbox { min-width: 56px; }
+  .fut-mode button { padding: 4px 6px; }
+}

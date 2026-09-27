@@ -6,7 +6,7 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## The dial — five channels, Apple-style UI
+## The dial — six channels, Apple-style UI
 
 Air, Ground and Water were merged into one **Earth** channel, and Signal into **People**, each as a sub-dial (2026-09-22); the original implementations live on as sub-views.
 
@@ -16,6 +16,7 @@ Air, Ground and Water were merged into one **Earth** channel, and Signal into **
 | 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
+| 106.5 | Future  | Sub-dial: Outlook · Climate zone · Crops · Warming — all 4,595 first-level regions under the worst-case SSP5-8.5 pathway, 2026–2125, with a year bar (play, slider, Central / High-end sensitivity) | Local warming, net outlook (gain vs risk) for the region and nationwide, Köppen zone today → year, climate twin ("feels like today's …"), growing season, crop potential, summer highs / winter lows, new or lost crops, top gains and risks |
 | 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) · Signal (live Wikipedia edit pulses, ISS with trail, next-launch marker, GDELT news when up, terminator) | Population/density/languages · top-10 articles + Google Trends · upcoming elections with Wikidata links · UTC, sun, wiki edits/min, ISS, launch countdown |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
@@ -52,6 +53,34 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   Worker egress, and all block browser CORS. The `/opensky` route + the
   client's dead-reckoning renderer are in place; adding OpenSky OAuth
   credentials to the Worker later revives planes with zero client changes.
+
+## Future — the worst-case century
+
+`future/` holds a climate emulator and its data; `future/future.js` is the
+channel and registers itself as `CHANNELS.future` after `app.js` loads.
+
+- **Data** — `future/regions.json` (TopoJSON, ~1.9 MB, fetched only when
+  Future is tuned): Natural Earth admin-1 regions with WorldClim 2.1
+  monthly min/max temperature and rainfall (1970–2000) aggregated per
+  region, plus precomputed centroid, area and a coastal flag.
+- **Model** — `future/model.js` (`window.Model`, no dependencies). IPCC AR6
+  SSP5-8.5 global warming, scaled per region (land/Arctic amplification,
+  seasonal shape, rainfall percent per degree). From the projected monthly
+  climate it derives Köppen-Geiger zones (Beck et al. 2018), growing season,
+  frost-free days, permafrost climate, heating/cooling degree-days, FAO
+  EcoCrop suitability for eight crops with a heat-damage penalty, AR6
+  extreme-event multipliers, sea level, Arctic shipping season, and climate
+  twins (nearest present-day analog, Fitzpatrick & Dunn 2019).
+- **Outlook** — opportunity (crop gains, longer seasons, lower heating,
+  wetter drylands, permafrost retreat, Arctic routes) minus risk (warming,
+  crop loss, drought, sea level, cooling demand, humid heat, thaw damage,
+  fire weather). Weights are CIV FM's own, for comparing places.
+- **Rendering** — one GeoJSON source; each region's colour is set with
+  `setFeatureState`, so scrubbing years never re-tiles.
+- The same engine powers the standalone Hothouse Atlas artifact. It is an
+  emulator for direction and rough size, not a forecast: soils, irrigation,
+  CO₂ fertilisation and local effects (mountains, monsoon shifts) are not
+  modelled.
 
 ## Money sub-dials — tax
 
