@@ -161,6 +161,13 @@ new PassportMap(el, {
   (visa-free with days, visa on arrival, eTA, e-visa, required, no admission),
   with per-category counts and an openness summary.
 - **Tax mode** — tax revenue as % of GDP (World Bank, 194 countries).
+- **Citizenship mode** — years of legal residence before you can apply for
+  naturalisation by the standard route (~110 countries, curated in
+  `passport-map.js` as `NATURALIZATION`, dated 2026-09). Buckets from ≤3 years
+  (Argentina, Peru, Canada) to 20+ (UAE, Qatar) and "no practical route"
+  (China); each country's note covers fast tracks and whether dual
+  citizenship is allowed. Marriage, descent and investment routes are faster
+  and not shown — the legend says so.
 - Permalinks: `passport/#ESP` opens the Spanish passport. The People channel's
   HERE panel deep-links to your country's passport.
 - Neither `@booga/passport-map` (npm) nor `passport.booga.me` exists yet —
