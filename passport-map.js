@@ -148,9 +148,113 @@
     },
   };
 
+
+  // Curated immigration-policy snapshot, mid-2026: ISO3 → [approach, who, why].
+  // approach = the dominant thing a country's immigration system is built to
+  // attract; most countries run several routes, so "who" names the others.
+  // A reading of published policy, not legal advice — rules shift every year.
+  const IMM_APPROACH = {
+    talent:    ["#0a84ff", "Skilled talent"],
+    capital:   ["#ffd60a", "Investors & wealth"],
+    lifestyle: ["#66d4cf", "Nomads & retirees"],
+    labour:    ["#ff9f0a", "Guest workers"],
+    diaspora:  ["#bf5af2", "Diaspora & kin"],
+    open:      ["#30d158", "Open door"],
+    family:    ["#ff6482", "Family & humanitarian"],
+    closed:    ["#636366", "Largely closed"],
+  };
+  const IMMIGRATION = {
+    updated: "2026-09",
+    data: {
+      // — skilled talent —
+      CAN: ["talent", "Skilled workers ranked by Express Entry points; students; French speakers", "Ageing population and labour shortages — though targets were cut for 2025–27 after housing strain"],
+      AUS: ["talent", "Skilled workers on points-tested visas; international students", "Fill skill shortages in a small workforce; student route tightened since 2024"],
+      NZL: ["talent", "Skilled residents on the Green List; active investors", "Small workforce and a steady brain drain to Australia"],
+      GBR: ["talent", "Workers above a salary threshold, health staff, Global Talent", "Post-Brexit points system; 2025 reforms raise thresholds to cut net migration"],
+      DEU: ["talent", "Skilled workers via the Opportunity Card points system and EU Blue Card", "Needs roughly 400,000 workers a year as the population ages"],
+      NLD: ["talent", "Highly skilled migrants on employer-sponsored permits", "Knowledge economy; expat tax break is being trimmed as politics turn restrictive"],
+      IRL: ["talent", "Tech, pharma and health workers on Critical Skills permits", "Staff the multinationals that drive the economy"],
+      FRA: ["talent", "Researchers, founders and executives on the Talent passport; students", "Compete for qualified workers while the 2024 law tightens other routes"],
+      AUT: ["talent", "Skilled workers scored for the Red-White-Red Card", "Shortages in trades, care and engineering"],
+      CHE: ["talent", "EU workers by free movement; quota-limited non-EU specialists", "High-wage economy that needs specialists but caps their number"],
+      BEL: ["talent", "Highly skilled workers on the single permit", "Shortage occupations in each region"],
+      LUX: ["talent", "Finance and EU-institution professionals; cross-border workers", "Nearly half the residents are already foreign; finance needs more"],
+      SWE: ["talent", "Workers above a rising salary floor; researchers", "Pivot since 2022 from asylum to labour migration and paid returns"],
+      DNK: ["talent", "High earners on the Pay Limit scheme; shortage-list workers", "Welcomes top earners while running Europe's strictest asylum policy"],
+      NOR: ["talent", "Skilled workers with a job offer; EEA free movement", "Oil, maritime and health shortages"],
+      FIN: ["talent", "Specialists, founders and students", "Workforce shrinking fast; rules for staying were tightened in 2024–25"],
+      EST: ["talent", "Founders and remote workers — e-Residency, startup and nomad visas", "Tiny country building a digital economy bigger than its population"],
+      SGP: ["talent", "Professionals scored under COMPASS; wealthy investors; capped work-permit labour", "City-state with no hinterland: imports both talent and labour, on separate tracks"],
+      HKG: ["talent", "High earners and top-university graduates via the Top Talent Pass", "Refill the workforce after the post-2020 exodus"],
+      ZAF: ["talent", "Critical-skills workers; remote workers under a 2024 points system", "Skills gap despite high unemployment; reform after years of visa backlog"],
+      // — investors & wealth —
+      ARE: ["capital", "Investors, founders and professionals on 10-year Golden Visas; millions of guest workers", "Diversify beyond oil — about 88% of residents are foreign, almost none will ever be citizens"],
+      GRC: ["capital", "Property investors (Golden Visa from €250k–800k); digital nomads", "Capital inflow after the debt crisis; thresholds raised as housing overheated"],
+      CYP: ["capital", "Property investors seeking permanent residency (€300k)", "Foreign capital for a small island economy"],
+      MLT: ["capital", "Wealthy residents and investors", "Residency income; EU court struck down its citizenship-for-sale scheme in 2025"],
+      TUR: ["capital", "Citizenship by investment ($400k property); Turkic kin; hosts millions of Syrians", "Foreign currency — while pressing refugees to return"],
+      EGY: ["capital", "Citizenship by investment (from $250k); hosts Sudanese refugees", "Hard currency during a debt crisis"],
+      // — nomads & retirees —
+      PRT: ["lifestyle", "Remote workers and retirees on D7/D8 visas; Portuguese-speaking nations", "Reverse depopulation — but 2025 laws tightened entry and citizenship sharply"],
+      THA: ["lifestyle", "Remote workers on the 5-year Destination Thailand Visa; retirees; wealthy long-stayers", "Tourism-led economy converting visitors into long-term spenders"],
+      MYS: ["lifestyle", "Retirees and wealthy residents (MM2H); nomads (DE Rantau)", "Foreign spending and property demand; guest workers handled separately"],
+      IDN: ["lifestyle", "Remote workers, second-home buyers and Golden Visa investors — mostly in Bali", "Capture spending from long-stay foreigners"],
+      PHL: ["lifestyle", "Retirees on the SRRV from age 50", "Foreign pension income; the country itself exports workers"],
+      MEX: ["lifestyle", "Remote workers and retirees qualifying by income", "Proximity to the US; residency by savings is simple"],
+      CRI: ["lifestyle", "Retirees, rentiers and nomads", "Steady foreign income for a stable, small economy"],
+      PAN: ["lifestyle", "Retirees (Pensionado), investors, Friendly Nations professionals", "Dollarised hub that sells residency as a product"],
+      MUS: ["lifestyle", "Retirees, remote workers on the Premium Visa, investors", "Island economy moving from sugar to services"],
+      // — guest workers —
+      SAU: ["labour", "Sponsored foreign workers; Premium Residency for the wealthy", "Vision 2030 megaprojects — while reserving more jobs for Saudis"],
+      QAT: ["labour", "Sponsored workers, about 85–90% of the population", "Gas wealth, tiny citizenry; almost no path to settle"],
+      KWT: ["labour", "Sponsored workers — now being reduced", "Kuwaitisation: cutting the expatriate share of the population"],
+      BHR: ["labour", "Sponsored workers; Golden Residency for high earners", "Small Gulf economy reliant on foreign labour"],
+      OMN: ["labour", "Sponsored workers; long-term investor residency", "Omanisation limits which jobs foreigners may hold"],
+      JPN: ["labour", "Specified Skilled Workers in shortage sectors; points for professionals", "Shrinking, ageing workforce — opening slowly after decades of near-closure"],
+      KOR: ["labour", "Employment-permit workers for factories and farms; new talent visas", "World's lowest birth rate"],
+      TWN: ["labour", "Southeast Asian factory and care workers; Gold Card for talent", "Ageing society and a chip industry short of people"],
+      ITA: ["labour", "Quota workers under the flussi decrees (~165k a year)", "Farms, care and construction need hands; descent-based citizenship was curtailed in 2025"],
+      POL: ["labour", "Ukrainian and Belarusian workers; kin via the Karta Polaka", "Fast-growing economy short of workers; 2025 strategy tightens control"],
+      CZE: ["labour", "Ukrainian workers and refugees; skilled-worker programmes", "Lowest unemployment in the EU"],
+      SVK: ["labour", "Ukrainian and Serbian industrial workers", "Car factories need labour as locals emigrate"],
+      ROU: ["labour", "South Asian workers under a yearly quota", "Replace the millions of Romanians working abroad"],
+      HRV: ["labour", "Nepali, Filipino and Indian seasonal workers; digital nomads", "Tourism and construction after mass emigration to the EU"],
+      LTU: ["labour", "Belarusian, Ukrainian and Central Asian workers", "Logistics and construction shortages; security screening tightened"],
+      RUS: ["labour", "Central Asian labour migrants; resettled compatriots", "Demographic decline; controls tightened sharply after 2024"],
+      // — diaspora & kin —
+      ISR: ["diaspora", "Jews and their descendants under the Law of Return", "Founding purpose of the state: immediate citizenship on arrival"],
+      ARM: ["diaspora", "Ethnic Armenians worldwide; recent Russian relocators", "Diaspora larger than the country's own population"],
+      HUN: ["diaspora", "Ethnic Hungarians (simplified citizenship); guest workers from Asia", "Kin-state policy and factory labour, alongside a hard line on asylum"],
+      KAZ: ["diaspora", "Ethnic Kazakhs returning as Kandas; remote workers", "Rebuild the Kazakh share of the population"],
+      IND: ["diaspora", "People of Indian origin via lifelong OCI status", "Tie the diaspora to home without allowing dual citizenship"],
+      UKR: ["diaspora", "Ukrainians abroad and their descendants", "Multiple citizenship allowed from 2025 to bring people back after wartime emigration"],
+      // — open door —
+      ARG: ["open", "Almost anyone — Mercosur neighbours, rentiers, students", "Constitution invites immigrants; a 2025 decree added fees and a stricter citizenship test"],
+      URY: ["open", "Anyone with a clean record and an income; tax holiday for newcomers", "Small, ageing population that wants residents"],
+      PRY: ["open", "Anyone with a modest deposit or income", "Low-tax residency as a national offer"],
+      BRA: ["open", "Mercosur residents, Venezuelans and Haitians on humanitarian visas, nomads", "Tradition of welcoming migration; regional free-residence agreement"],
+      ESP: ["open", "Latin Americans, regularised undocumented workers, nomads", "Economy growing on migration; investor visa was scrapped in 2025 over housing"],
+      COL: ["open", "Venezuelans on 10-year protection permits; remote workers", "Chose to regularise nearly 3 million neighbours instead of excluding them"],
+      GEO: ["open", "Citizens of ~95 countries can stay a year visa-free", "Open-economy branding; work-permit rules introduced in 2026"],
+      RWA: ["open", "All Africans visa-free; investors and professionals", "Positioning as a continental business hub"],
+      KEN: ["open", "Visitors from nearly everywhere by e-authorisation; nomad permit", "Tourism and tech-hub ambitions"],
+      // — family & humanitarian —
+      USA: ["family", "Relatives of citizens (about two-thirds of green cards); H-1B professionals", "Family reunification is the system's core; 2025 brought mass enforcement and new fees"],
+      UGA: ["family", "Refugees — about 1.7 million, with land and the right to work", "Open-door refugee policy unmatched in Africa"],
+      JOR: ["family", "Syrian, Palestinian and Iraqi refugees", "Geography: one of the highest refugee shares per person anywhere"],
+      // — largely closed —
+      CHN: ["closed", "A handful of high-end specialists; young STEM graduates via the 2025 K visa", "No tradition of immigration; permanent residency is rare"],
+      PRK: ["closed", "Essentially no one", "Borders are sealed in both directions"],
+      BTN: ["closed", "Paying tourists only; citizenship takes 20 years", "Protect culture and identity — while its own young people emigrate"],
+      TKM: ["closed", "Almost no one", "One of the hardest visas in the world to obtain"],
+      ERI: ["closed", "Almost no one", "Closed state with indefinite national service"],
+      CUB: ["closed", "Very few; a country people leave", "Record emigration since 2021"],
+    },
+  };
+
   const CIT_BUCKETS = [[3, "#30d158", "≤ 3 years"], [5, "#66d4cf", "4–5"], [8, "#ffd60a", "6–8"], [10, "#ff9f0a", "9–10"], [20, "#ff6b3a", "11–20"], [98, "#ff453a", "20+"], [999, "#636366", "No practical route"]];
   const citBucket = (y) => CIT_BUCKETS.find(([max]) => y <= max);
-  const MODE_LABEL = { visa: "Visa", tax: "Tax", citizenship: "Citizenship" };
+  const MODE_LABEL = { visa: "Visa", tax: "Tax", citizenship: "Citizenship", immigration: "Immigration" };
 
   const TAX_RAMP = [[5, "#30d158"], [12, "#ffd60a"], [20, "#ff9f0a"], [30, "#ff453a"]];
 
@@ -193,6 +297,7 @@
         <div class="pm-map"></div>
         <div class="pm-panel">
           <div class="pm-status">Loading world…</div>
+          <div class="pm-detail"></div>
           <div class="pm-summary"></div>
           <div class="pm-legend"></div>
         </div>`;
@@ -284,6 +389,9 @@
       });
       map.on("click", "pm", (e) => {
         const p = e.features[0].properties;
+        // touch has no hover, and on phones the popup would open under the
+        // controls — so a tap pins the country's detail into the card
+        this.el.querySelector(".pm-detail").innerHTML = `<b>${p.name}</b><br>${p.detail}`;
         if (this.onSelectCountry) this.onSelectCountry(p.iso3, p.req);
       });
     }
@@ -297,12 +405,46 @@
 
     async render() {
       this._status("");
+      this.el.querySelector(".pm-detail").innerHTML = "";
       this.el.querySelectorAll(".pm-modes button").forEach((b) =>
         b.classList.toggle("active", b.dataset.mode === this.mode)
       );
       if (this.mode === "tax") return this._renderTax();
       if (this.mode === "citizenship") return this._renderCitizenship();
+      if (this.mode === "immigration") return this._renderImmigration();
       this._renderVisa();
+    }
+
+    _renderImmigration() {
+      const counts = {};
+      const features = [];
+      for (const f of this.shapes.features) {
+        const rec = IMMIGRATION.data[f.id];
+        if (!rec) continue;
+        const [approach, who, why] = rec;
+        const [color, label] = IMM_APPROACH[approach];
+        counts[approach] = (counts[approach] || 0) + 1;
+        features.push({
+          ...f,
+          properties: {
+            name: f.properties.name,
+            iso3: f.id,
+            req: `immigration:${approach}`,
+            detail: `<b style="color:${color}">${label}</b><br><span style="opacity:.6">Attracts</span> ${who}<br><span style="opacity:.6">Why</span> ${why}`,
+            color,
+          },
+        });
+      }
+      this.map.getSource("pm").setData({ type: "FeatureCollection", features });
+      const own = IMMIGRATION.data[this.passport];
+      this.el.querySelector(".pm-summary").innerHTML =
+        `Who each country's immigration system is built to attract — tap a country for who and why` +
+        (own ? `<br><span style="opacity:.75">${this.names[this.passport]} itself: ${IMM_APPROACH[own[0]][1]}</span>` : "");
+      this.el.querySelector(".pm-legend").innerHTML =
+        Object.entries(IMM_APPROACH).filter(([k]) => counts[k])
+          .map(([k, [col, label]]) => `<span class="pm-key"><i style="background:${col}"></i>${label} · ${counts[k]}</span>`)
+          .join("") +
+        `<span class="pm-key" style="flex-basis:100%;opacity:.7">Curated ${IMMIGRATION.updated} · dominant approach only, most countries run several routes · verify locally</span>`;
     }
 
     _renderCitizenship() {

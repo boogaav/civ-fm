@@ -161,6 +161,13 @@ new PassportMap(el, {
   (visa-free with days, visa on arrival, eTA, e-visa, required, no admission),
   with per-category counts and an openness summary.
 - **Tax mode** — tax revenue as % of GDP (World Bank, 194 countries).
+- **Immigration mode** — each country coloured by the dominant thing its
+  immigration system is built to attract: skilled talent, investors & wealth,
+  nomads & retirees, guest workers, diaspora & kin, open door, family &
+  humanitarian, or largely closed (75 countries, curated in `passport-map.js`
+  as `IMMIGRATION`, dated 2026-09). Each country carries a "who" and a "why".
+  Dominant approach only — most countries run several routes, which the "who"
+  line names.
 - **Citizenship mode** — years of legal residence before you can apply for
   naturalisation by the standard route (~110 countries, curated in
   `passport-map.js` as `NATURALIZATION`, dated 2026-09). Buckets from ≤3 years

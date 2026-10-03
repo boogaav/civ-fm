@@ -31,7 +31,7 @@
 
   const pm = new PassportMap(document.getElementById("pm-root"), {
     passport: initial,
-    modes: ["visa", "tax", "citizenship"],
+    modes: ["visa", "tax", "citizenship", "immigration"],
     showHeader: true,
     // dataBaseUrl: "https://passport.booga.me/data/",  // once the subdomain exists
     onSelectCountry: (iso3, req) => console.log("selected", iso3, req),
