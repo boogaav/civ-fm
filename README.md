@@ -197,6 +197,22 @@ amber on Dark, deep red on Nature. Only the country line is drawn; the wide
 `boundary_country_outline` halo, `boundary_state`, and `boundary_county` are
 hidden (clutter/muddiness over mountains).
 
+A **Hazards** button shows what has actually hit the region around the map
+centre since 2016, drawn on the terrain and counted per year in a panel:
+tropical-cyclone tracks coloured by peak wind and volcanic eruptions (NASA
+EONET, read directly by the browser), earthquakes M5.5+ (USGS), and floods
+(GDACS archive via the Worker's `/floods?year=YYYY` route — 30-day cache for
+past years, 6 h for the current one). Each hazard gets a total, a per-year
+rate, a bar per year, a last-12-months count and its latest event; marks from
+the last 12 months are brighter; a tap names the event. Counting happens
+inside an outlined box around the centre (a pitched 3D view has no honest
+"on screen" rectangle), sized from the zoom and refreshed after each move.
+Data notes: flood counts start in 2020 because GDACS logged ~100 floods a
+year before 2019 and ~600 since 2021 (reporting, not weather); EONET ignores
+`start` unless `end` is sent too; storm tracks are broken wherever a fix
+implies >65 km/h movement, which removes mis-signed longitudes in the feed.
+It is a record of past events, not a forecast, and the panel says so.
+
 A **SEA bar** (right edge, 0–100 m) raises the ocean: a second `color-relief`
 layer paints everything between 0 m and the chosen height flood-blue, so
 drowned land follows the actual DEM contours live as you drag. Existing ocean

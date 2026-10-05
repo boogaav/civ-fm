@@ -174,9 +174,67 @@ function adsbRoute(url) {
   };
 }
 
+// /floods?year=YYYY — one year of the GDACS flood archive as a compact list.
+// GDACS pages 100 events at a time, so this walks the pages (in parallel
+// batches) and returns [lon, lat, "YYYY-MM-DD", level, country] per flood,
+// level 0 Green / 1 Orange / 2 Red. Past years are immutable in practice and
+// cache for 30 days; the current year refreshes every 6 hours.
+async function handleFloods(url, ctx) {
+  const year = Number(url.searchParams.get("year"));
+  const thisYear = new Date().getUTCFullYear();
+  if (!Number.isInteger(year) || year < 2015 || year > thisYear) return json({ error: "bad year" }, 400);
+
+  const cache = caches.default;
+  const cacheKey = new Request(`${url.origin}/floods/${year}`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const base =
+    "https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL" +
+    `&alertlevel=Green;Orange;Red&fromDate=${year}-01-01&toDate=${year}-12-31`;
+  const LEVEL = { Green: 0, Orange: 1, Red: 2 };
+  const seen = new Set();
+  const floods = [];
+  let page = 1, done = false, failed = false;
+  while (!done && page <= 36) {
+    const batch = await Promise.all(
+      [0, 1, 2, 3, 4, 5].map(async (i) => {
+        try {
+          const r = await fetch(`${base}&pagenumber=${page + i}`, {
+            headers: { "User-Agent": "civfm/0.1 (civ.fm; boogaav@gmail.com)", Accept: "application/json" },
+          });
+          if (r.status === 204) return [];
+          if (!r.ok) return null;
+          return (await r.json()).features || [];
+        } catch (e) { return null; }
+      })
+    );
+    for (const feats of batch) {
+      if (feats === null) { failed = true; done = true; break; }
+      for (const f of feats) {
+        const p = f.properties || {}, c = f.geometry && f.geometry.coordinates;
+        if (!c || seen.has(p.eventid)) continue;
+        seen.add(p.eventid);
+        floods.push([
+          Math.round(c[0] * 100) / 100, Math.round(c[1] * 100) / 100,
+          String(p.fromdate || "").slice(0, 10), LEVEL[p.alertlevel] ?? 0, p.country || "",
+        ]);
+      }
+      if (feats.length < 100) done = true;
+    }
+    page += 6;
+  }
+  // a partial year must never be cached as if it were the whole year
+  if (failed) return json({ error: "upstream incomplete", year, partial: floods.length }, 502);
+  const res = json({ year, floods }, 200, year < thisYear ? 2592000 : 21600);
+  ctx.waitUntil(cache.put(cacheKey, res.clone()));
+  return res;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/floods") return handleFloods(url, ctx);
     const route =
       url.pathname === "/adsb" ? adsbRoute(url)
       : url.pathname === "/trends" ? trendsRoute(url)

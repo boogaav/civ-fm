@@ -96,6 +96,51 @@
   #searise .val.active { color: #4da3ff; }
   @media (max-width: 640px) { #searise { right: 12px; } }
 
+  /* hazards panel */
+  #hazards {
+    position: absolute; left: 24px; top: 108px; z-index: 10;
+    width: 300px; max-height: calc(100% - 108px - 150px); overflow-y: auto;
+    padding: 12px 14px; font-size: 12.5px; line-height: 1.4;
+  }
+  .hz-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 4px; }
+  #hz-close { all: unset; cursor: pointer; font-size: 20px; line-height: 1; color: var(--muted); padding: 0 4px; }
+  #hz-close:hover { color: var(--ink); }
+  #hz-close:focus-visible, .hz-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hz-note { color: var(--muted); font-size: 11.5px; }
+  .hz-note b { color: var(--ink); font-weight: 600; }
+  .hz-row { border-top: 1px solid var(--hairline); margin-top: 10px; padding-top: 9px; }
+  .hz-row.off > :not(.hz-toggle) { display: none; }
+  .hz-row.off .hz-toggle { opacity: .5; }
+  .hz-toggle {
+    all: unset; cursor: pointer; display: flex; align-items: baseline; gap: 7px; width: 100%;
+    font: 600 13px var(--font); color: var(--ink); margin-bottom: 3px;
+  }
+  .hz-toggle i { width: 9px; height: 9px; border-radius: 50%; flex: none; align-self: center; }
+  .hz-toggle small { font-weight: 400; font-size: 11px; color: var(--muted); }
+  .hz-nums { font-variant-numeric: tabular-nums; }
+  .hz-nums b { font-size: 17px; font-weight: 700; }
+  .hz-nums span { color: var(--muted); margin-left: 6px; }
+  .hz-bars { display: flex; align-items: flex-end; gap: 3px; height: 30px; margin-top: 6px; }
+  .hz-bars i { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; }
+  .hz-bars i.na { height: 2px; background: transparent; border-bottom: 2px dotted var(--hairline); }
+  .hz-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+  .hz-key { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--hairline); font-size: 11px; color: var(--muted); }
+  .hz-key i { width: 14px; height: 3px; border-radius: 2px; margin-left: 6px; }
+  .hz-key i:first-child { margin-left: 0; }
+  .hz-foot { margin-top: 8px; font-size: 10.5px; color: var(--muted); opacity: .85; }
+  .maplibregl-popup-content {
+    background: var(--glass) !important; color: var(--ink) !important;
+    border: 1px solid var(--hairline); border-radius: 10px;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    font: 12px/1.4 var(--font); padding: 8px 11px !important;
+  }
+  .maplibregl-popup-tip { display: none; }
+  @media (max-width: 640px) {
+    /* phones: the panel becomes a sheet above the place chips */
+    #hazards { left: 12px; right: 12px; top: auto; bottom: 70px; width: auto; max-height: 44vh; }
+    body.hz-on #readout, body.hz-on #searise { display: none !important; }
+  }
+
   #readout {
     position: absolute; left: 24px; bottom: 78px; z-index: 10;
     padding: 10px 14px; font-size: 13px; display: none;
@@ -134,8 +179,11 @@
   </div>
   <div class="seg glass">
     <button id="btn-borders" aria-pressed="false">Borders</button>
+    <button id="btn-hazards" aria-pressed="false" title="Typhoons, floods, earthquakes and eruptions that have hit this region">Hazards</button>
   </div>
 </div>
+
+<aside id="hazards" class="glass" hidden aria-label="Natural hazards in this region"></aside>
 
 <div id="hint" class="glass">Drag to pan · right-drag or two fingers to tilt · click for elevation</div>
 
@@ -368,6 +416,7 @@ function setupTerrain() {
   try { map.setSky(t.sky); } catch (e) {}
   applyFlood();
   applyBorders();
+  hzDraw();
 }
 
 /* ---- sea-level rise: flood everything below the chosen height ---- */
@@ -443,6 +492,307 @@ document.querySelectorAll("#exag button").forEach((b) =>
     map.setTerrain({ source: "dem", exaggeration });
   })
 );
+
+/* ---- hazards: what has actually hit this region, and how often ---- */
+// Past events from open archives, drawn on the terrain and counted per year:
+//   tropical cyclones + eruptions — NASA EONET (browser-readable, storm tracks included)
+//   earthquakes M5.5+            — USGS
+//   floods                       — GDACS archive via the civfm-proxy Worker
+// Counted inside a box around the map centre (outlined on the map), since a
+// pitched 3D view has no honest "what's on screen" rectangle.
+
+const PROXY = "https://civfm-proxy.boogaav.workers.dev";
+const HZ_TYPES = {
+  storms:    { label: "Tropical cyclones", sub: "typhoons · hurricanes", color: "#ff9f0a", since: 2016 },
+  // GDACS logged ~100 floods a year before 2019 and ~600 since 2021: the jump
+  // is reporting, not weather, so flood counts only start where it is steady
+  floods:    { label: "Floods", sub: "GDACS alerts", color: "#4da3ff", since: 2020 },
+  quakes:    { label: "Earthquakes", sub: "magnitude 5.5+", color: "#bf5af2", since: 2016 },
+  volcanoes: { label: "Volcanic eruptions", sub: "", color: "#ff453a", since: 2016 },
+};
+const HZ_FIRST_YEAR = 2016;
+const HZ = { on: false, seq: 0, key: null, region: null, data: null, hidden: new Set(), floods: null, popup: null };
+
+const hzClamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const hzMonth = (iso) => new Date(iso).toLocaleDateString("en", { month: "short", year: "numeric", timeZone: "UTC" });
+
+function hzRegion() {
+  const c = map.getCenter(), cv = map.getCanvas();
+  const degPerPx = 360 / (512 * Math.pow(2, map.getZoom()));
+  const halfLon = hzClamp((cv.clientWidth / 2) * degPerPx, 2.5, 22);
+  const halfLat = hzClamp((cv.clientHeight / 2) * degPerPx * Math.cos((c.lat * Math.PI) / 180), 2, 18);
+  const snap = (v) => Math.round(v * 2) / 2; // half-degree grid, so small pans reuse the last answer
+  const w = hzClamp(snap(c.lng - halfLon), -180, 180), e = hzClamp(snap(c.lng + halfLon), -180, 180);
+  const s = hzClamp(snap(c.lat - halfLat), -85, 85), n = hzClamp(snap(c.lat + halfLat), -85, 85);
+  const midLat = (s + n) / 2;
+  return {
+    w, e, s, n, key: `${w},${s},${e},${n}`,
+    km: [Math.round(((e - w) * 111 * Math.cos((midLat * Math.PI) / 180)) / 50) * 50, Math.round(((n - s) * 111) / 50) * 50],
+  };
+}
+
+async function hzJSON(url, ms = 30000) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(ms) });
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
+
+// all flood years once per visit; filtered to the region locally after that
+function hzFloodsAll() {
+  return (HZ.floods ??= (async () => {
+    const years = [];
+    for (let y = HZ_TYPES.floods.since; y <= new Date().getUTCFullYear(); y++) years.push(y);
+    const res = await Promise.allSettled(years.map((y) => hzJSON(`${PROXY}/floods?year=${y}`, 60000)));
+    const seen = new Set(), all = [];
+    let ok = 0;
+    for (const r of res) {
+      if (r.status !== "fulfilled" || !r.value.floods) continue;
+      ok++;
+      for (const f of r.value.floods) {
+        const k = f[0] + "," + f[1] + "," + f[2];
+        if (!seen.has(k)) { seen.add(k); all.push(f); }
+      }
+    }
+    if (ok < years.length) { HZ.floods = null; if (!ok) throw new Error("floods unavailable"); } // retry later
+    return { all, complete: ok === years.length };
+  })());
+}
+
+async function hzLoad(force) {
+  if (!HZ.on) return;
+  const r = hzRegion();
+  if (!force && r.key === HZ.key) return;
+  HZ.key = r.key; HZ.region = r;
+  const seq = ++HZ.seq;
+  hzPanel(true);
+  const now = Date.now(), yearAgo = now - 365 * 864e5;
+  const start = `${HZ_FIRST_YEAR}-01-01`;
+  const [eo, qk, fl] = await Promise.allSettled([
+    hzJSON(`https://eonet.gsfc.nasa.gov/api/v3/events?status=all&category=severeStorms,volcanoes&bbox=${r.w},${r.n},${r.e},${r.s}&start=${start}&end=${new Date().getUTCFullYear()}-12-31`), // EONET ignores start without end
+    hzJSON(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&minmagnitude=5.5&minlatitude=${r.s}&maxlatitude=${r.n}&minlongitude=${r.w}&maxlongitude=${r.e}&orderby=time&limit=2000`),
+    hzFloodsAll(),
+  ]);
+  if (seq !== HZ.seq) return; // the map moved on while we were waiting
+
+  const data = { storms: null, volcanoes: null, quakes: null, floods: null, floodsPartial: false };
+  if (eo.status === "fulfilled") {
+    data.storms = []; data.volcanoes = [];
+    for (const ev of eo.value.events || []) {
+      const pts = (ev.geometry || []).filter((g) => g.type === "Point" && g.coordinates);
+      if (!pts.length) continue;
+      pts.sort((a, b) => a.date.localeCompare(b.date));
+      if (pts[0].date < start) continue; // only draw what the panel counts
+      const cat = ev.categories?.[0]?.id;
+      if (cat === "severeStorms") {
+        const kts = Math.max(0, ...pts.map((p) => (p.magnitudeUnit === "kts" ? p.magnitudeValue || 0 : 0)));
+        // Break the track at the antimeridian and wherever the storm would have
+        // had to move faster than ~65 km/h: the feed carries the odd bad fix
+        // (a longitude with the wrong sign puts an East Pacific storm in Asia).
+        const lines = [[]];
+        let prev = null;
+        for (const p of pts) {
+          if (prev) {
+            const hrs = Math.max(1, (Date.parse(p.date) - Date.parse(prev.date)) / 36e5);
+            const dx = Math.abs(p.coordinates[0] - prev.coordinates[0]);
+            const far = Math.hypot(Math.min(dx, 360 - dx), p.coordinates[1] - prev.coordinates[1]) / hrs > 0.6;
+            if (dx > 180 || far) lines.push([]);
+          }
+          lines[lines.length - 1].push(p.coordinates);
+          prev = p;
+        }
+        const kept = lines.filter((l) => l.length > 1);
+        // a storm that only "entered" the region through a bad fix was never here
+        if (!kept.some((l) => l.some(([x, y]) => x >= r.w - 1 && x <= r.e + 1 && y >= r.s - 1 && y <= r.n + 1))) continue;
+        data.storms.push({
+          title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, kts,
+          cls: kts >= 96 ? 3 : kts >= 64 ? 2 : kts >= 34 ? 1 : 0,
+          lines: kept,
+        });
+      } else if (cat === "volcanoes") {
+        data.volcanoes.push({ title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, at: pts[0].coordinates });
+      }
+    }
+  }
+  if (qk.status === "fulfilled") {
+    data.quakes = (qk.value.features || []).map((f) => ({
+      title: f.properties.place || "Earthquake", mag: f.properties.mag,
+      date: new Date(f.properties.time).toISOString(), at: f.geometry.coordinates.slice(0, 2),
+    }));
+  }
+  if (fl.status === "fulfilled") {
+    data.floods = fl.value.all
+      .filter((f) => f[0] >= r.w && f[0] <= r.e && f[1] >= r.s && f[1] <= r.n)
+      .map((f) => ({ title: `Flood · ${f[4] || "unnamed"}`, date: f[2] + "T00:00:00Z", level: f[3], at: [f[0], f[1]] }));
+    data.floodsPartial = !fl.value.complete;
+  }
+  for (const k of Object.keys(HZ_TYPES))
+    if (data[k]) for (const ev of data[k]) ev.recent = Date.parse(ev.end || ev.date) >= yearAgo ? 1 : 0;
+  HZ.data = data;
+  hzDraw();
+  hzPanel(false);
+}
+
+const HZ_LAYERS = ["hz-box", "hz-storms", "hz-floods", "hz-quakes", "hz-volcanoes"];
+
+function hzClear() {
+  for (const id of HZ_LAYERS) {
+    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getSource(id)) map.removeSource(id);
+  }
+  HZ.popup?.remove();
+}
+
+// also called from setupTerrain, because setStyle throws every layer away
+function hzDraw() {
+  hzClear();
+  if (!HZ.on || !HZ.data || !HZ.region) return;
+  const d = HZ.data, r = HZ.region;
+  const fc = (features) => ({ type: "FeatureCollection", features });
+  const light = theme === "nature";
+  const fade = ["case", ["==", ["get", "recent"], 1], 0.95, 0.45]; // the last 12 months stand out
+  const vis = (k) => (HZ.hidden.has(k) ? "none" : "visible");
+
+  map.addSource("hz-box", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "LineString",
+    coordinates: [[r.w, r.s], [r.e, r.s], [r.e, r.n], [r.w, r.n], [r.w, r.s]] } } });
+  map.addLayer({ id: "hz-box", type: "line", source: "hz-box",
+    paint: { "line-color": light ? "#1d1d1f" : "#f5f5f7", "line-width": 1, "line-opacity": 0.35 } });
+
+  map.addSource("hz-storms", { type: "geojson", data: fc((d.storms || []).flatMap((s) => s.lines.map((l) => ({
+    type: "Feature", geometry: { type: "LineString", coordinates: l },
+    properties: { kind: "storms", title: s.title, date: s.date, kts: s.kts, cls: s.cls, recent: s.recent } })))) });
+  map.addLayer({ id: "hz-storms", type: "line", source: "hz-storms",
+    layout: { "line-cap": "round", "line-join": "round", visibility: vis("storms") },
+    paint: {
+      "line-color": ["match", ["get", "cls"], 3, "#ff2d55", 2, "#ff6b3a", 1, "#ffb340", "#c9a25a"],
+      "line-width": ["match", ["get", "cls"], 3, 3.2, 2, 2.4, 1, 1.6, 1.1],
+      "line-opacity": fade,
+    } });
+
+  const point = (kind, list, extra) => fc((list || []).map((e) => ({
+    type: "Feature", geometry: { type: "Point", coordinates: e.at },
+    properties: { kind, title: e.title, date: e.date, recent: e.recent, ...extra(e) } })));
+  const stroke = { "circle-stroke-color": light ? "#ffffff" : "#0b0b0d", "circle-stroke-width": 1, "circle-stroke-opacity": 0.7 };
+
+  map.addSource("hz-floods", { type: "geojson", data: point("floods", d.floods, (e) => ({ level: e.level })) });
+  map.addLayer({ id: "hz-floods", type: "circle", source: "hz-floods", layout: { visibility: vis("floods") },
+    paint: { "circle-color": "#4da3ff", "circle-radius": ["match", ["get", "level"], 2, 9, 1, 6.5, 4], "circle-opacity": fade, ...stroke } });
+
+  map.addSource("hz-quakes", { type: "geojson", data: point("quakes", d.quakes, (e) => ({ mag: e.mag })) });
+  map.addLayer({ id: "hz-quakes", type: "circle", source: "hz-quakes", layout: { visibility: vis("quakes") },
+    paint: { "circle-color": "#bf5af2", "circle-radius": ["interpolate", ["linear"], ["get", "mag"], 5.5, 3.5, 7, 8, 9, 17], "circle-opacity": fade, ...stroke } });
+
+  map.addSource("hz-volcanoes", { type: "geojson", data: point("volcanoes", d.volcanoes, () => ({})) });
+  map.addLayer({ id: "hz-volcanoes", type: "circle", source: "hz-volcanoes", layout: { visibility: vis("volcanoes") },
+    paint: { "circle-color": "#ff453a", "circle-radius": 6, "circle-opacity": fade, ...stroke } });
+}
+
+function hzStats(list, since) {
+  const thisYear = new Date().getUTCFullYear();
+  const years = [];
+  for (let y = HZ_FIRST_YEAR; y <= thisYear; y++) years.push({ y, n: y < since ? null : 0 });
+  let total = 0, latest = null;
+  for (const e of list) {
+    const y = +e.date.slice(0, 4);
+    if (y < since || y > thisYear) continue;
+    years[y - HZ_FIRST_YEAR].n++; total++;
+    if (!latest || e.date > latest.date) latest = e;
+  }
+  // per-year rate over the elapsed part of the window, so a half-finished year doesn't drag it down
+  const now = new Date();
+  const span = thisYear - since + (now - Date.UTC(thisYear, 0, 1)) / (365.25 * 864e5);
+  return { years, total, latest, recent: list.filter((e) => e.recent && +e.date.slice(0, 4) >= since).length, perYear: total / span };
+}
+
+function hzPanel(loading) {
+  const el = document.getElementById("hazards");
+  if (!HZ.on) { el.hidden = true; return; }
+  el.hidden = false;
+  const r = HZ.region, d = HZ.data, thisYear = new Date().getUTCFullYear();
+  const rows = Object.entries(HZ_TYPES).map(([k, t]) => {
+    const list = d && d[k];
+    let body;
+    if (!d || (loading && !list)) body = `<div class="hz-note">Loading…</div>`;
+    else if (!list) body = `<div class="hz-note">Unavailable right now.</div>`;
+    else {
+      const s = hzStats(list, t.since);
+      if (!s.total) body = `<div class="hz-note">None recorded here since ${t.since}.</div>`;
+      else {
+        const max = Math.max(1, ...s.years.map((y) => y.n || 0));
+        const bars = s.years.map((y) =>
+          y.n === null
+            ? `<i class="na" title="${y.y}: not counted"></i>`
+            : `<i style="height:${Math.max(y.n ? 12 : 3, Math.round((y.n / max) * 100))}%;background:${y.n ? t.color : "var(--hairline)"}${y.y === thisYear ? ";opacity:.55" : ""}" title="${y.y}${y.y === thisYear ? " so far" : ""}: ${y.n}"></i>`
+        ).join("");
+        const rate = s.perYear >= 10 ? Math.round(s.perYear) : s.perYear >= 1 ? s.perYear.toFixed(1) : "under 1";
+        const extra = k === "storms" ? ` · ${list.filter((e) => e.cls >= 2 && +e.date.slice(0, 4) >= t.since).length} reached typhoon strength` : "";
+        body =
+          `<div class="hz-nums"><b>${s.total}</b> since ${t.since} <span>≈ ${rate} a year</span></div>` +
+          `<div class="hz-bars" aria-hidden="true">${bars}</div>` +
+          `<div class="hz-axis"><span>${HZ_FIRST_YEAR}</span><span>${thisYear}</span></div>` +
+          `<div class="hz-note"><b>${s.recent}</b> in the last 12 months${extra}</div>` +
+          (s.latest ? `<div class="hz-note">Latest: ${s.latest.title.replace(/</g, "&lt;")} · ${hzMonth(s.latest.date)}</div>` : "");
+      }
+    }
+    const off = HZ.hidden.has(k);
+    return `<section class="hz-row${off ? " off" : ""}">
+      <button class="hz-toggle" data-k="${k}" aria-pressed="${!off}" title="Show or hide on the map">
+        <i style="background:${t.color}"></i><span>${t.label}</span>${t.sub ? `<small>${t.sub}</small>` : ""}
+      </button>${body}</section>`;
+  }).join("");
+  el.innerHTML =
+    `<div class="hz-head"><b>Hazards here</b><button id="hz-close" aria-label="Close hazards">×</button></div>` +
+    `<div class="hz-note">Past events inside the outlined area${r ? ` (about ${r.km[0].toLocaleString()} × ${r.km[1].toLocaleString()} km)` : ""}. Brighter marks are from the last 12 months.</div>` +
+    rows +
+    `<div class="hz-key"><i style="background:#ffb340"></i>storm<i style="background:#ff6b3a"></i>typhoon<i style="background:#ff2d55"></i>major typhoon</div>` +
+    `<div class="hz-foot">A record of what happened, not a forecast. Cyclones and eruptions: NASA EONET. Earthquakes: USGS. Floods: GDACS, counted from 2020 because earlier years were thinly reported${d && d.floodsPartial ? "; some flood years failed to load" : ""}.</div>`;
+  el.querySelector("#hz-close").onclick = () => hzToggle(false);
+  el.querySelectorAll(".hz-toggle").forEach((b) => (b.onclick = () => {
+    const k = b.dataset.k;
+    HZ.hidden.has(k) ? HZ.hidden.delete(k) : HZ.hidden.add(k);
+    if (map.getLayer("hz-" + k)) map.setLayoutProperty("hz-" + k, "visibility", HZ.hidden.has(k) ? "none" : "visible");
+    map.triggerRepaint();
+    hzPanel(false);
+  }));
+}
+
+function hzToggle(on) {
+  HZ.on = on;
+  const btn = document.getElementById("btn-hazards");
+  btn.classList.toggle("active", on);
+  btn.setAttribute("aria-pressed", String(on));
+  document.body.classList.toggle("hz-on", on);
+  if (on) hzLoad(true);
+  else { HZ.seq++; HZ.key = null; hzClear(); hzPanel(false); }
+}
+document.getElementById("btn-hazards").addEventListener("click", () => hzToggle(!HZ.on));
+
+let hzMoveT = null;
+map.on("moveend", () => { clearTimeout(hzMoveT); if (HZ.on) hzMoveT = setTimeout(() => hzLoad(false), 700); });
+
+// tap or click a mark for what it was
+map.on("click", (e) => {
+  if (!HZ.on) return;
+  const layers = HZ_LAYERS.slice(1).filter((id) => map.getLayer(id));
+  // where marks overlap, answer with the one a person most likely means:
+  // a dot over a line, then recent over old, then the stronger event
+  const rank = (f) => (f.layer.type === "circle" ? 1e4 : 0) + (f.properties.recent ? 1e3 : 0) +
+    (f.properties.cls || 0) * 100 + (f.properties.level || 0) * 100 + (f.properties.mag || 0) * 10 +
+    Date.parse(f.properties.date) / 1e12; // newest wins a tie
+  const hit = map.queryRenderedFeatures([[e.point.x - 6, e.point.y - 6], [e.point.x + 6, e.point.y + 6]], { layers })
+    .sort((a, b) => rank(b) - rank(a))[0];
+  HZ.popup?.remove();
+  if (!hit) return;
+  const p = hit.properties, when = hzMonth(p.date);
+  const line =
+    p.kind === "storms" ? `${when}${p.kts ? ` · peak ${p.kts} kt (${Math.round(p.kts * 1.852)} km/h)` : ""}`
+    : p.kind === "quakes" ? `${when} · magnitude ${Number(p.mag).toFixed(1)}`
+    : p.kind === "floods" ? `${when} · ${["Green", "Orange", "Red"][p.level] || "Green"} alert`
+    : when;
+  HZ.popup = new maplibregl.Popup({ closeButton: false, offset: 10, maxWidth: "260px" })
+    .setLngLat(e.lngLat)
+    .setHTML(`<b>${String(p.title).replace(/</g, "&lt;")}</b><br>${line}`)
+    .addTo(map);
+});
 
 /* place chips */
 const placesEl = document.getElementById("places");
