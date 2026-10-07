@@ -201,8 +201,13 @@ A **Hazards** button shows what has actually hit the region around the map
 centre since 2016, drawn on the terrain and counted per year in a panel:
 tropical-cyclone tracks coloured by peak wind and volcanic eruptions (NASA
 EONET, read directly by the browser), earthquakes M5.5+ (USGS), and floods
-(GDACS archive via the Worker's `/floods?year=YYYY` route — 30-day cache for
-past years, 6 h for the current one). Each hazard gets a total, a per-year
+(GDACS archive: baked into the static `relief/floods.json` by
+`relief/build_floods.py`, with the Worker's `/floods?year=YYYY` route asked
+only for the year(s) since the bake — crawling the whole archive per visit
+meant ~40 parallel GDACS requests, which GDACS stalls on). Each source lands
+in the panel on its own, so a slow feed never holds the others back; if the
+Worker is down, floods still show and the footer says through which date.
+Re-run the bake script about once a year. Each hazard gets a total, a per-year
 rate, a bar per year, a last-12-months count and its latest event; marks from
 the last 12 months are brighter; a tap names the event. Counting happens
 inside an outlined box around the centre (a pitched 3D view has no honest

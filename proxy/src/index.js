@@ -197,11 +197,14 @@ async function handleFloods(url, ctx) {
   const floods = [];
   let page = 1, done = false, failed = false;
   while (!done && page <= 36) {
+    // three pages at a time, each with a deadline: GDACS stalls when hit with
+    // dozens of parallel requests, and a stalled fetch would hang the Worker
     const batch = await Promise.all(
-      [0, 1, 2, 3, 4, 5].map(async (i) => {
+      [0, 1, 2].map(async (i) => {
         try {
           const r = await fetch(`${base}&pagenumber=${page + i}`, {
             headers: { "User-Agent": "civfm/0.1 (civ.fm; boogaav@gmail.com)", Accept: "application/json" },
+            signal: AbortSignal.timeout(12000),
           });
           if (r.status === 204) return [];
           if (!r.ok) return null;
@@ -222,7 +225,7 @@ async function handleFloods(url, ctx) {
       }
       if (feats.length < 100) done = true;
     }
-    page += 6;
+    page += 3;
   }
   // a partial year must never be cached as if it were the whole year
   if (failed) return json({ error: "upstream incomplete", year, partial: floods.length }, 502);

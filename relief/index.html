@@ -511,7 +511,7 @@ const HZ_TYPES = {
   volcanoes: { label: "Volcanic eruptions", sub: "", color: "#ff453a", since: 2016 },
 };
 const HZ_FIRST_YEAR = 2016;
-const HZ = { on: false, seq: 0, key: null, region: null, data: null, hidden: new Set(), floods: null, popup: null };
+const HZ = { on: false, seq: 0, key: null, region: null, data: null, hidden: new Set(), floodBase: null, floodLive: null, popup: null };
 
 const hzClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const hzMonth = (iso) => new Date(iso).toLocaleDateString("en", { month: "short", year: "numeric", timeZone: "UTC" });
@@ -537,25 +537,22 @@ async function hzJSON(url, ms = 30000) {
   return r.json();
 }
 
-// all flood years once per visit; filtered to the region locally after that
-function hzFloodsAll() {
-  return (HZ.floods ??= (async () => {
-    const years = [];
-    for (let y = HZ_TYPES.floods.since; y <= new Date().getUTCFullYear(); y++) years.push(y);
-    const res = await Promise.allSettled(years.map((y) => hzJSON(`${PROXY}/floods?year=${y}`, 60000)));
-    const seen = new Set(), all = [];
-    let ok = 0;
-    for (const r of res) {
-      if (r.status !== "fulfilled" || !r.value.floods) continue;
-      ok++;
-      for (const f of r.value.floods) {
-        const k = f[0] + "," + f[1] + "," + f[2];
-        if (!seen.has(k)) { seen.add(k); all.push(f); }
-      }
+// Floods: past years never change, so they ship as a static file baked by
+// relief/build_floods.py. The Worker is asked only for what happened since the
+// bake (one request per year since, usually one) — crawling the whole archive
+// per visit meant ~40 simultaneous GDACS requests, and GDACS stalls under that.
+function hzFloodsBase() {
+  return (HZ.floodBase ??= hzJSON("floods.json", 30000).catch((e) => { HZ.floodBase = null; throw e; }));
+}
+function hzFloodsLive(base) {
+  return (HZ.floodLive ??= (async () => {
+    const out = [];
+    for (let y = +base.baked.slice(0, 4); y <= new Date().getUTCFullYear(); y++) {
+      const d = await hzJSON(`${PROXY}/floods?year=${y}`, 25000);
+      out.push(...(d.floods || []));
     }
-    if (ok < years.length) { HZ.floods = null; if (!ok) throw new Error("floods unavailable"); } // retry later
-    return { all, complete: ok === years.length };
-  })());
+    return out;
+  })().catch((e) => { HZ.floodLive = null; throw e; }));
 }
 
 async function hzLoad(force) {
@@ -564,72 +561,95 @@ async function hzLoad(force) {
   if (!force && r.key === HZ.key) return;
   HZ.key = r.key; HZ.region = r;
   const seq = ++HZ.seq;
-  hzPanel(true);
-  const now = Date.now(), yearAgo = now - 365 * 864e5;
+  const yearAgo = Date.now() - 365 * 864e5;
   const start = `${HZ_FIRST_YEAR}-01-01`;
-  const [eo, qk, fl] = await Promise.allSettled([
-    hzJSON(`https://eonet.gsfc.nasa.gov/api/v3/events?status=all&category=severeStorms,volcanoes&bbox=${r.w},${r.n},${r.e},${r.s}&start=${start}&end=${new Date().getUTCFullYear()}-12-31`), // EONET ignores start without end
-    hzJSON(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&minmagnitude=5.5&minlatitude=${r.s}&maxlatitude=${r.n}&minlongitude=${r.w}&maxlongitude=${r.e}&orderby=time&limit=2000`),
-    hzFloodsAll(),
-  ]);
-  if (seq !== HZ.seq) return; // the map moved on while we were waiting
+  // null = still loading; a key in `failed` = that source did not answer
+  const data = (HZ.data = { storms: null, volcanoes: null, quakes: null, floods: null, failed: {}, floodsThrough: null });
+  const mark = (list) => { for (const ev of list) ev.recent = Date.parse(ev.end || ev.date) >= yearAgo ? 1 : 0; return list; };
+  // each source lands on its own — a slow feed never holds the others back
+  const show = () => { if (seq === HZ.seq) { hzDraw(); hzPanel(); } };
+  const live = () => seq === HZ.seq;
+  show();
 
-  const data = { storms: null, volcanoes: null, quakes: null, floods: null, floodsPartial: false };
-  if (eo.status === "fulfilled") {
-    data.storms = []; data.volcanoes = [];
-    for (const ev of eo.value.events || []) {
-      const pts = (ev.geometry || []).filter((g) => g.type === "Point" && g.coordinates);
-      if (!pts.length) continue;
-      pts.sort((a, b) => a.date.localeCompare(b.date));
-      if (pts[0].date < start) continue; // only draw what the panel counts
-      const cat = ev.categories?.[0]?.id;
-      if (cat === "severeStorms") {
-        const kts = Math.max(0, ...pts.map((p) => (p.magnitudeUnit === "kts" ? p.magnitudeValue || 0 : 0)));
-        // Break the track at the antimeridian and wherever the storm would have
-        // had to move faster than ~65 km/h: the feed carries the odd bad fix
-        // (a longitude with the wrong sign puts an East Pacific storm in Asia).
-        const lines = [[]];
-        let prev = null;
-        for (const p of pts) {
-          if (prev) {
-            const hrs = Math.max(1, (Date.parse(p.date) - Date.parse(prev.date)) / 36e5);
-            const dx = Math.abs(p.coordinates[0] - prev.coordinates[0]);
-            const far = Math.hypot(Math.min(dx, 360 - dx), p.coordinates[1] - prev.coordinates[1]) / hrs > 0.6;
-            if (dx > 180 || far) lines.push([]);
+  hzJSON(`https://eonet.gsfc.nasa.gov/api/v3/events?status=all&category=severeStorms,volcanoes&bbox=${r.w},${r.n},${r.e},${r.s}&start=${start}&end=${new Date().getUTCFullYear()}-12-31`) // EONET ignores start without end
+    .then((eo) => {
+      if (!live()) return;
+      const storms = [], volcanoes = [];
+      for (const ev of eo.events || []) {
+        const pts = (ev.geometry || []).filter((g) => g.type === "Point" && g.coordinates);
+        if (!pts.length) continue;
+        pts.sort((a, b) => a.date.localeCompare(b.date));
+        if (pts[0].date < start) continue; // only draw what the panel counts
+        const cat = ev.categories?.[0]?.id;
+        if (cat === "severeStorms") {
+          const kts = Math.max(0, ...pts.map((p) => (p.magnitudeUnit === "kts" ? p.magnitudeValue || 0 : 0)));
+          // Break the track at the antimeridian and wherever the storm would have
+          // had to move faster than ~65 km/h: the feed carries the odd bad fix
+          // (a longitude with the wrong sign puts an East Pacific storm in Asia).
+          const lines = [[]];
+          let prev = null;
+          for (const p of pts) {
+            if (prev) {
+              const hrs = Math.max(1, (Date.parse(p.date) - Date.parse(prev.date)) / 36e5);
+              const dx = Math.abs(p.coordinates[0] - prev.coordinates[0]);
+              const far = Math.hypot(Math.min(dx, 360 - dx), p.coordinates[1] - prev.coordinates[1]) / hrs > 0.6;
+              if (dx > 180 || far) lines.push([]);
+            }
+            lines[lines.length - 1].push(p.coordinates);
+            prev = p;
           }
-          lines[lines.length - 1].push(p.coordinates);
-          prev = p;
+          const kept = lines.filter((l) => l.length > 1);
+          // a storm that only "entered" the region through a bad fix was never here
+          if (!kept.some((l) => l.some(([x, y]) => x >= r.w - 1 && x <= r.e + 1 && y >= r.s - 1 && y <= r.n + 1))) continue;
+          storms.push({
+            title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, kts,
+            cls: kts >= 96 ? 3 : kts >= 64 ? 2 : kts >= 34 ? 1 : 0,
+            lines: kept,
+          });
+        } else if (cat === "volcanoes") {
+          volcanoes.push({ title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, at: pts[0].coordinates });
         }
-        const kept = lines.filter((l) => l.length > 1);
-        // a storm that only "entered" the region through a bad fix was never here
-        if (!kept.some((l) => l.some(([x, y]) => x >= r.w - 1 && x <= r.e + 1 && y >= r.s - 1 && y <= r.n + 1))) continue;
-        data.storms.push({
-          title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, kts,
-          cls: kts >= 96 ? 3 : kts >= 64 ? 2 : kts >= 34 ? 1 : 0,
-          lines: kept,
-        });
-      } else if (cat === "volcanoes") {
-        data.volcanoes.push({ title: ev.title, date: pts[0].date, end: pts[pts.length - 1].date, at: pts[0].coordinates });
       }
+      data.storms = mark(storms); data.volcanoes = mark(volcanoes);
+    })
+    .catch(() => { data.failed.storms = data.failed.volcanoes = true; })
+    .finally(show);
+
+  hzJSON(`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${start}&minmagnitude=5.5&minlatitude=${r.s}&maxlatitude=${r.n}&minlongitude=${r.w}&maxlongitude=${r.e}&orderby=time&limit=2000`)
+    .then((qk) => {
+      data.quakes = mark((qk.features || []).map((f) => ({
+        title: f.properties.place || "Earthquake", mag: f.properties.mag,
+        date: new Date(f.properties.time).toISOString(), at: f.geometry.coordinates.slice(0, 2),
+      })));
+    })
+    .catch(() => { data.failed.quakes = true; })
+    .finally(show);
+
+  const inBox = (rows) => {
+    const seen = new Set(), out = [];
+    for (const f of rows) {
+      if (f[0] < r.w || f[0] > r.e || f[1] < r.s || f[1] > r.n) continue;
+      const k = f[0] + "," + f[1] + "," + f[2];
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push({ title: `Flood · ${f[4] || "unnamed"}`, date: f[2] + "T00:00:00Z", level: f[3], at: [f[0], f[1]] });
     }
-  }
-  if (qk.status === "fulfilled") {
-    data.quakes = (qk.value.features || []).map((f) => ({
-      title: f.properties.place || "Earthquake", mag: f.properties.mag,
-      date: new Date(f.properties.time).toISOString(), at: f.geometry.coordinates.slice(0, 2),
-    }));
-  }
-  if (fl.status === "fulfilled") {
-    data.floods = fl.value.all
-      .filter((f) => f[0] >= r.w && f[0] <= r.e && f[1] >= r.s && f[1] <= r.n)
-      .map((f) => ({ title: `Flood · ${f[4] || "unnamed"}`, date: f[2] + "T00:00:00Z", level: f[3], at: [f[0], f[1]] }));
-    data.floodsPartial = !fl.value.complete;
-  }
-  for (const k of Object.keys(HZ_TYPES))
-    if (data[k]) for (const ev of data[k]) ev.recent = Date.parse(ev.end || ev.date) >= yearAgo ? 1 : 0;
-  HZ.data = data;
-  hzDraw();
-  hzPanel(false);
+    return mark(out);
+  };
+  hzFloodsBase()
+    .then((base) => {
+      if (!live()) return;
+      data.floods = inBox(base.floods);
+      data.floodsThrough = base.baked; // until the live top-up lands
+      show();
+      return hzFloodsLive(base).then((extra) => {
+        if (!live()) return;
+        data.floods = inBox(base.floods.concat(extra));
+        data.floodsThrough = null;
+      }).catch(() => {}); // the static archive already answered; just stay dated
+    })
+    .catch(() => { data.failed.floods = true; })
+    .finally(show);
 }
 
 const HZ_LAYERS = ["hz-box", "hz-storms", "hz-floods", "hz-quakes", "hz-volcanoes"];
@@ -703,7 +723,7 @@ function hzStats(list, since) {
   return { years, total, latest, recent: list.filter((e) => e.recent && +e.date.slice(0, 4) >= since).length, perYear: total / span };
 }
 
-function hzPanel(loading) {
+function hzPanel() {
   const el = document.getElementById("hazards");
   if (!HZ.on) { el.hidden = true; return; }
   el.hidden = false;
@@ -711,8 +731,8 @@ function hzPanel(loading) {
   const rows = Object.entries(HZ_TYPES).map(([k, t]) => {
     const list = d && d[k];
     let body;
-    if (!d || (loading && !list)) body = `<div class="hz-note">Loading…</div>`;
-    else if (!list) body = `<div class="hz-note">Unavailable right now.</div>`;
+    if (d && d.failed[k]) body = `<div class="hz-note">Unavailable right now.</div>`;
+    else if (!list) body = `<div class="hz-note">Loading…</div>`;
     else {
       const s = hzStats(list, t.since);
       if (!s.total) body = `<div class="hz-note">None recorded here since ${t.since}.</div>`;
@@ -744,14 +764,14 @@ function hzPanel(loading) {
     `<div class="hz-note">Past events inside the outlined area${r ? ` (about ${r.km[0].toLocaleString()} × ${r.km[1].toLocaleString()} km)` : ""}. Brighter marks are from the last 12 months.</div>` +
     rows +
     `<div class="hz-key"><i style="background:#ffb340"></i>storm<i style="background:#ff6b3a"></i>typhoon<i style="background:#ff2d55"></i>major typhoon</div>` +
-    `<div class="hz-foot">A record of what happened, not a forecast. Cyclones and eruptions: NASA EONET. Earthquakes: USGS. Floods: GDACS, counted from 2020 because earlier years were thinly reported${d && d.floodsPartial ? "; some flood years failed to load" : ""}.</div>`;
+    `<div class="hz-foot">A record of what happened, not a forecast. Cyclones and eruptions: NASA EONET. Earthquakes: USGS. Floods: GDACS, counted from 2020 because earlier years were thinly reported${d && d.floodsThrough ? `; shown through ${d.floodsThrough}` : ""}.</div>`;
   el.querySelector("#hz-close").onclick = () => hzToggle(false);
   el.querySelectorAll(".hz-toggle").forEach((b) => (b.onclick = () => {
     const k = b.dataset.k;
     HZ.hidden.has(k) ? HZ.hidden.delete(k) : HZ.hidden.add(k);
     if (map.getLayer("hz-" + k)) map.setLayoutProperty("hz-" + k, "visibility", HZ.hidden.has(k) ? "none" : "visible");
     map.triggerRepaint();
-    hzPanel(false);
+    hzPanel();
   }));
 }
 
@@ -762,7 +782,7 @@ function hzToggle(on) {
   btn.setAttribute("aria-pressed", String(on));
   document.body.classList.toggle("hz-on", on);
   if (on) hzLoad(true);
-  else { HZ.seq++; HZ.key = null; hzClear(); hzPanel(false); }
+  else { HZ.seq++; HZ.key = null; hzClear(); hzPanel(); }
 }
 document.getElementById("btn-hazards").addEventListener("click", () => hzToggle(!HZ.on));
 
