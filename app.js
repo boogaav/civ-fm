@@ -1,6 +1,9 @@
 /* CIV FM v0.3 — all eight channels + GDACS multi-hazard alerts */
 
 const PROXY = "https://civfm-proxy.boogaav.workers.dev";
+// static datasets live in vendor/ on this site (see vendor/README.md):
+// raw.githubusercontent.com and cdn.jsdelivr.net are blocked on some networks
+const VENDOR = new URL("vendor/", document.currentScript.src).href;
 
 const $ = (s) => document.querySelector(s);
 const statusEl = $("#status-text");
@@ -370,17 +373,17 @@ const WIKI_LANGS = {
 async function loadCountryShapes() {
   if (state.cache.shapes) return state.cache.shapes;
   state.cache.shapes = await getJSON(
-    "https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json",
+    VENDOR + "countries.geo.json",
     20000
   );
   return state.cache.shapes;
 }
 
-// country facts (world-countries dataset via jsDelivr — restcountries.com blocks CORS)
+// country facts (world-countries dataset, slimmed copy in vendor/)
 async function loadFacts() {
   if (state.cache.facts) return state.cache.facts;
   const rows = await getJSON(
-    "https://cdn.jsdelivr.net/npm/world-countries@5.1.0/countries.json",
+    VENDOR + "world-countries.json",
     20000
   );
   const by3 = {}, by2 = {};

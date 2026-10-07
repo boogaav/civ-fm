@@ -11,8 +11,14 @@
  * Requires maplibre-gl to be loaded on the page.
  */
 (function () {
-  const DEFAULT_DATA = "https://raw.githubusercontent.com/ilyankou/passport-index-dataset/master/";
-  const SHAPES_URL = "https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json";
+  // Country shapes and the visa matrix are served from this site's own
+  // vendor/ folder (see vendor/README.md), resolved next to this script so
+  // the component works from any page depth. They used to load from
+  // raw.githubusercontent.com, which some ISPs and countries block outright —
+  // the page then died with "Failed to fetch".
+  const HERE = new URL(".", document.currentScript.src).href;
+  const DEFAULT_DATA = HERE + "vendor/";
+  const SHAPES_URL = HERE + "vendor/countries.geo.json";
   const TAX_URL = "https://api.worldbank.org/v2/country/all/indicator/GC.TAX.TOTL.GD.ZS?format=json&per_page=500&mrnev=1";
 
   const CATS = {

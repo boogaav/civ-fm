@@ -237,12 +237,20 @@ Version note: relief pins maplibre-gl **5.7.0** (first with `color-relief`).
 5.24.0 breaks terrain here (tile-bounds + shader errors) — do not bump
 blindly; the main app remains on 5.6.0.
 
+## vendor/ — datasets hosted on civ.fm
+
+Country shapes, country facts and the visa matrix are served from `vendor/`
+rather than from `raw.githubusercontent.com` / `cdn.jsdelivr.net`: some ISPs
+and countries block those hosts, which left the passport page on "Data
+unreachable — Failed to fetch" and every country choropleth blank. Sources,
+licences and the refresh script are in `vendor/README.md`.
+
 ## Data sources (all keyless, CORS-open, fetched client-side)
 
 Open-Meteo (forecast, air quality, flood/GloFAS) · USGS · NASA EONET ·
 NASA GIBS Black Marble tiles · World Bank API · wheretheiss.at ·
-open.er-api.com (FX) · world-countries via jsDelivr (facts) ·
-johan/world.geo.json (country shapes) · BigDataCloud reverse geocode ·
+open.er-api.com (FX) · world-countries (facts, in `vendor/`) ·
+johan/world.geo.json (country shapes, in `vendor/`) · BigDataCloud reverse geocode ·
 GDELT GEO (best-effort; degrades gracefully — their API host blocks CORS
 and is intermittently down).
 
