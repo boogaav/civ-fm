@@ -86,17 +86,55 @@ $("#btn-borders").addEventListener("click", () => {
   applyBorders();
 });
 
-["pointerdown", "wheel"].forEach((ev) =>
-  map.getCanvas().addEventListener(ev, () => (state.interacted = true), { once: true })
-);
+/* ---------------- idle spin ---------------- */
+// The globe turns by default. Any touch pauses it; it picks up again after a
+// few idle seconds, and only while zoomed out far enough to be looking at the
+// planet rather than studying a place. The Spin toggle is remembered.
 
-// gentle idle rotation until first touch
-(function spin() {
-  if (!state.interacted && map.loaded()) {
-    map.setCenter([map.getCenter().lng + 0.02, map.getCenter().lat]);
-  }
+const SPIN = { degPerSec: 2, resumeMs: 6000, maxZoom: 3.2, last: 0, idleSince: 0, ready: false };
+try {
+  const saved = localStorage.getItem("civfm-spin");
+  state.spin = saved ? saved === "on" : !matchMedia("(prefers-reduced-motion: reduce)").matches;
+} catch (e) { state.spin = true; }
+
+const spinTouch = () => { state.interacted = true; SPIN.idleSince = performance.now(); };
+["pointerdown", "pointermove", "wheel", "touchstart", "touchmove"].forEach((ev) =>
+  map.getCanvas().addEventListener(ev, (e) => {
+    // moving the mouse over the globe is not a touch; dragging it is
+    if (ev === "pointermove" && !e.buttons) return;
+    spinTouch();
+  }, { passive: true })
+);
+map.once("load", () => (SPIN.ready = true));
+
+function applySpin() {
+  const b = $("#btn-spin");
+  if (!b) return;
+  b.classList.toggle("on", state.spin);
+  b.setAttribute("aria-pressed", state.spin);
+}
+$("#btn-spin")?.addEventListener("click", () => {
+  state.spin = !state.spin;
+  SPIN.idleSince = 0; // turning it on starts it at once
+  try { localStorage.setItem("civfm-spin", state.spin ? "on" : "off"); } catch (e) {}
+  applySpin();
+});
+applySpin();
+
+(function spin(now) {
   requestAnimationFrame(spin);
-})();
+  const dt = Math.min(now - SPIN.last, 100) || 0; // a tab coming back must not jump
+  SPIN.last = now;
+  if (!state.spin || !SPIN.ready) return;
+  // a fly-to or a drag in progress owns the camera, and counts as a touch
+  if (map.isMoving()) { SPIN.idleSince = now; return; }
+  if (now - SPIN.idleSince < SPIN.resumeMs) return;
+  // full speed zoomed out, easing to a stop on the way in
+  const k = Math.max(0, Math.min(1, (SPIN.maxZoom - map.getZoom()) / 1.2));
+  if (!k) return;
+  const c = map.getCenter();
+  map.jumpTo({ center: [c.lng + (SPIN.degPerSec * k * dt) / 1000, c.lat] });
+})(performance.now());
 
 /* ---------------- solar / terminator ---------------- */
 

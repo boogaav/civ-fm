@@ -25,6 +25,15 @@ UI is macOS-style: system SF font stack, frosted-glass panels
 Maps-style blue location puck. Day/night terminator shows only on channels
 where it means something (Air, Ground, Signal); data channels get full clarity.
 
+## Idle spin
+
+The globe turns by default at 2° per second. A touch, drag, scroll or fly-to
+pauses it and it resumes after 6 idle seconds. It only turns while zoomed out
+(full speed below zoom 2, easing to a stop by 3.2), so a place being studied
+stays put. The **Spin** button beside Borders turns it off; the choice is kept
+in `localStorage` (`civfm-spin`). With "reduce motion" set in the OS it starts
+off.
+
 ## Disaster alerting (v0.3)
 
 GDACS (the UN/EC multi-hazard feed: floods, cyclones, quakes, droughts,

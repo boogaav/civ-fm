@@ -150,11 +150,11 @@ body {
 /* ---------- status line ---------- */
 #statusline {
   position: absolute; top: 20px; right: 24px; z-index: 10;
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 8px;
   font-size: 11.5px; color: var(--muted);
 }
 #statusline .live { color: var(--ok); }
-#btn-borders {
+#btn-borders, #btn-spin {
   appearance: none; cursor: pointer;
   font-family: var(--font); font-size: 11px; font-weight: 600;
   color: var(--muted);
@@ -165,8 +165,8 @@ body {
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
 }
-#btn-borders:hover { color: var(--ink); }
-#btn-borders.on { background: rgba(255,255,255,.16); color: var(--ink); }
+#btn-borders:hover, #btn-spin:hover { color: var(--ink); }
+#btn-borders.on, #btn-spin.on { background: rgba(255,255,255,.16); color: var(--ink); }
 
 /* ---------- global alert pill ---------- */
 #alerts {
