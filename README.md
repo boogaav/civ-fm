@@ -25,6 +25,15 @@ UI is macOS-style: system SF font stack, frosted-glass panels
 Maps-style blue location puck. Day/night terminator shows only on channels
 where it means something (Air, Ground, Signal); data channels get full clarity.
 
+## Explanations — what each section means
+
+`explain.js` holds one entry per channel and per sub-dial (`EXPLAIN`, keyed
+`"money"` or `"money/inflation"`): what the colours mean, then the data source
+and how fresh it is. Hovering or keyboard-focusing a dial or sub-dial button
+shows it as a card. Touch screens have no hover, so an **i** button beside the
+frequency shows the card for whatever is tuned. **A new channel or sub-dial
+needs an entry here**, or it gets no card.
+
 ## Idle spin
 
 The globe turns by default at 2° per second. A touch, drag, scroll or fly-to
