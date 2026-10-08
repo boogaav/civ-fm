@@ -550,6 +550,7 @@ function clearChannelLayers() {
   stopWiki();
   if (typeof clearPeopleExtras === "function") clearPeopleExtras();
   if (typeof futureTeardown === "function") futureTeardown();
+  if (typeof radioTeardown === "function") radioTeardown();
   if (issMarker) { issMarker.remove(); issMarker = null; }
   if (launchMarker) { launchMarker.remove(); launchMarker = null; }
 }
@@ -1933,6 +1934,9 @@ async function tune(ch) {
   document.querySelectorAll(".chan").forEach((b) =>
     b.classList.toggle("active", b.dataset.ch === ch)
   );
+  // seven channels overflow a phone's dial: keep the tuned one in view
+  const track = $(".dial-track"), tuned = $(".chan.active");
+  if (track && tuned) track.scrollLeft = tuned.offsetLeft - (track.clientWidth - tuned.offsetWidth) / 2;
   $("#freq-num").textContent = def.num;
   $("#freq-name").textContent = def.name;
   $("#freq-question").textContent = def.q;

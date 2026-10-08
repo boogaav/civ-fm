@@ -428,3 +428,64 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   .fut-yearbox { min-width: 56px; }
   .fut-mode button { padding: 4px 6px; }
 }
+
+/* ---------- Radio: now-playing strip + station list ---------- */
+#radio-now {
+  display: flex; align-items: center; gap: 9px;
+  margin: -2px 0 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+#radio-now button {
+  appearance: none; flex: none; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--glass-2); border: 1px solid var(--hairline);
+  color: var(--ink); display: grid; place-items: center; padding: 0;
+}
+#radio-now button svg { width: 10px; height: 10px; fill: currentColor; }
+#radio-now button:hover { background: rgba(255,255,255,.14); }
+#radio-now button:focus-visible, .rlist li:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#rn-toggle { background: #ff375f !important; border-color: transparent !important; }
+#radio-now[data-status="paused"] #rn-toggle, #radio-now[data-status="dead"] #rn-toggle { background: var(--glass-2) !important; border-color: var(--hairline) !important; }
+#rn-next, #rn-close { width: 24px !important; height: 24px !important; color: var(--muted) !important; }
+.rn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rn-text b { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rn-text span { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#radio-now[data-status="dead"] .rn-text span { color: var(--warn); }
+#radio-now[data-status="tuning"] #rn-toggle { animation: adotpulse 1.2s ease-in-out infinite; }
+
+.rlist { list-style: none; margin: 6px -4px 0; padding: 0; max-height: min(340px, calc(100vh - 470px)); min-height: 96px; overflow-y: auto; }
+.rlist li {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 5px 4px; border-radius: 7px; border-top: 1px solid var(--hairline);
+}
+.rlist li:first-child { border-top: 0; }
+.rlist li:hover { background: var(--glass-2); }
+.rlist .ri { flex: none; width: 18px; height: 18px; display: grid; place-items: center; color: var(--faint); }
+.rlist .ri svg { width: 9px; height: 9px; fill: currentColor; }
+.rlist li:hover .ri { color: var(--ink); }
+.rlist .rb { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rlist .rb b { font-size: 12.5px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rlist .rb span { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rlist li.on .rb b, .rlist li.on .ri { color: #ff375f; }
+.rlist li.dead { opacity: .4; }
+.rlist li.dead .rb b { text-decoration: line-through; }
+.psrc a { color: inherit; }
+.psrc a:hover { color: var(--accent); }
+
+.rn-eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; }
+.rn-eq i { width: 2px; background: currentColor; border-radius: 1px; animation: rneq 0.9s ease-in-out infinite; }
+.rn-eq i:nth-child(1) { height: 60%; }
+.rn-eq i:nth-child(2) { height: 100%; animation-delay: -.3s; }
+.rn-eq i:nth-child(3) { height: 40%; animation-delay: -.6s; }
+@keyframes rneq { 0%, 100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+.rn-eq i { transform-origin: bottom; }
+@media (prefers-reduced-motion: reduce) { .rn-eq i, #radio-now[data-status="tuning"] #rn-toggle { animation: none; } }
+
+@media (max-width: 720px) {
+  .rlist { max-height: 25vh; }
+}
+/* seven channels on a phone: tighten so the whole dial fits without scrolling */
+@media (max-width: 430px) {
+  .chan { padding: 8px 5px; }
+  .chan .n { font-size: 12.5px; }
+}

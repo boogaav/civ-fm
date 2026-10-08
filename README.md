@@ -6,7 +6,7 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## The dial — six channels, Apple-style UI
+## The dial — seven channels, Apple-style UI
 
 Air, Ground and Water were merged into one **Earth** channel, and Signal into **People**, each as a sub-dial (2026-09-22); the original implementations live on as sub-views.
 
@@ -18,6 +18,7 @@ Air, Ground and Water were merged into one **Earth** channel, and Signal into **
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
 | 106.5 | Future  | Sub-dial: Outlook · Climate zone · Crops · Warming — all 4,595 first-level regions under the worst-case SSP5-8.5 pathway, 2026–2125, with a year bar (play, slider, Central / High-end sensitivity) | Local warming, net outlook (gain vs risk) for the region and nationwide, Köppen zone today → year, climate twin ("feels like today's …"), growing season, crop potential, summer highs / winter lows, new or lost crops, top gains and risks |
 | 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) · Signal (live Wikipedia edit pulses, ISS with trail, next-launch marker, GDELT news when up, terminator) | Population/density/languages · top-10 articles + Google Trends · upcoming elections with Wikidata links · UTC, sun, wiki edits/min, ISS, launch countdown |
+| 108.0 | Radio   | Sub-dial: Popular · Rising · News — countries shaded by how many radio stations stream online (log scale) | Click a country: its stations, most listened first. Click one to tune in. The player sits at the top of the HERE panel and keeps playing on every channel |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
 (backdrop blur + hairlines), segmented-control dial, Apple system colors,
@@ -81,6 +82,34 @@ channel and registers itself as `CHANNELS.future` after `app.js` loads.
   emulator for direction and rough size, not a forecast: soils, irrigation,
   CO₂ fertilisation and local effects (mountains, monsoon shifts) are not
   modelled.
+
+## Radio — what is on the air
+
+`radio.js` registers the channel the same way `future/future.js` does
+(`CHANNELS.radio = …`), so `app.js` only knows about it through one teardown
+hook.
+
+- **Directory:** [Radio Browser](https://www.radio-browser.info/), a community
+  database with an open, CORS-enabled API and no key. Three mirrors are tried
+  in order (`de1`, `de2`, `all`); the first that answers is remembered.
+  `/json/countries` feeds the choropleth, `/json/stations/search?countrycode=CC`
+  feeds the list (top 100 by listens, `hidebroken=true`, `is_https=true`).
+- **HTTPS only.** A browser will not play a plain-http stream on an https
+  page, so those stations are left out. The map tooltip shows every listed
+  station; the list shows the ones that can actually play, which is fewer.
+- **Which country:** the coloured shape under the click wins, so the list
+  matches what was clicked. Small countries the low-resolution shapes miss
+  (Singapore, Malta) fall back to the reverse-geocoded country.
+- **Player:** one `<audio>` element. HLS streams (`.m3u8`, common in Vietnam)
+  go through hls.js, loaded from unpkg when Radio is tuned; Safari plays HLS
+  natively. Chromium also claims native HLS but fails on live radio, so it is
+  not trusted. A station silent for 20 s, or erroring, is marked "No signal"
+  and struck through for the session. Next skips to the following live one.
+- **Sub-dial** filters the same 100 stations client-side: Popular (listens),
+  Rising (click trend), News (tags or name match news/talk).
+- Each play is reported to the directory (`/json/url/{uuid}`), as its API asks,
+  since that is what ranks stations.
+- Station names and tags are user-contributed and are HTML-escaped.
 
 ## Money sub-dials — tax
 
@@ -251,6 +280,7 @@ Open-Meteo (forecast, air quality, flood/GloFAS) · USGS · NASA EONET ·
 NASA GIBS Black Marble tiles · World Bank API · wheretheiss.at ·
 open.er-api.com (FX) · world-countries (facts, in `vendor/`) ·
 johan/world.geo.json (country shapes, in `vendor/`) · BigDataCloud reverse geocode ·
+Radio Browser (station directory, direct) ·
 GDELT GEO (best-effort; degrades gracefully — their API host blocks CORS
 and is intermittently down).
 
