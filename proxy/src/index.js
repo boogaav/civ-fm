@@ -174,6 +174,35 @@ function adsbRoute(url) {
   };
 }
 
+// /wb/<indicator> — one World Bank indicator for every country since 2005,
+// compacted to {ISO3: {value, year, s: [[year, value], …]}}. The API itself
+// answers in 0.2 s one minute and over a minute the next, so the edge keeps
+// each table for 12 hours and every visitor shares the one slow fetch.
+const WB_FROM = 2005;
+function wbRoute(url) {
+  const code = url.pathname.slice("/wb/".length);
+  if (!/^[A-Z0-9.]{3,40}$/.test(code)) return null;
+  return {
+    url: `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=20000&date=${WB_FROM}:${new Date().getUTCFullYear()}`,
+    ttl: 43200,
+    cachePath: `/wb/${code}/${WB_FROM}`,
+    transform: (data) => {
+      const series = {};
+      for (const r of data[1] || []) {
+        if (!r.countryiso3code || r.value == null) continue;
+        (series[r.countryiso3code] ||= []).push([Number(r.date), r.value]);
+      }
+      const out = {};
+      for (const [c3, s] of Object.entries(series)) {
+        s.sort((a, b) => a[0] - b[0]);
+        const [year, value] = s[s.length - 1];
+        out[c3] = { value, year: String(year), s };
+      }
+      return out;
+    },
+  };
+}
+
 // /floods?year=YYYY — one year of the GDACS flood archive as a compact list.
 // GDACS pages 100 events at a time, so this walks the pages (in parallel
 // batches) and returns [lon, lat, "YYYY-MM-DD", level, country] per flood,
@@ -239,7 +268,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/floods") return handleFloods(url, ctx);
     const route =
-      url.pathname === "/adsb" ? adsbRoute(url)
+      url.pathname.startsWith("/wb/") ? wbRoute(url)
+      : url.pathname === "/adsb" ? adsbRoute(url)
       : url.pathname === "/trends" ? trendsRoute(url)
       : ROUTES[url.pathname];
     if (!route) return json({ error: "unknown route" }, 404);

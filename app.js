@@ -430,20 +430,96 @@ async function loadFacts() {
   return state.cache.facts;
 }
 
-// World Bank indicator → {ISO3: {value, year}}
+// World Bank indicator → {ISO3: {value, year, s}} where s is the yearly
+// series since WB_FROM as [[year, value], …], oldest first. The latest value
+// is what the maps colour; the series feeds the trend arrows and sparklines.
+const WB_FROM = 2005;
+const WB_LOCAL_TTL = 24 * 3600e3;
+
+function wbCompact(data) {
+  const series = {};
+  for (const r of data[1] || []) {
+    if (!r.countryiso3code || r.value == null) continue;
+    (series[r.countryiso3code] ||= []).push([Number(r.date), r.value]);
+  }
+  const out = {};
+  for (const [c3, s] of Object.entries(series)) {
+    s.sort((a, b) => a[0] - b[0]);
+    const [year, value] = s[s.length - 1];
+    out[c3] = { value, year: String(year), s };
+  }
+  return out;
+}
+
+// The World Bank API answers in 0.2 s one minute and over a minute the next,
+// so: a copy from the last 24 h in this browser wins; then the Worker, which
+// compacts the series and edge-caches it for 12 h; then the API directly.
+// A failure returns an empty table (readouts show "—") and never throws, so
+// one slow indicator cannot blank a whole channel.
 async function wb(code) {
   if (state.cache.wb[code]) return state.cache.wb[code];
-  const data = await getJSON(
-    `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=500&mrnev=1`,
-    20000
-  );
-  const out = {};
-  for (const r of data[1] || []) {
-    if (r.countryiso3code && r.value != null)
-      out[r.countryiso3code] = { value: r.value, year: r.date };
+  const lsKey = `civfm-wb-${code}`;
+  try {
+    const hit = JSON.parse(localStorage.getItem(lsKey) || "null");
+    if (hit && Date.now() - hit.t < WB_LOCAL_TTL && hit.from === WB_FROM) return (state.cache.wb[code] = hit.d);
+  } catch (e) {}
+  let out = null;
+  try {
+    out = await getJSON(`${PROXY}/wb/${code}`, 30000);
+  } catch (e) {
+    try {
+      const data = await getJSON(
+        `https://api.worldbank.org/v2/country/all/indicator/${code}?format=json&per_page=20000&date=${WB_FROM}:${new Date().getUTCFullYear()}`,
+        30000
+      );
+      out = wbCompact(data);
+    } catch (e2) {}
   }
+  if (!out) { state.weak = true; return {}; }
   state.cache.wb[code] = out;
+  try { localStorage.setItem(lsKey, JSON.stringify({ t: Date.now(), from: WB_FROM, d: out })); } catch (e) {}
   return out;
+}
+
+/* ---------------- trends ---------------- */
+// Ten-year direction for any series: change since the value ten years before
+// the latest one, plus a sparkline. `pts` reports the change in points (for
+// rates and years) instead of percent; `better` colours the arrow.
+
+function tenYear(s) {
+  if (!s || s.length < 3) return null;
+  const last = s[s.length - 1];
+  const base = s.find(([y]) => y >= last[0] - 10);
+  if (!base || base[0] === last[0]) return null;
+  return { d: last[1] - base[1], from: base, to: last };
+}
+
+function fmtDelta(t, pts, digits = 1) {
+  if (!t) return "";
+  const d = pts ? t.d : t.from[1] ? (t.d / Math.abs(t.from[1])) * 100 : NaN;
+  if (!Number.isFinite(d)) return "";
+  const sign = d > 0 ? "+" : d < 0 ? "−" : "";
+  const n = Math.abs(d);
+  return `${sign}${n >= 10 && digits <= 1 ? Math.round(n) : n.toFixed(digits)}${pts ? (digits > 1 ? "" : " pts") : "%"}`;
+}
+
+function trend(rec, { pts = false, better = null, label = "", digits = 1 } = {}) {
+  const t = tenYear(rec?.s);
+  if (!t) return "";
+  const s = rec.s.filter(([y]) => y >= t.from[0]);
+  const vals = s.map((p) => p[1]);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const w = 54, h = 14;
+  const pt = s.map(([y, v], i) =>
+    `${((y - s[0][0]) / Math.max(1, s[s.length - 1][0] - s[0][0]) * (w - 2) + 1).toFixed(1)},${(h - 1 - ((v - min) / (max - min || 1)) * (h - 2)).toFixed(1)}`
+  ).join(" ");
+  const flat = Math.abs(t.d) < 1e-9 || (!pts && Math.abs(t.d / (t.from[1] || 1)) < 0.005);
+  const dir = flat ? "flat" : t.d > 0 ? "up" : "down";
+  const tone = flat || !better ? "" : (dir === better ? " good" : " bad");
+  const arrow = flat ? "→" : dir === "up" ? "↗" : "↘";
+  return `<span class="tr ${dir}${tone}" title="${label || "Change"} ${t.from[0]} to ${t.to[0]}">` +
+    `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pt}"/></svg>` +
+    `<b>${arrow} ${fmtDelta(t, pts, digits)}</b><i>since ${t.from[0]}</i></span>`;
 }
 
 /* ---------------- choropleth engine ---------------- */
@@ -453,16 +529,17 @@ function removeChoro() {
   if (map.getSource("choro")) map.removeSource("choro");
 }
 
-async function addChoropleth({ values, ramp, fmt, opacity = 0.55, input }) {
+async function addChoropleth({ values, ramp, fmt, opacity = 0.55, input, pts = false }) {
   removeChoro();
   const shapes = await loadCountryShapes();
   const features = [];
   for (const f of shapes.features) {
     const rec = values[f.id];
     if (!rec) continue;
+    const t = tenYear(rec.s);
     features.push({
       ...f,
-      properties: { ...f.properties, value: rec.value, year: rec.year || "" },
+      properties: { ...f.properties, value: rec.value, year: rec.year || "", d10: t ? fmtDelta(t, pts) : "", from: t ? t.from[0] : 0 },
     });
   }
   map.addSource("choro", { type: "geojson", data: { type: "FeatureCollection", features } });
@@ -491,7 +568,8 @@ function ensureChoroHover() {
       const p = e.features[0].properties;
       popup
         .setLngLat(e.lngLat)
-        .setHTML(`<b>${p.name}</b><br>${state.choroFmt(p.value)}${p.year ? ` <span style="color:#98989d">(${p.year})</span>` : ""}`)
+        .setHTML(`<b>${p.name}</b><br>${state.choroFmt(p.value)}${p.year ? ` <span style="color:#98989d">(${p.year})</span>` : ""}` +
+          (p.d10 ? `<br><span style="color:#98989d">${p.d10.startsWith("+") ? "↗" : p.d10.startsWith("−") ? "↘" : "→"} ${p.d10} since ${p.from}</span>` : ""))
         .addTo(map);
     });
     map.on("mouseleave", "choro", () => popup.remove());
@@ -576,8 +654,8 @@ function renderHere() {
 
 /* ---------------- channel plumbing ---------------- */
 
-const LAYER_IDS = ["future-line", "future", "choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news", "wiki", "flights", "iss-trail"];
-const SOURCE_IDS = ["future", "choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news", "wiki", "flights", "iss-trail"];
+const LAYER_IDS = ["place-line", "place", "future-line", "future", "choro", "grid-lights", "air-cities", "eonet", "gdacs-glow", "gdacs", "quakes-glow", "quakes", "news", "wiki", "flights", "iss-trail"];
+const SOURCE_IDS = ["place", "future", "choro", "grid-lights", "air-cities", "quakes", "eonet", "gdacs", "news", "wiki", "flights", "iss-trail"];
 
 function clearChannelLayers() {
   for (const id of LAYER_IDS) if (map.getLayer(id)) map.removeLayer(id);
@@ -588,6 +666,7 @@ function clearChannelLayers() {
   stopWiki();
   if (typeof clearPeopleExtras === "function") clearPeopleExtras();
   if (typeof futureTeardown === "function") futureTeardown();
+  if (typeof placeTeardown === "function") placeTeardown();
   if (typeof radioTeardown === "function") radioTeardown();
   if (issMarker) { issMarker.remove(); issMarker = null; }
   if (launchMarker) { launchMarker.remove(); launchMarker = null; }
@@ -605,8 +684,8 @@ function legend(title, rows) {
       .join("");
 }
 
-function ro(k, val, cls = "", sub = "", wide = false) {
-  return `<div class="ro${wide ? " wide" : ""}"><span class="k">${k}</span><span class="val ${cls}">${val}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</div>`;
+function ro(k, val, cls = "", sub = "", wide = false, tr = "") {
+  return `<div class="ro${wide ? " wide" : ""}"><span class="k">${k}</span><span class="val ${cls}">${val}</span>${sub ? `<span class="sub">${sub}</span>` : ""}${tr}</div>`;
 }
 
 const tuningHTML = `<div class="readouts">${'<div class="ro wide"><span class="k">Tuning…</span></div>'}</div>`;
@@ -1511,7 +1590,8 @@ const CHANNELS = {
           `<div class="readouts">` +
           ro("Water stress", stress ? `${Math.round(stress.value)}<small>%</small>` : "—",
              stress ? (stress.value < 25 ? "good" : stress.value < 50 ? "warn" : "bad") : "",
-             stress ? `national · ${stress.year}` : "") +
+             stress ? `national · ${stress.year}` : "", false,
+             trend(stress, { pts: true, better: "down", label: "Water stress" })) +
           ro("Soil moisture", sm != null ? sm.toFixed(2) : "—", "", "m³/m³ · topsoil") +
           ro("River discharge", rd != null ? `${Math.round(rd)} <small>m³/s</small>` : "—", "", "nearest river cell (GloFAS)") +
           ro("Rain today", soil?.daily?.precipitation_sum?.[0] != null ? `${soil.daily.precipitation_sum[0]} <small>mm</small>` : "—") +
@@ -1598,10 +1678,14 @@ const CHANNELS = {
         `<div class="readouts">` +
         ro("Life expectancy", life ? `${life.value.toFixed(1)} <small>yrs</small>` : "—",
            life ? (life.value >= 78 ? "good" : life.value >= 68 ? "warn" : "bad") : "",
-           life ? `${state.here.country.name.common} · ${life.year}` : "") +
-        ro("Physicians", phys ? phys.value.toFixed(1) : "—", "", "per 1,000 people") +
-        ro("Health spend", spend ? `${spend.value.toFixed(1)}<small>%</small>` : "—", "", "of GDP", true) +
+           life ? `${state.here.country.name.common} · ${life.year}` : "", false,
+           trend(life, { pts: true, better: "up", label: "Years of life" })) +
+        ro("Physicians", phys ? phys.value.toFixed(1) : "—", "", phys ? `per 1,000 people · ${phys.year}` : "per 1,000 people", false,
+           trend(phys, { better: "up", label: "Physicians" })) +
+        ro("Health spend", spend ? `${spend.value.toFixed(1)}<small>%</small>` : "—", "", spend ? `of GDP · ${spend.year}` : "of GDP", true,
+           trend(spend, { pts: true, label: "Share of GDP" })) +
         `</div>`;
+      if (typeof placeHint === "function") placeHint(el, "life", "Life expectancy", (v) => `${v.toFixed(1)} <small>yrs</small>`);
     },
   },
 
@@ -1634,10 +1718,12 @@ const CHANNELS = {
         `<div class="readouts">` +
         ro("Electricity", elec ? `${Math.round(elec.value)}<small>%</small>` : "—",
            elec ? (elec.value >= 99 ? "good" : elec.value >= 80 ? "warn" : "bad") : "",
-           "population with access") +
+           elec ? `with access · ${elec.year}` : "population with access", false,
+           trend(elec, { pts: true, better: "up", label: "Access" })) +
         ro("Online", net ? `${Math.round(net.value)}<small>%</small>` : "—",
            net ? (net.value >= 80 ? "good" : net.value >= 50 ? "warn" : "bad") : "",
-           "population using internet") +
+           net ? `using the internet · ${net.year}` : "population using internet", false,
+           trend(net, { pts: true, better: "up", label: "Internet use" })) +
         `</div>`;
     },
   },
@@ -1731,14 +1817,17 @@ const CHANNELS = {
       const inc = taxHere("income"), corp = taxHere("corporate");
       el.innerHTML =
         `<div class="readouts">` +
-        ro("GDP / capita", gdp ? `$${fmtBig(gdp.value)}` : "—", "", gdp ? `PPP · ${gdp.year}` : "") +
+        ro("GDP / capita", gdp ? `$${fmtBig(gdp.value)}` : "—", "", gdp ? `PPP · ${gdp.year}` : "", false,
+           trend(gdp, { better: "up", label: "GDP per person" })) +
         ro("Inflation", infl ? `${infl.value.toFixed(1)}<small>%</small>` : "—",
            infl ? (infl.value < 4 ? "good" : infl.value < 10 ? "warn" : "bad") : "",
-           infl ? `CPI · ${infl.year}` : "") +
+           infl ? `CPI · ${infl.year}` : "", false,
+           trend(infl, { pts: true, better: "down", label: "Inflation" })) +
         ro("Gold reserves", gold ? `$${fmtBig(gold.value)}` : "—", "", gold ? `USD value · ${gold.year}` : "no data") +
         ro("Gov. debt", debt ? `${Math.round(debt.value)}<small>%</small>` : "—",
            debt ? (debt.value < 50 ? "good" : debt.value < 90 ? "warn" : "bad") : "",
-           debt ? `of GDP · ${debt.year}` : "no data") +
+           debt ? `of GDP · ${debt.year}` : "no data", false,
+           trend(debt, { pts: true, better: "down", label: "Debt" })) +
         ro("Currency", curCode ? `${cur?.symbol || ""} ${curCode}` : "—", "", cur?.name || "") +
         ro("US dollar", fx ? `${fx.toFixed(fx > 20 ? 0 : 2)}` : "—", "", curCode ? `1 USD in ${curCode} · daily rate` : "") +
         ro("Top income tax", inc ? `${inc.rate}<small>%</small>` : "—",
@@ -1748,6 +1837,7 @@ const CHANNELS = {
            corp ? (corp.rate >= 28 ? "bad" : corp.rate >= 15 ? "warn" : "good") : "",
            corp ? corp.note : "no curated data", true) +
         `</div>`;
+      if (typeof placeHint === "function") placeHint(el, "gni", "Income per person", (v) => `$${fmtBig(v)}`);
     },
   },
 
@@ -1806,12 +1896,15 @@ const CHANNELS = {
       const density = wbHere("EN.POP.DNST");
       el.innerHTML =
         `<div class="readouts">` +
-        ro("Population", pop ? fmtBig(pop.value) : "—", "", c.name.common) +
-        ro("Density", density ? Math.round(density.value) : "—", "", "people / km²") +
+        ro("Population", pop ? fmtBig(pop.value) : "—", "", pop ? `${c.name.common} · ${pop.year}` : c.name.common, false,
+           trend(pop, { label: "Population" })) +
+        ro("Density", density ? Math.round(density.value) : "—", "", "people / km²", false,
+           trend(density, { label: "Density" })) +
         ro("Languages", langs || "—", "", "", true) +
         ro("Capital", c.capital?.[0] || "—", "", "", true) +
         `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
         `</div>`;
+      if (typeof placeHint === "function") placeHint(el, "hdi", "Human development", (v) => v.toFixed(3));
     },
   },
 
@@ -2001,9 +2094,10 @@ async function tune(ch) {
       "visibility",
       ch === "earth" && (state.subs.earth || "air") !== "water" ? "visible" : "none"
     );
+  state.weak = false;
   try {
     await def.activate();
-    if (state.channel === ch) setStatus(LIVE);
+    if (state.channel === ch) setStatus(state.weak ? "Weak signal — some data unreachable" : LIVE);
   } catch (err) {
     setStatus(`Weak signal — some data unreachable`);
   }

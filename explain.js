@@ -28,6 +28,27 @@ const EXPLAIN = {
     src: WB("ER.H2O.FWST.ZS") + " Originally from FAO AQUASTAT. Local rain, soil moisture and river flow come from Open-Meteo.",
   },
 
+  place: {
+    what: "The region you are in, not the country average: 1,774 regions coloured by how people live there. Click anywhere for that region's numbers and how it compares with its country.",
+    src: "Global Data Lab, Subnational Human Development Database, 1990 to 2019, via the Open Numbers mirror. Regions are the ones the database defines, usually provinces or states.",
+  },
+  "place/living": {
+    what: "The Human Development Index for each region: health, schooling and income combined into one number from 0 to 1. Above 0.8 is very high, below 0.55 is low.",
+    src: "Global Data Lab, Subnational HDI, 2019.",
+  },
+  "place/health": {
+    what: "Life expectancy at birth in each region, in years. Green is longer.",
+    src: "Global Data Lab, Subnational HDI, 2019.",
+  },
+  "place/school": {
+    what: "Average years of schooling completed by adults aged 25 and over in each region. The panel adds how many years today's children can expect.",
+    src: "Global Data Lab, Subnational HDI, 2019.",
+  },
+  "place/income": {
+    what: "Gross national income per person in each region, adjusted for local prices. The scale is logarithmic: each step is ten times more.",
+    src: "Global Data Lab, Subnational HDI, 2019, in 2011 international dollars.",
+  },
+
   body: {
     what: "How long people live here, and which substances the law lets you consume.",
     src: "World Bank for health. CIV FM's own curated tables for substance laws.",

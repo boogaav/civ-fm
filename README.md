@@ -6,13 +6,14 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## The dial — seven channels, Apple-style UI
+## The dial — eight channels, Apple-style UI
 
 Air, Ground and Water were merged into one **Earth** channel, and Signal into **People**, each as a sub-dial (2026-09-22); the original implementations live on as sub-views.
 
 | Freq  | Channel | Globe layer | HERE readouts |
 |-------|---------|-------------|----------------|
 | 88.0  | Earth   | Sub-dial: Air (live city temperatures + day/night) · Ground (USGS quakes, GDACS alerts, EONET events) · Water (water-stress choropleth) | Air: temp, AQI, UV, wind, sun, 24 h sparkline · Ground: nearest hazards · Water: stress %, soil moisture, river discharge, rain |
+| 93.0  | Place   | Sub-dial: Living (HDI) · Health · School · Income (· Internet) — 1,763 sub-national regions, the region you are in rather than the country average | Region name, rank within its country, HDI with tier, life expectancy, schooling, income, population, each against the national level and with its ten-year trend |
 | 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
 | 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
 | 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
@@ -24,6 +25,47 @@ UI is macOS-style: system SF font stack, frosted-glass panels
 (backdrop blur + hairlines), segmented-control dial, Apple system colors,
 Maps-style blue location puck. Day/night terminator shows only on channels
 where it means something (Air, Ground, Signal); data channels get full clarity.
+
+## Place — the region, not the country average
+
+`place/place.js` registers `CHANNELS.place` after `app.js` loads, like Future.
+
+- **Data** — Global Data Lab's Subnational Human Development Database
+  (globaldatalab.org/shdi), through the Open Numbers mirror
+  (github.com/open-numbers/ddf--gdl--shdi, CC BY): 1,774 regions in 186
+  countries, 1990 to 2019, with HDI, life expectancy, mean and expected
+  years of schooling, GNI per person at PPP and population. GDL's own
+  release reaches 2022 but needs a free account; `place/build_place.py`
+  takes a directory of their CSVs and the region TopoJSON and writes
+  `place/regions.json` (1.0 MB) and `place/data.json` (1.1 MB), fetched only
+  when Place is tuned or another channel asks for a region hint.
+- **Globe** — one GeoJSON source coloured through `setFeatureState`, so
+  switching sub-dials never re-tiles. Hovering a region shows its value,
+  year and ten-year change.
+- **HERE** — point-in-polygon over the regions (bbox prefilter, ray cast)
+  finds the region under the pin. The card ranks it among its country's
+  regions, compares each number with the national level and shows the
+  ten-year trend.
+- **Region hints** — Body › Life, Money and People › Density call
+  `placeHint()` to append one "here" line with the regional value against
+  the national one and a link into Place.
+- **Internet** (`place/build_internet.py`, `internet.json`) — measured
+  download speed per region from Ookla Open Data Speedtest tiles
+  (CC BY-NC-SA 4.0), tests-weighted, fixed and mobile, latest quarter.
+
+## Trends — ten years on every World Bank readout
+
+`wb(code)` now loads the full series since 2005 (`WB_FROM`), not just the
+latest value: `{ISO3: {value, year, s: [[year, value], …]}}`. `trend(rec,
+{pts, better, label, digits})` renders a sparkline, an arrow and the change
+against the value ten years before the latest one (points for rates and
+years, percent otherwise; green or red when `better` says which way is
+good). Choropleth hover popups carry the same change.
+
+The World Bank API answers in 0.2 s one minute and over a minute the next,
+so the series go through the Worker (`/wb/<indicator>`, compacted, 12 h edge
+cache) and are kept for 24 h in `localStorage`. A failed indicator leaves
+"—" readouts and a "Weak signal" status instead of blanking the channel.
 
 ## Explanations — what each section means
 
@@ -298,6 +340,7 @@ Open-Meteo (forecast, air quality, flood/GloFAS) · USGS · NASA EONET ·
 NASA GIBS Black Marble tiles · World Bank API · wheretheiss.at ·
 open.er-api.com (FX) · world-countries (facts, in `vendor/`) ·
 johan/world.geo.json (country shapes, in `vendor/`) · BigDataCloud reverse geocode ·
+Global Data Lab subnational HDI (in `place/`) · Ookla Open Data (in `place/`) ·
 Radio Browser (station directory, direct) ·
 GDELT GEO (best-effort; degrades gracefully — their API host blocks CORS
 and is intermittently down).
