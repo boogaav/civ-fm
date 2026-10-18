@@ -49,6 +49,11 @@ const EXPLAIN = {
     src: "Global Data Lab, Subnational HDI, 2019, in 2011 international dollars.",
   },
 
+  "place/internet": {
+    what: "Measured download speed on fixed lines in each region, in megabits per second, from real speed tests. The panel adds mobile.",
+    src: "Ookla Open Data, Speedtest results aggregated to 600 m tiles, latest quarter, averaged per region weighted by the number of tests.",
+  },
+
   body: {
     what: "How long people live here, and which substances the law lets you consume.",
     src: "World Bank for health. CIV FM's own curated tables for substance laws.",

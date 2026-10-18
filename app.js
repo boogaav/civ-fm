@@ -45,6 +45,8 @@ map.on("style.load", () => {
 function placePills() {
   const alerts = $("#alerts"), ballot = $("#ballot"), brand = $("#brand");
   if (!alerts || !brand) return;
+  // the HERE panel grows upward and must stop below the header block
+  document.documentElement.style.setProperty("--brand-bottom", `${Math.round(brand.getBoundingClientRect().bottom)}px`);
   if (window.innerWidth > 720) { alerts.style.top = ""; if (ballot) ballot.style.top = ""; return; }
   let y = brand.getBoundingClientRect().bottom + 8;
   alerts.style.top = `${y}px`;
@@ -1725,6 +1727,7 @@ const CHANNELS = {
            net ? `using the internet · ${net.year}` : "population using internet", false,
            trend(net, { pts: true, better: "up", label: "Internet use" })) +
         `</div>`;
+      if (typeof placeHint === "function") placeHint(el, "netf", "Download speed", (v) => `${v} <small>Mbps</small>`);
     },
   },
 

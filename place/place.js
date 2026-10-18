@@ -12,17 +12,20 @@ const PLACE_RAMPS = {
   life: [[55, "#ff453a"], [65, "#ff9f0a"], [73, "#ffd60a"], [80, "#30d158"], [86, "#6ae58a"]],
   msch: [[1, "#ff453a"], [5, "#ff9f0a"], [8, "#ffd60a"], [11, "#30d158"], [13.5, "#6ae58a"]],
   gni: [[2.7, "#1b2b40"], [3.3, "#14456f"], [3.9, "#0a84ff"], [4.5, "#4da3ff"], [5.0, "#9ecfff"]], // log10 USD
+  netf: [[0, "#2a1a33"], [0.7, "#4a2d73"], [1.3, "#7d4dbb"], [2.0, "#bf5af2"], [2.7, "#e0a9ff"]], // log10 Mbps
 };
 
 const PLACE_SUBS = {
   living: { label: "Living", key: "hdi", title: "Place — Human Development Index", from: "0.35", to: "0.95",
-    fmt: (v) => `HDI ${v.toFixed(3)}`, pts: false, label2: "Human development" },
+    fmt: (v) => `HDI ${v.toFixed(3)}`, pts: true, label2: "Human development" },
   health: { label: "Health", key: "life", title: "Place — life expectancy", from: "55 yrs", to: "86 yrs",
     fmt: (v) => `Life expectancy ${v.toFixed(1)} yrs`, pts: true, label2: "Years of life" },
   school: { label: "School", key: "msch", title: "Place — years of schooling, adults 25+", from: "1 yr", to: "13+ yrs",
     fmt: (v) => `${v.toFixed(1)} years of schooling`, pts: true, label2: "Schooling" },
   income: { label: "Income", key: "gni", title: "Place — income per person, GNI at PPP", from: "$500", to: "$100k",
     fmt: (v) => `$${fmtBig(v)} per person`, pts: false, label2: "Income per person", log: true },
+  internet: { label: "Internet", key: "netf", title: "Place — measured download speed, fixed lines", from: "1 Mbps", to: "500+ Mbps",
+    fmt: (v) => `${v} Mbps download`, pts: false, label2: "Internet speed", log: true },
 };
 
 /* ---------------- colour ---------------- */
@@ -47,7 +50,12 @@ async function loadPlace() {
   if (PLACE.fc) return PLACE;
   if (!PLACE.loading)
     PLACE.loading = (async () => {
-      const [topo, data] = await Promise.all([getJSON(PLACE_BASE + "regions.json", 45000), getJSON(PLACE_BASE + "data.json", 45000)]);
+      const [topo, data, net] = await Promise.all([
+        getJSON(PLACE_BASE + "regions.json", 45000),
+        getJSON(PLACE_BASE + "data.json", 45000),
+        getJSON(PLACE_BASE + "internet.json", 45000).catch(() => null), // optional
+      ]);
+      PLACE.net = net;
       const fc = topojson.feature(topo, topo.objects.regions);
       fc.features = fc.features.filter((f) => f.geometry);
       fc.features.forEach((f, i) => {
@@ -76,6 +84,17 @@ function placeRec(series) {
 
 const placeRegion = (code) => PLACE.data.r[code];
 const placeNational = (iso) => PLACE.data.n[iso];
+
+// one indicator for one region as a {value, year, s} record; "netf"/"netm"
+// come from internet.json (a single quarter, no series)
+function placeVal(code, key) {
+  if (key === "netf" || key === "netm") {
+    const row = PLACE.net?.r[code];
+    const v = row && row[key === "netf" ? 0 : 1];
+    return v == null ? null : { value: v, year: PLACE.net.quarter, s: null, tests: row[2] };
+  }
+  return placeRec(placeRegion(code)?.[key]);
+}
 
 /* ---------------- point in region ---------------- */
 
@@ -124,7 +143,7 @@ function placeRecolor() {
   PLACE.colorKey = sub.key;
   const ramp = PLACE_RAMPS[sub.key];
   for (const f of PLACE.fc.features) {
-    const rec = placeRec(placeRegion(f.properties.g)?.[sub.key]);
+    const rec = placeVal(f.properties.g, sub.key);
     const v = rec ? (sub.log ? Math.log10(Math.max(rec.value, 1)) : rec.value) : null;
     map.setFeatureState({ source: "place", id: f.id }, { col: rampColor(ramp, v) });
   }
@@ -134,7 +153,7 @@ function placeLegend() {
   const sub = placeSub();
   legend(sub.title, [
     { gradient: gradientCSS(PLACE_RAMPS[sub.key]), from: sub.from, to: sub.to },
-    { color: "transparent", label: "1,774 regions · Global Data Lab, 2019" },
+    { color: "transparent", label: sub.key === "netf" ? `Ookla Speedtest tiles · ${PLACE.net?.quarter || ""}` : "1,763 regions · Global Data Lab, 2019" },
   ]);
 }
 
@@ -149,11 +168,11 @@ const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st",
 
 // where this region stands among its country's regions on one indicator
 function placeRank(f, key) {
-  const mine = placeRec(placeRegion(f.properties.g)?.[key]);
+  const mine = placeVal(f.properties.g, key);
   if (!mine) return null;
   const peers = PLACE.fc.features
     .filter((x) => x.properties.a === f.properties.a)
-    .map((x) => placeRec(placeRegion(x.properties.g)?.[key])?.value)
+    .map((x) => placeVal(x.properties.g, key)?.value)
     .filter((v) => v != null)
     .sort((a, b) => b - a);
   if (peers.length < 2) return null;
@@ -183,6 +202,7 @@ async function herePlace(el) {
   const p = f.properties, r = placeRegion(p.g), n = placeNational(p.a);
   const country = state.cache.facts?.by3[p.a]?.name.common || p.a;
   const hdi = placeRec(r?.hdi), life = placeRec(r?.life), msch = placeRec(r?.msch), esch = placeRec(r?.esch), gni = placeRec(r?.gni), pop = placeRec(r?.pop);
+  const netf = placeVal(p.g, "netf"), netm = placeVal(p.g, "netm");
   const sub = placeSub();
   const rank = placeRank(f, sub.key);
   const tier = hdi ? (hdi.value >= 0.8 ? "very high" : hdi.value >= 0.7 ? "high" : hdi.value >= 0.55 ? "medium" : "low") : "";
@@ -206,7 +226,12 @@ async function herePlace(el) {
        trend(gni, { better: "up", label: "Income" })) +
     ro("People", pop ? fmtBig(pop.value * 1000) : "—", "", pop ? `in the region · ${pop.year}` : "", false,
        trend(pop, { label: "Population" })) +
-    `<div class="psrc">Global Data Lab, Subnational HDI · regions as the database defines them, data to 2019</div>` +
+    (netf || netm
+      ? ro("Internet", netf ? `${netf.value} <small>Mbps</small>` : "—",
+           netf ? (netf.value >= 100 ? "good" : netf.value >= 25 ? "" : netf.value >= 10 ? "warn" : "bad") : "",
+           `fixed download${netm ? ` · mobile ${netm.value} Mbps` : ""} · Speedtest ${(netf || netm).year}`, true)
+      : "") +
+    `<div class="psrc">Global Data Lab, Subnational HDI · regions as the database defines them, data to 2019${netf || netm ? " · internet: Ookla Open Data" : ""}</div>` +
     `</div>`;
 }
 
@@ -217,8 +242,8 @@ async function placeHint(el, key, label, fmt) {
   if (!el.isConnected || !state.here) return;
   const f = placeAt(state.here.lat, state.here.lng);
   if (!f) return;
-  const rec = placeRec(placeRegion(f.properties.g)?.[key]);
-  const nat = placeRec(placeNational(f.properties.a)?.[key]);
+  const rec = placeVal(f.properties.g, key);
+  const nat = key.startsWith("net") ? null : placeRec(placeNational(f.properties.a)?.[key]);
   if (!rec) return;
   const host = el.querySelector(".readouts") || el;
   const div = document.createElement("div");
@@ -226,7 +251,7 @@ async function placeHint(el, key, label, fmt) {
   div.innerHTML =
     `<span class="k">${label} here · ${rEsc(f.properties.n)}</span>` +
     `<span class="val">${fmt(rec.value)}</span>` +
-    `<span class="sub">${placeCompare(rec, nat, key !== "gni", key === "hdi" ? 3 : 1)} · region, ${rec.year} · <a href="#" class="place-go">Place channel →</a></span>`;
+    `<span class="sub">${nat ? placeCompare(rec, nat, key !== "gni", key === "hdi" ? 3 : 1) + " · " : ""}region, ${rec.year} · <a href="#" class="place-go">Place channel →</a></span>`;
   host.appendChild(div);
   div.querySelector(".place-go").addEventListener("click", (e) => { e.preventDefault(); tune("place"); });
 }
@@ -261,9 +286,9 @@ const PLACE_CHANNEL = {
       map.on("mousemove", "place", (e) => {
         const p = e.features[0].properties;
         const sub = placeSub();
-        const rec = placeRec(placeRegion(p.g)?.[sub.key]);
+        const rec = placeVal(p.g, sub.key);
         const country = state.cache.facts?.by3[p.a]?.name.common || p.a;
-        const t = rec && tenYear(rec.s);
+        const t = rec && rec.s && tenYear(rec.s);
         popup.setLngLat(e.lngLat)
           .setHTML(`<b>${rEsc(p.n)}</b> <span style="color:#98989d">${rEsc(country)}</span><br>` +
             (rec ? `${sub.fmt(rec.value)} <span style="color:#98989d">(${rec.year})</span>` : "no data") +

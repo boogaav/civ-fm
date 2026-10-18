@@ -523,7 +523,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 
 /* ---------- trends: ten-year arrow + sparkline inside a readout ---------- */
 .ro { min-width: 0; overflow: hidden; }
-.ro .tr { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; overflow: hidden; }
+.ro .tr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin-top: 4px; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ro .tr b { flex: none; }
 .ro .tr i { flex: 1; min-width: 0; }
 .ro .tr svg { flex: none; overflow: visible; }
@@ -539,4 +539,9 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 .place-hint .k { color: var(--data); }
 .place-hint .sub a { color: var(--accent); text-decoration: none; }
 .place-hint .sub a:hover { text-decoration: underline; }
-body.ch-place #here-panel { max-height: calc(100vh - 220px); overflow-y: auto; }
+
+/* the HERE panel never climbs over the header block, whatever the channel */
+#here-panel { max-height: calc(100vh - 96px - var(--brand-bottom, 200px) - 14px); overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 720px) {
+  #here-panel { max-height: calc(100vh - 100px - var(--brand-bottom, 160px) - 54px); }
+}
