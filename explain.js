@@ -133,6 +133,14 @@ const EXPLAIN = {
     what: "Days until each country's next national election. Red is within a month, yellow within half a year, grey more than a year away or unknown.",
     src: "Wikidata, refreshed daily. Snap elections and dates not yet set will be missing.",
   },
+  "people/state": {
+    what: "How each country is governed: republic or monarchy, who holds power and how they got it. Click a country for its heads of state and government, legislature, voting age and constitution, with the full text one tap away.",
+    src: "CIA World Factbook, public domain, updated through 2025. Constitution texts: Constitute Project (Comparative Constitutions Project), CC BY-NC, copied to civ.fm.",
+  },
+  "people/faith": {
+    what: "The largest religion in each country. Click one for the full breakdown as reported, grouped into families.",
+    src: "CIA World Factbook, public domain; each country's latest census or survey estimate, which can be years apart.",
+  },
   "people/signal": {
     what: "Every flash is a person editing Wikipedia, as it happens. Also the International Space Station and the next rocket launch.",
     src: "Wikimedia EventStreams (live), wheretheiss.at for the ISS, and Launch Library for launches.",

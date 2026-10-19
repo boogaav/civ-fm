@@ -1392,6 +1392,105 @@ function hereSubstances(el) {
     `<div class="psrc">Curated snapshot, ${SUBSTANCES.updated}. Laws change — verify before you travel.</div></div>`;
 }
 
+/* ---- People › State and Faith: political system, religion, the constitution ---- */
+// civic/civic.json is baked by civic/build_civic.py from the CIA World Factbook
+// (public domain) and the Constitute Project's list of constitutions in force.
+
+const GOV_COLORS = {
+  "Parliamentary republic": "#30d158", "Semi-presidential republic": "#66d4cf", "Presidential republic": "#0a84ff",
+  "Constitutional monarchy": "#bf5af2", "Absolute monarchy": "#ff9f0a", "One-party state": "#ff453a",
+  "Theocracy": "#ffd60a", "Military or transitional": "#8e4b2a", "Dependency or territory": "#636366", "Other system": "#3a3a3c",
+};
+const FAITH_COLORS = {
+  Christian: "#0a84ff", Muslim: "#30d158", Hindu: "#ff9f0a", Buddhist: "#ffd60a", Jewish: "#64d2ff",
+  "Folk and traditional": "#bf5af2", Unaffiliated: "#98989d", Other: "#3a3a3c",
+};
+
+async function loadCivic() {
+  if (state.cache.civic) return state.cache.civic;
+  state.cache.civic = await getJSON(new URL("civic/civic.json", document.baseURI).href, 30000);
+  return state.cache.civic;
+}
+
+const civicHere = () => state.here?.country && state.cache.civic?.c[state.here.country.cca3];
+
+async function applyCivic(which) {
+  removeChoro();
+  const [civic, shapes] = await Promise.all([loadCivic(), loadCountryShapes()]);
+  const colors = which === "state" ? GOV_COLORS : FAITH_COLORS;
+  const features = [];
+  for (const f of shapes.features) {
+    const v = civic.c[f.id];
+    if (!v) continue;
+    const cls = which === "state" ? v.govClass : v.religions.major;
+    const detail = which === "state" ? v.gov : (v.religions.share != null ? `${v.religions.share}% ${v.religions.major.toLowerCase()}` : v.religions.parts[0]?.[0] || "");
+    features.push({ ...f, properties: { name: f.properties.name, value: cls, year: detail } });
+  }
+  map.addSource("choro", { type: "geojson", data: { type: "FeatureCollection", features } });
+  const match = ["match", ["get", "value"]];
+  for (const [k, col] of Object.entries(colors)) match.push(k, col);
+  match.push("#3a3a3c");
+  map.addLayer({ id: "choro", type: "fill", source: "choro", paint: { "fill-color": match, "fill-opacity": 0.62 } }, "terminator-fill");
+  state.choroFmt = (v) => v;
+  ensureChoroHover();
+  legend(which === "state" ? "People — political system" : "People — largest religion", [
+    ...Object.entries(colors).map(([k, color]) => ({ color, label: k })),
+    { color: "transparent", label: "CIA World Factbook, public domain" },
+  ]);
+}
+
+function civicRow(k, v, wide = true) {
+  return v ? `<div class="ro${wide ? " wide" : ""}"><span class="k">${k}</span><span class="civ">${v}</span></div>` : "";
+}
+
+async function hereState(el) {
+  if (needCountry(el)) return;
+  el.innerHTML = tuningHTML;
+  try { await loadCivic(); } catch (e) { el.innerHTML = `<div class="here-hint">Government data unreachable right now.</div>`; return; }
+  if (!el.isConnected) return;
+  const c = state.here.country, v = civicHere();
+  if (!v) { el.innerHTML = `<div class="here-hint">No government record for ${c.name.common}.</div>`; return; }
+  const L = v.legis || {}, K = v.const || {};
+  const legis = L.name ? `${L.name}${L.structure ? `, ${L.structure}` : ""}${L.seats ? ` · ${L.seats}` : ""}${L.term ? ` · ${L.term} terms` : ""}${L.women ? ` · ${L.women} women` : ""}` : "";
+  const constLine = [K.hist, K.enacted && K.title ? `In force: ${K.title}${K.amended ? ` (amended ${K.amended} times)` : ""}` : ""].filter(Boolean).join(" · ");
+  el.innerHTML =
+    `<div class="readouts">` +
+    `<div class="ro wide"><span class="k">Political system</span><span class="val" style="font-size:15px">${v.gov || "—"}</span><span class="sub">${v.govClass}${v.legal ? ` · ${v.legal}` : ""}</span></div>` +
+    civicRow("Head of state", v.chief) +
+    (v.head && v.head !== v.chief ? civicRow("Head of government", v.head) : "") +
+    civicRow("How leaders are chosen", v.elect) +
+    civicRow("Legislature", legis) +
+    civicRow("Who votes", v.suffrage) +
+    civicRow("Constitution", constLine) +
+    civicRow("How it is amended", K.amend) +
+    (K.local ? `<a class="ro wide pm-link" href="civic/constitution/?c=${c.cca3}">Read ${c.name.common}'s constitution, full text →</a>` : "") +
+    civicRow("Independence", v.indep) +
+    civicRow("National day", v.holiday) +
+    `<div class="psrc">CIA World Factbook, public domain${K.local ? " · constitution text: Constitute Project, CC BY-NC" : ""}</div>` +
+    `</div>`;
+}
+
+async function hereFaith(el) {
+  if (needCountry(el)) return;
+  el.innerHTML = tuningHTML;
+  try { await loadCivic(); } catch (e) { el.innerHTML = `<div class="here-hint">Religion data unreachable right now.</div>`; return; }
+  if (!el.isConnected) return;
+  const c = state.here.country, v = civicHere();
+  if (!v || !v.religions?.text) { el.innerHTML = `<div class="here-hint">No religion record for ${c.name.common}.</div>`; return; }
+  const R = v.religions;
+  const bars = R.fam.length
+    ? `<ul class="faith">${R.fam.filter(([, p]) => p >= 0.5).map(([k, p]) =>
+        `<li><span class="fk">${k}</span><span class="fb"><i style="width:${Math.min(100, p)}%;background:${FAITH_COLORS[k] || "#3a3a3c"}"></i></span><span class="fv">${p}%</span></li>`).join("")}</ul>`
+    : "";
+  const detail = R.parts.length ? `<ul class="plist">${R.parts.map(([n, p]) => `<li><a>${n}</a><span class="v">${p != null ? `${p}%` : ""}</span></li>`).join("")}</ul>` : "";
+  el.innerHTML =
+    `<div class="readouts">` +
+    `<div class="ro wide"><span class="k">Largest religion in ${c.name.common}</span><span class="val">${R.major}${R.share != null ? ` <small>${R.share}%</small>` : ""}</span>${bars}</div>` +
+    (detail ? `<div class="ro wide"><span class="k">As reported</span>${detail}</div>` : "") +
+    `<div class="psrc">CIA World Factbook, public domain · ${R.text.match(/\d{4}/)?.[0] ? "latest estimate " + R.text.match(/\d{4}(?= est)/)?.[0] : "latest estimate"}</div>` +
+    `</div>`;
+}
+
 const RAMPS = {
   income: [[0, "#30d158"], [15, "#66d4cf"], [30, "#ffd60a"], [45, "#ff9f0a"], [57, "#ff453a"]],
   corporate: [[0, "#30d158"], [10, "#66d4cf"], [20, "#ffd60a"], [28, "#ff9f0a"], [35, "#ff453a"]],
@@ -1851,6 +1950,8 @@ const CHANNELS = {
       { id: "density", label: "Density" },
       { id: "reading", label: "Reading" },
       { id: "ballot", label: "Ballot" },
+      { id: "state", label: "State" },
+      { id: "faith", label: "Faith" },
       { id: "signal", label: "Signal" },
     ],
     async applySub(id) {
@@ -1870,6 +1971,8 @@ const CHANNELS = {
         await CHANNELS.signal.activate();
       } else if (id === "reading") await applyReading();
       else if (id === "ballot") await applyBallot();
+      else if (id === "state") await applyCivic("state");
+      else if (id === "faith") await applyCivic("faith");
       else {
         await addChoropleth({
           values: state.cache.wb["EN.POP.DNST"] || {},
@@ -1892,6 +1995,8 @@ const CHANNELS = {
       if (sub === "signal") return CHANNELS.signal.here(el);
       if (sub === "reading") return hereReading(el);
       if (sub === "ballot") return hereBallot(el);
+      if (sub === "state") return hereState(el);
+      if (sub === "faith") return hereFaith(el);
       if (needCountry(el)) return;
       const c = state.here.country;
       const langs = Object.values(c.languages || {}).slice(0, 4).join(", ");

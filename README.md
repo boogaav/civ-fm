@@ -67,6 +67,35 @@ so the series go through the Worker (`/wb/<indicator>`, compacted, 12 h edge
 cache) and are kept for 24 h in `localStorage`. A failed indicator leaves
 "—" readouts and a "Weak signal" status instead of blanking the channel.
 
+## People › State and Faith, and /civic/constitution
+
+`civic/build_civic.py` bakes `civic/civic.json` (412 KB) from the CIA
+World Factbook (public domain, via github.com/factbook/factbook.json, one
+file per country matched by name) and the Constitute Project's list of
+constitutions in force, and copies each constitution's English HTML into
+`civic/constitutions/<ISO3>.html` (188 texts, 42 MB) so they load on
+networks that block third parties.
+
+- **State** colours countries by political system, classified from the
+  Factbook's government type (parliamentary / semi-presidential /
+  presidential republic, constitutional / absolute monarchy, one-party
+  state, theocracy, military or transitional, dependency). The card: heads
+  of state and government, how leaders are chosen, legislature, suffrage,
+  constitution history and amendment rule, independence, national day, and
+  a link to the full text.
+- **Faith** colours countries by their largest religion family. The
+  Factbook's free-text "Religions" line is parsed into shares; families are
+  Christian, Muslim, Hindu, Buddhist, Jewish, folk and traditional,
+  unaffiliated, other. Without percentages the first-listed religion wins.
+- **/civic/constitution/?c=ISO3** is the reader: the text with a contents
+  list from its headings, a find box that filters paragraphs, the political
+  facts beside it, and links to Constitute. Licence CC BY-NC 3.0, credited
+  on the page.
+- Re-bake after a Factbook update: download the tarball
+  (`gh api repos/factbook/factbook.json/tarball`), the Constitute list
+  (`/service/constitutions?lang=en`) and each in-force `/service/html?cons_id=`,
+  then run the script with both directories.
+
 ## /card — country card generator
 
 `card/` is a standalone page (no MapLibre): pick a country, get one image

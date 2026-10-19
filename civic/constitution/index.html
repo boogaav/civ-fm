@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constitution — CIV FM</title>
+<meta name="description" content="The constitution in force, in English, for any country, with its political system at a glance.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+<style>
+:root {
+  --space: #0b0b0d; --glass: rgba(28,28,30,.8); --glass-2: rgba(255,255,255,.06); --hairline: rgba(255,255,255,.1);
+  --ink: #f5f5f7; --muted: #98989d; --faint: #636366; --accent: #0a84ff;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--space); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 24px; background: var(--glass); border-bottom: 1px solid var(--hairline);
+  backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+}
+.brand { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; margin-right: 6px; }
+header a.lnk { font-size: 12.5px; font-weight: 500; color: var(--accent); text-decoration: none; }
+header a.lnk:hover { text-decoration: underline; }
+select, input {
+  appearance: none; font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--ink);
+  background: var(--glass-2); border: 1px solid var(--hairline); border-radius: 9px; padding: 7px 11px;
+}
+select { padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; max-width: 260px; }
+input { font-weight: 500; width: 220px; }
+input::placeholder { color: var(--faint); }
+.spacer { flex: 1; }
+main { display: grid; grid-template-columns: 260px minmax(0, 72ch); gap: 40px; max-width: 1180px; margin: 0 auto; padding: 28px 24px 80px; }
+aside { position: sticky; top: 72px; align-self: start; max-height: calc(100vh - 90px); overflow-y: auto; font-size: 12.5px; }
+.fact { background: var(--glass-2); border: 1px solid var(--hairline); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.fact .k { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin-top: 8px; }
+.fact .k:first-child { margin-top: 0; }
+.fact .v { color: var(--ink); line-height: 1.45; }
+.toc { list-style: none; margin: 0; padding: 0 0 0 2px; }
+.toc li { margin: 0; }
+.toc a { display: block; padding: 3px 8px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toc a:hover { color: var(--ink); border-color: var(--hairline); }
+.toc a.l3 { padding-left: 18px; font-size: 12px; }
+.toc-title { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin: 0 0 6px 8px; }
+h1 { font-size: 30px; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 6px; }
+.sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+.sub a { color: var(--accent); text-decoration: none; }
+.status { color: var(--muted); padding: 40px 0; }
+article h1, article h2, article h3, article h4 { letter-spacing: -0.01em; line-height: 1.25; scroll-margin-top: 80px; }
+article h2 { font-size: 22px; margin: 36px 0 10px; }
+article h3 { font-size: 17px; margin: 26px 0 8px; }
+article h4 { font-size: 15px; margin: 20px 0 6px; color: var(--ink); }
+article p { margin: 0 0 12px; }
+article ol, article ul { padding-left: 22px; }
+article li { margin: 4px 0; }
+article .section { scroll-margin-top: 80px; }
+article mark { background: rgba(255,214,10,.35); color: inherit; border-radius: 3px; }
+article > h1 { display: none; } /* the file's own title repeats ours */
+.hidden-by-search { display: none; }
+footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 40px; font-size: 12px; color: var(--faint); line-height: 1.6; }
+footer a { color: var(--muted); }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; gap: 20px; padding: 18px 16px 60px; }
+  aside { position: static; max-height: none; }
+  .toc { display: none; }
+  input { width: 100%; }
+  header { padding: 10px 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../../">CIV FM</a>
+  <select id="country" aria-label="Country"></select>
+  <input id="find" type="search" placeholder="Find in the text…" aria-label="Find in the text">
+  <span class="spacer"></span>
+  <a class="lnk" id="src" href="https://www.constituteproject.org/" target="_blank" rel="noopener">Open at Constitute ↗</a>
+  <a class="lnk" href="../../card/">Country card</a>
+</header>
+
+<main>
+  <aside>
+    <div class="fact" id="facts"></div>
+    <p class="toc-title">Contents</p>
+    <ol class="toc" id="toc"></ol>
+  </aside>
+  <section>
+    <h1 id="title">Constitution</h1>
+    <p class="sub" id="meta"></p>
+    <article id="text"><p class="status">Loading…</p></article>
+  </section>
+</main>
+
+<footer>
+  Constitution texts: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a>, Comparative Constitutions Project, licensed CC BY-NC 3.0; copied here so they load on networks that block third parties. Political facts: CIA World Factbook, public domain. Translations are the project's; the official text is the one your country publishes.
+</footer>
+
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const [civic, facts] = await Promise.all([
+    fetch("../civic.json").then((r) => r.json()),
+    fetch("../../vendor/world-countries.json").then((r) => r.json()),
+  ]);
+  const by3 = {}; for (const f of facts) by3[f.cca3] = f;
+  const list = Object.entries(civic.c)
+    .filter(([iso, v]) => v.const && v.const.local)
+    .map(([iso, v]) => ({ iso, name: by3[iso]?.name.common || v.name, flag: by3[iso]?.flag || "" }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const sel = $("#country");
+  sel.innerHTML = list.map((c) => `<option value="${c.iso}">${c.flag} ${esc(c.name)}</option>`).join("");
+
+  const param = () => (new URLSearchParams(location.search).get("c") || location.hash.replace("#", "")).toUpperCase();
+  let current = null;
+
+  async function show(iso) {
+    if (!civic.c[iso] || !civic.c[iso].const?.local) { iso = list[0].iso; }
+    current = iso;
+    sel.value = iso;
+    const v = civic.c[iso], c = v.const, name = by3[iso]?.name.common || v.name;
+    history.replaceState(null, "", `?c=${iso}`);
+    document.title = `${name} — Constitution — CIV FM`;
+    $("#title").textContent = c.title || `${name}'s constitution`;
+    $("#meta").innerHTML = [
+      c.enacted ? `Enacted ${c.enacted}` : "",
+      c.revised && c.revised !== c.enacted ? `amendments through ${c.revised}` : "",
+      c.words ? `${Number(c.words).toLocaleString("en")} words` : "",
+      `<a href="https://www.constituteproject.org/constitution/${c.id}" target="_blank" rel="noopener">Constitute ↗</a>`,
+    ].filter(Boolean).join(" · ");
+    $("#src").href = `https://www.constituteproject.org/constitution/${c.id}`;
+    const L = v.legis || {};
+    $("#facts").innerHTML =
+      `<span class="k">Political system</span><span class="v">${esc(v.gov || "—")}</span>` +
+      (v.chief ? `<span class="k">Head of state</span><span class="v">${esc(v.chief)}</span>` : "") +
+      (v.head ? `<span class="k">Head of government</span><span class="v">${esc(v.head)}</span>` : "") +
+      (L.name ? `<span class="k">Legislature</span><span class="v">${esc(L.name)}${L.structure ? `, ${esc(L.structure)}` : ""}${L.seats ? ` · ${esc(L.seats)}` : ""}</span>` : "") +
+      (v.const?.hist ? `<span class="k">Constitution history</span><span class="v">${esc(v.const.hist)}</span>` : "") +
+      (v.const?.amend ? `<span class="k">How it is amended</span><span class="v">${esc(v.const.amend)}</span>` : "") +
+      (v.religions?.text ? `<span class="k">Religion</span><span class="v">${esc(v.religions.text)}</span>` : "") +
+      `<span class="k">Source</span><span class="v">CIA World Factbook, public domain</span>`;
+    $("#text").innerHTML = `<p class="status">Loading the text…</p>`;
+    $("#toc").innerHTML = "";
+    try {
+      const html = await (await fetch(`../constitutions/${iso}.html`)).text();
+      if (current !== iso) return;
+      $("#text").innerHTML = html;
+      // contents from the headings the text carries
+      const heads = [...$("#text").querySelectorAll("h2, h3")].filter((h) => h.textContent.trim());
+      heads.forEach((h, i) => { if (!h.id) h.id = `h${i}`; });
+      $("#toc").innerHTML = heads.slice(0, 400).map((h) =>
+        `<li><a class="${h.tagName === "H3" ? "l3" : ""}" href="#${h.id}">${esc(h.textContent.trim())}</a></li>`).join("");
+    } catch (e) {
+      $("#text").innerHTML = `<p class="status">The text could not be loaded. <a href="https://www.constituteproject.org/constitution/${c.id}">Read it at Constitute ↗</a></p>`;
+    }
+    applyFind();
+  }
+
+  // find: show only the paragraphs that contain the words, highlighted
+  function applyFind() {
+    const q = $("#find").value.trim().toLowerCase();
+    const art = $("#text");
+    art.querySelectorAll("mark").forEach((m) => m.replaceWith(m.textContent));
+    art.normalize();
+    const blocks = art.querySelectorAll("p, li, h2, h3, h4");
+    blocks.forEach((b) => b.classList.remove("hidden-by-search"));
+    if (q.length < 2) return;
+    // every word must appear in the paragraph, in any order; each is highlighted
+    const words = q.split(/\s+/).filter((w) => w.length > 1);
+    const rx = new RegExp(words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "gi");
+    blocks.forEach((b) => {
+      const t = b.textContent.toLowerCase();
+      if (!words.every((w) => t.includes(w))) { if (b.tagName === "P" || b.tagName === "LI") b.classList.add("hidden-by-search"); return; }
+      const walker = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
+      const nodes = []; let n; while ((n = walker.nextNode())) if (rx.test(n.nodeValue)) nodes.push(n);
+      for (const t of nodes) {
+        const span = document.createElement("span");
+        span.innerHTML = esc(t.nodeValue).replace(rx, (m) => `<mark>${m}</mark>`);
+        t.replaceWith(...span.childNodes);
+      }
+    });
+  }
+  let findTimer; $("#find").addEventListener("input", () => { clearTimeout(findTimer); findTimer = setTimeout(applyFind, 200); });
+
+  sel.addEventListener("change", () => show(sel.value));
+  window.addEventListener("hashchange", () => { const h = param(); if (h && h !== current) show(h); });
+  show(param() || list.find((c) => c.iso === "UKR")?.iso || list[0].iso);
+})();
+</script>
+</body>
+</html>
