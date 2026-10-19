@@ -132,6 +132,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
   const groupLabel = Object.fromEntries(D.groups.map((g) => [g.k, g.label]));
   const tIndex = Object.fromEntries(T.map((t, i) => [t.k, i]));
   C.forEach((c) => { c.set = new Set(c.t); });
+  C.sort((a, b) => a.name.localeCompare(b.name)); // every country list on the page reads A to Z
   const REGION_COLORS = { Europe: "#0a84ff", Asia: "#ff9f0a", Africa: "#30d158", Americas: "#bf5af2", Oceania: "#64d2ff", Antarctic: "#98989d" };
   let topic = null, sel = null, group = "", query = "";
 
@@ -187,7 +188,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
     const have = C.filter((c) => c.set.has(tIndex[k]));
     const haveSet = new Set(have.map((c) => c.iso));
     const sibs = T.filter((x) => x.group === t.group && x.k !== k).slice(0, 14);
-    const tiles = C.map((c) => `<span class="tile ${haveSet.has(c.iso) ? "in" : ""} ${sel && sel.iso === c.iso ? "sel" : ""}" data-iso="${c.iso}" title="${esc(c.name)}${haveSet.has(c.iso) ? "" : " · not covered"}">${esc(c.iso.slice(0, 3))}</span>`).join("");
+    const tiles = [...C].sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<span class="tile ${haveSet.has(c.iso) ? "in" : ""} ${sel && sel.iso === c.iso ? "sel" : ""}" data-iso="${c.iso}" title="${esc(c.name)}${haveSet.has(c.iso) ? "" : " · not covered"}">${esc(c.iso.slice(0, 3))}</span>`).join("");
     const pickFor = [];
     if (sel && haveSet.has(sel.iso)) pickFor.push(sel.iso);
     for (const iso of ["USA", "DEU", "IND", "JPN", "BRA", "ZAF", "FRA", "UKR", "KOR", "NGA", "MEX", "IDN"]) if (haveSet.has(iso) && !pickFor.includes(iso) && pickFor.length < 5) pickFor.push(iso);
