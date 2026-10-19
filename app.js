@@ -616,6 +616,7 @@ async function setHere(lat, lng, viaGeolocate) {
       const facts = await loadFacts();
       state.here.country = facts.by2[g.countryCode] || null;
     }
+    window.civTrack?.("here", { country: g.countryCode || null, channel: state.channel, sub: state.subs[state.channel] || null, via: viaGeolocate ? "locate" : "click" });
     renderHere();
   } catch (e) {}
 }
@@ -2401,6 +2402,7 @@ async function tune(ch) {
   if (state.channel === ch) return;
   state.channel = ch;
   const def = CHANNELS[ch];
+  window.civTrack?.("tune", { channel: ch, sub: state.subs[ch] || (def.subs && def.subs[0].id) || null });
   document.querySelectorAll(".chan").forEach((b) =>
     b.classList.toggle("active", b.dataset.ch === ch)
   );

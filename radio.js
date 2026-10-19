@@ -228,6 +228,7 @@ async function radioPlay(st) {
   }
   if (token !== RADIO.token) return;
 
+  window.civTrack?.("radio_play", { station: st.name.slice(0, 48), country: st.cc });
   // the directory ranks stations by listens; report this one (best effort)
   fetch(`${RADIO.servers[RADIO.si]}/json/url/${st.id}`).catch(() => {});
   if ("mediaSession" in navigator) {
