@@ -646,3 +646,20 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 .parties .pv small { font-weight: 500; color: var(--muted); font-size: 11px; }
 .parties .pv em { display: block; font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ok); }
 .parties li.leads .pn b { color: var(--ok); }
+
+/* ---------- State › Power ---------- */
+.plist.power { counter-reset: none; max-height: min(420px, 45vh); overflow-y: auto; margin: 6px -4px 0; padding: 0 4px; }
+.plist.power li { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center; }
+.plist.power .pw { min-width: 0; display: flex; flex-direction: column; }
+.plist.power .pw a { font-size: 12.5px; font-weight: 600; color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plist.power .pw a:hover { color: var(--accent); }
+.plist.power .pr { font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plist.power .pk { font-size: 9.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); white-space: nowrap; }
+.plist.power li.pk-state .pk, .plist.power li.pk-government .pk { color: var(--warn); }
+.plist.power li.pk-money .pk { color: var(--ok); }
+.pfind { appearance: none; width: 100%; margin-top: 6px; font-family: var(--font); font-size: 12.5px; color: var(--ink); background: var(--glass-2); border: 1px solid var(--hairline); border-radius: 8px; padding: 6px 9px; }
+.pfind::placeholder { color: var(--faint); }
+.pkinds { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.pkinds button { appearance: none; cursor: pointer; font-family: var(--font); font-size: 10.5px; font-weight: 600; color: var(--muted); background: var(--glass-2); border: 1px solid var(--hairline); border-radius: 999px; padding: 2px 8px; }
+.pkinds button.on { background: rgba(10,132,255,.18); color: var(--ink); border-color: rgba(10,132,255,.4); }
+a.plain { color: inherit; text-decoration: none; } a.plain:hover { color: var(--accent); }

@@ -119,6 +119,25 @@ Factbook's head-of-government line, or by abbreviation inside a group name
 (CDU in CDU/CSU). The map colours countries by the largest party's seat
 share. Shares are of the house, not of cabinet posts.
 
+## State › Power — who holds it, and for how long
+
+`civic/build_power.py [ISO3 …]` writes `civic/power/<ISO3>.json` (up to
+100 people) and `civic/power/index.json` (the leader and years in office,
+for the map). Two Wikidata queries per country: living people holding a
+position whose jurisdiction or country is this one (P39 with no end time,
+no date of death, with start time and the English Wikipedia title), and
+citizens with a declared net worth (P2218). Positions are tiered by regex
+(`make_tiers`): head of state and head of government must name the country
+itself, then vice/deputy, speakers, key ministers, top courts, central
+bank, military chiefs, other ministers, party leaders, regional leaders,
+mayors, religious leaders, legislators, ambassadors; jury presidents,
+university presidents and the like are excluded. Score = tier weight +
+prominence (log of sitelinks) − 12 if the start date is unknown; billionaires
+score 45 + log of net worth. The leader for the map is the head of
+government in parliamentary systems and constitutional monarchies, the
+head of state elsewhere. Wikidata is volunteer-edited: stale entries keep a
+former holder on the list, and the card says so.
+
 ## /civic/compare — what unites constitutions
 
 `civic/build_compare.py <constitute dir>` reads the raw Constitute HTML

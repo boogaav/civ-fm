@@ -134,6 +134,10 @@ const EXPLAIN = {
     what: "How concentrated power is in each parliament: the share of seats held by the largest party. Green is a fragmented house, red a single party holding almost everything. Click a country for every party with its logo, seats and share, and which one leads the government.",
     src: "Seats: CIA World Factbook (public domain) for most countries, else the lower house's English Wikipedia infobox. Logos and colours: Wikidata and Wikimedia Commons. Share is of the lower or single house, not of cabinet posts.",
   },
+  "state/power": {
+    what: "How long the current leader has held power: green is a new leader, red is decades. Click a country for up to 100 people who hold power there, office holders and the richest citizens, each linking to Wikipedia.",
+    src: "Wikidata: people currently holding an office of the country (no end date, still living) and citizens with a declared net worth. The ranking weights the office first, then prominence. Wikidata is edited by volunteers; a stale entry can keep a former holder on the list.",
+  },
   "state/passport": {
     what: "Where one passport can go: green visa-free, teal on arrival, yellow e-visa, orange a visa in advance, red no admission. Pick the passport in the panel; it starts with the country you are in.",
     src: "Passport Index dataset (ilyankou, MIT), copied to civ.fm; visa rules change, so check before you fly.",

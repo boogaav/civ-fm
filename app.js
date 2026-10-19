@@ -1571,6 +1571,84 @@ async function hereParties(el) {
     `</div>`;
 }
 
+/* ---- State › Power: who holds it, and for how long ---- */
+// civic/power/index.json carries each country's current leader and years in
+// office (the map); civic/power/<ISO3>.json lists up to 100 office holders
+// and the richest citizens, ranked by position tier and prominence.
+
+const POWER_RAMP = [[0, "#30d158"], [5, "#ffd60a"], [10, "#ff9f0a"], [20, "#ff453a"], [40, "#7a0f0f"]];
+const POWER_KINDS = { state: "Head of state", government: "Government", parliament: "Parliament", court: "Courts", money: "Money", military: "Military", region: "Regions and cities", party: "Parties", faith: "Faith", other: "Other" };
+
+async function loadPowerIndex() {
+  if (state.cache.powerIndex) return state.cache.powerIndex;
+  state.cache.powerIndex = await getJSON(new URL("civic/power/index.json", document.baseURI).href, 30000);
+  return state.cache.powerIndex;
+}
+async function loadPower(iso) {
+  state.cache.power ||= {};
+  if (state.cache.power[iso]) return state.cache.power[iso];
+  state.cache.power[iso] = await getJSON(new URL(`civic/power/${iso}.json`, document.baseURI).href, 30000);
+  return state.cache.power[iso];
+}
+
+async function applyPower() {
+  const [P, shapes] = await Promise.all([loadPowerIndex(), loadCountryShapes()]);
+  const values = {};
+  for (const [iso, rec] of Object.entries(P.c)) {
+    if (rec.years == null) continue;
+    values[iso] = { value: rec.years, year: `${rec.leader} · ${rec.role}` };
+  }
+  await addChoropleth({
+    values, ramp: POWER_RAMP, opacity: 0.6,
+    fmt: (v) => `leader in office ${Math.round(v)} year${Math.round(v) === 1 ? "" : "s"}`,
+  });
+  legend("State — years the current leader has held power", [
+    { gradient: gradientCSS(POWER_RAMP), from: "new", to: "40+ years" },
+    { color: "transparent", label: "Head of government in parliamentary systems, head of state elsewhere · Wikidata" },
+  ]);
+}
+
+async function herePower(el) {
+  if (needCountry(el)) return;
+  el.innerHTML = tuningHTML;
+  const c = state.here.country;
+  let P;
+  try { P = await loadPower(c.cca3); } catch (e) { el.innerHTML = `<div class="here-hint">No list of office holders for ${c.name.common} yet.</div>`; return; }
+  if (!el.isConnected || state.here.country !== c) return;
+  const list = P.people || [];
+  if (!list.length) { el.innerHTML = `<div class="here-hint">Wikidata lists no current office holders for ${c.name.common}.</div>`; return; }
+  const wiki = (p) => p.w ? `https://en.wikipedia.org/wiki/${encodeURIComponent(p.w)}` : `https://www.wikidata.org/wiki/${p.q}`;
+  const row = (p, i) =>
+    `<li class="pk-${p.k}"><span class="n">${i + 1}</span>` +
+    `<span class="pw"><a href="${wiki(p)}" target="_blank" rel="noopener">${rEsc(p.n)}</a><span class="pr">${rEsc(p.r)}${p.y ? ` · since ${p.y}` : ""}</span></span>` +
+    `<span class="pk">${POWER_KINDS[p.k] || ""}</span></li>`;
+  const kinds = [...new Set(list.map((p) => p.k))];
+  const L = P.leader;
+  el.innerHTML =
+    `<div class="readouts">` +
+    (L ? `<div class="ro wide"><span class="k">Holds power in ${c.name.common}</span><span class="val" style="font-size:16px"><a class="plain" href="${L.w ? `https://en.wikipedia.org/wiki/${encodeURIComponent(L.w)}` : "#"}" target="_blank" rel="noopener">${rEsc(L.name)}</a></span>` +
+      `<span class="sub">${rEsc(L.role)}${L.since ? ` · since ${L.since} · ${L.years} year${L.years === 1 ? "" : "s"}` : ""}</span></div>` : "") +
+    `<div class="ro wide"><span class="k">${list.length} people with power · office holders and the richest</span>` +
+    `<input class="pfind" type="search" placeholder="Find a name or role…" aria-label="Find">` +
+    `<div class="pkinds">${kinds.map((k) => `<button data-k="${k}">${POWER_KINDS[k] || k}</button>`).join("")}</div>` +
+    `<ol class="plist power" id="power-list">${list.map(row).join("")}</ol>` +
+    `<div class="psrc">Wikidata, CC0: people currently holding an office of ${c.name.common}, and citizens with a declared net worth. Ranked by the weight of the office, then by how many Wikipedia editions cover the person. Each name links to Wikipedia.</div>` +
+    `</div>`;
+  const ol = el.querySelector("#power-list");
+  const apply = () => {
+    const q = el.querySelector(".pfind").value.trim().toLowerCase();
+    const on = [...el.querySelectorAll(".pkinds button.on")].map((b) => b.dataset.k);
+    ol.querySelectorAll("li").forEach((li, i) => {
+      const p = list[i];
+      const okK = !on.length || on.includes(p.k);
+      const okQ = !q || (p.n + " " + p.r).toLowerCase().includes(q);
+      li.classList.toggle("hidden", !(okK && okQ));
+    });
+  };
+  el.querySelector(".pfind").addEventListener("input", apply);
+  el.querySelectorAll(".pkinds button").forEach((b) => b.addEventListener("click", () => { b.classList.toggle("on"); apply(); }));
+}
+
 /* ---- State › Passport, Citizenship, Immigration ---- */
 // Shares passport-data.js with the Passport page: visa categories, curated
 // naturalisation and immigration tables. The visa matrix is the CSV in vendor/.
@@ -2233,6 +2311,7 @@ const CHANNELS = {
       { id: "system", label: "System" },
       { id: "vote", label: "Vote" },
       { id: "parties", label: "Parties" },
+      { id: "power", label: "Power" },
       { id: "passport", label: "Passport" },
       { id: "citizenship", label: "Citizenship" },
       { id: "immigration", label: "Immigration" },
@@ -2245,6 +2324,7 @@ const CHANNELS = {
       clearChannelLayers();
       if (id === "vote") await applyBallot();
       else if (id === "parties") await applyParties();
+      else if (id === "power") await applyPower();
       else if (id === "passport") await applyPassport();
       else if (id === "citizenship") await applyCitizenship();
       else if (id === "immigration") await applyImmigration();
@@ -2263,6 +2343,7 @@ const CHANNELS = {
       const sub = state.subs.state || "system";
       if (sub === "vote") return hereBallot(el);
       if (sub === "parties") return hereParties(el);
+      if (sub === "power") return herePower(el);
       if (sub === "passport") return herePassport(el);
       if (sub === "citizenship") return hereCitizenship(el);
       if (sub === "immigration") return hereImmigration(el);
