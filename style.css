@@ -554,3 +554,34 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 .faith .fb { height: 6px; background: var(--glass-2); border-radius: 3px; overflow: hidden; }
 .faith .fb i { display: block; height: 100%; border-radius: 3px; }
 .faith .fv { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* ---------- hide buttons on panels ---------- */
+.user-hidden { display: none !important; }
+.hide-x {
+  appearance: none; cursor: pointer; flex: none;
+  width: 20px; height: 20px; border-radius: 50%; padding: 0;
+  background: var(--glass-2); border: 1px solid var(--hairline); color: var(--muted);
+  display: grid; place-items: center; opacity: .75; transition: opacity .15s ease, background .15s ease;
+}
+.hide-x svg { width: 10px; height: 10px; }
+.hide-x:hover { opacity: 1; background: rgba(255,255,255,.16); color: var(--ink); }
+.hide-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#legend .hide-x { position: absolute; top: 8px; right: 8px; }
+#legend { padding-right: 36px; }
+#ticker .hide-x, #future-bar .hide-x { align-self: center; }
+.hide-x.beside {
+  position: absolute; z-index: 15;
+  background: var(--glass); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+#btn-restore {
+  appearance: none; cursor: pointer;
+  font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--accent);
+  background: var(--glass); border: 1px solid var(--hairline); border-radius: 99px; padding: 4px 12px;
+  backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+}
+#btn-restore:hover { background: rgba(10,132,255,.14); }
+@media (max-width: 720px) {
+  #statusline { flex-wrap: wrap; justify-content: flex-end; max-width: 60%; gap: 6px; }
+  #status-text { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

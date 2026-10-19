@@ -585,6 +585,7 @@ const gradientCSS = (ramp) => ramp.map(([, c]) => c).join(",");
 let herePin = null;
 
 async function setHere(lat, lng, viaGeolocate) {
+  if (typeof showPanel === "function") showPanel("here-panel"); // a new point brings a hidden panel back
   state.here = { lat, lng, label: `${lat.toFixed(2)}, ${lng.toFixed(2)}`, country: null };
   $("#here-hint").classList.add("hidden");
   $("#here-body").classList.remove("hidden");
@@ -684,6 +685,7 @@ function legend(title, rows) {
           : `<div class="lg-row"><span class="dot" style="background:${r.color}"></span><span>${r.label}</span></div>`
       )
       .join("");
+  if (typeof hideButtons !== "undefined" && hideButtons.legend) $("#legend").appendChild(hideButtons.legend);
 }
 
 function ro(k, val, cls = "", sub = "", wide = false, tr = "") {
@@ -2285,3 +2287,83 @@ function drawSpark(values) {
   ctx.textAlign = "right";
   ctx.fillText(`${Math.round(max)}°`, w - 2, 9);
 }
+
+/* ---------------- hide any panel ---------------- */
+// Every floating panel gets a small × that hides it for this session. The
+// status line then shows "Show hidden (n)" to bring them all back. The HERE
+// panel also comes back by itself when a new point is set: clicking the globe
+// is an explicit request for its readouts.
+
+const HIDEABLE = [
+  { id: "here-panel", label: "the HERE panel", into: ".here-head" },
+  { id: "legend", label: "the legend" },
+  { id: "ticker", label: "the ticker" },
+  { id: "future-bar", label: "the year bar" },
+  { id: "alerts", label: "the alert", beside: true },
+  { id: "ballot", label: "the election countdown", beside: true },
+];
+const hiddenPanels = new Set();
+const hideButtons = {}; // id → its × (the legend re-attaches it after each rebuild)
+
+function hidePanel(id) {
+  hiddenPanels.add(id);
+  document.getElementById(id)?.classList.add("user-hidden");
+  document.querySelector(`.hide-x[data-for="${id}"]`)?.classList.add("user-hidden");
+  updateRestore();
+}
+
+function showPanel(id) {
+  if (!hiddenPanels.delete(id)) return;
+  document.getElementById(id)?.classList.remove("user-hidden");
+  document.querySelector(`.hide-x[data-for="${id}"]`)?.classList.remove("user-hidden");
+  updateRestore();
+}
+
+function updateRestore() {
+  let b = $("#btn-restore");
+  if (!b) {
+    b = document.createElement("button");
+    b.id = "btn-restore";
+    b.addEventListener("click", () => { for (const id of [...hiddenPanels]) showPanel(id); });
+    $("#statusline").insertBefore(b, $("#btn-spin"));
+  }
+  b.textContent = `Show hidden (${hiddenPanels.size})`;
+  b.classList.toggle("hidden", !hiddenPanels.size);
+}
+
+// pills are buttons, so their × sits beside them and follows them around
+function placeHideX() {
+  for (const { id, beside } of HIDEABLE) {
+    if (!beside) continue;
+    const el = document.getElementById(id), x = document.querySelector(`.hide-x[data-for="${id}"]`);
+    if (!el || !x) continue;
+    const on = !el.classList.contains("hidden") && !hiddenPanels.has(id);
+    x.classList.toggle("hidden", !on);
+    if (!on) continue;
+    const r = el.getBoundingClientRect();
+    x.style.left = `${Math.round(r.right + 6)}px`;
+    x.style.top = `${Math.round(r.top + r.height / 2 - 10)}px`;
+  }
+}
+
+for (const { id, label, into, beside } of HIDEABLE) {
+  const el = document.getElementById(id);
+  if (!el) continue;
+  const x = document.createElement("button");
+  x.className = "hide-x" + (beside ? " beside" : "");
+  x.dataset.for = id;
+  x.type = "button";
+  x.title = "Hide";
+  x.setAttribute("aria-label", `Hide ${label}`);
+  x.innerHTML = `<svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>`;
+  x.addEventListener("click", (e) => { e.stopPropagation(); hidePanel(id); });
+  hideButtons[id] = x;
+  if (beside) document.body.appendChild(x);
+  else (into ? el.querySelector(into) : el).appendChild(x);
+  if (beside) new MutationObserver(placeHideX).observe(el, { attributes: true, attributeFilter: ["class", "style"] });
+}
+window.addEventListener("resize", placeHideX);
+new ResizeObserver(placeHideX).observe($("#brand"));
+setInterval(placeHideX, 1000); // pills change text and width on their own schedule
+placeHideX();
+

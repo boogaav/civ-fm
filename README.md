@@ -126,6 +126,16 @@ deep-links a country.
 - Data comes through the same Worker `/wb/` route and `localStorage` cache
   as the globe, plus `place/data.json` for HDI.
 
+## Hide any panel
+
+Every floating panel (HERE, legend, ticker, year bar, alert and election
+pills) carries a small × that hides it for the session; the status line
+then shows "Show hidden (n)" to bring them all back. The × on the pills is
+a sibling button positioned beside them (`placeHideX`), since the pills are
+buttons themselves. `legend()` re-attaches its × after each rebuild. A new
+HERE point un-hides the HERE panel on its own. Hover popups on the map
+close by themselves and need no button.
+
 ## Explanations — what each section means
 
 `explain.js` holds one entry per channel and per sub-dial (`EXPLAIN`, keyed
