@@ -2401,6 +2401,7 @@ const CHANNELS = {
 async function tune(ch) {
   if (state.channel === ch) return;
   state.channel = ch;
+  if (typeof knobSync === "function") knobSync(ch);
   const def = CHANNELS[ch];
   window.civTrack?.("tune", { channel: ch, sub: state.subs[ch] || (def.subs && def.subs[0].id) || null });
   document.querySelectorAll(".chan").forEach((b) =>
@@ -2598,3 +2599,91 @@ new ResizeObserver(placeHideX).observe($("#brand"));
 setInterval(placeHideX, 1000); // pills change text and width on their own schedule
 placeHideX();
 
+
+
+/* ---------------- tuning knob ---------------- */
+// A mechanical knob beside the dial, like on an old radio: scroll over it,
+// drag it round, or use the arrow keys, and the dial moves one station per
+// detent. The mark on the cap points at the tuned station.
+
+const KNOB = {
+  el: $("#knob"),
+  order: [...document.querySelectorAll(".chan")].map((b) => b.dataset.ch),
+  angle: 0,      // current rotation in degrees
+  acc: 0,        // accumulated wheel delta
+  drag: null,    // {last: angle at the pointer, start: knob angle}
+};
+KNOB.step = 360 / KNOB.order.length;
+
+function knobRender() {
+  KNOB.el.style.transform = `rotate(${KNOB.angle}deg)`;
+  const i = KNOB.order.indexOf(state.channel);
+  if (i >= 0) KNOB.el.setAttribute("aria-valuenow", i);
+  KNOB.el.setAttribute("aria-valuetext", CHANNELS[state.channel]?.name || "");
+}
+
+// the dial moved (by button, pill or knob): turn the knob the short way round
+function knobSync(ch) {
+  const i = KNOB.order.indexOf(ch);
+  if (i < 0 || KNOB.drag) return;
+  const target = i * KNOB.step;
+  let d = ((target - KNOB.angle) % 360 + 540) % 360 - 180;
+  KNOB.angle += d;
+  knobRender();
+}
+
+function knobStep(n) {
+  const i = KNOB.order.indexOf(state.channel);
+  const j = (i + n + KNOB.order.length) % KNOB.order.length;
+  state.interacted = true;
+  tune(KNOB.order[j]);
+}
+
+if (KNOB.el) {
+  KNOB.el.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    KNOB.acc += Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+    while (KNOB.acc >= 50) { KNOB.acc -= 50; knobStep(1); }
+    while (KNOB.acc <= -50) { KNOB.acc += 50; knobStep(-1); }
+  }, { passive: false });
+
+  const pointerAngle = (e) => {
+    const r = KNOB.el.getBoundingClientRect();
+    return (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI;
+  };
+  KNOB.el.addEventListener("pointerdown", (e) => {
+    KNOB.el.setPointerCapture(e.pointerId);
+    KNOB.drag = { last: pointerAngle(e), start: KNOB.angle, moved: 0, index: KNOB.order.indexOf(state.channel) };
+    KNOB.el.classList.add("dragging");
+  });
+  KNOB.el.addEventListener("pointermove", (e) => {
+    if (!KNOB.drag) return;
+    const a = pointerAngle(e);
+    let d = a - KNOB.drag.last;
+    if (d > 180) d -= 360; else if (d < -180) d += 360;
+    KNOB.drag.last = a;
+    KNOB.angle += d;
+    KNOB.drag.moved += Math.abs(d);
+    // a detent every step: tune when the mark crosses one
+    const idx = Math.round(KNOB.angle / KNOB.step);
+    const cur = KNOB.order.indexOf(state.channel);
+    const want = ((idx % KNOB.order.length) + KNOB.order.length) % KNOB.order.length;
+    if (want !== cur) { state.interacted = true; tune(KNOB.order[want]); }
+    knobRender();
+  });
+  const release = () => {
+    if (!KNOB.drag) return;
+    const tap = KNOB.drag.moved < 6;
+    KNOB.drag = null;
+    KNOB.el.classList.remove("dragging");
+    if (tap) knobStep(1);                 // a plain click advances one station
+    else knobSync(state.channel);        // snap the mark onto the detent
+  };
+  KNOB.el.addEventListener("pointerup", release);
+  KNOB.el.addEventListener("pointercancel", release);
+  KNOB.el.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); knobStep(1); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); knobStep(-1); }
+  });
+  knobRender();
+}

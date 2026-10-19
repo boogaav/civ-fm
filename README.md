@@ -130,6 +130,14 @@ deep-links a country.
 - Data comes through the same Worker `/wb/` route and `localStorage` cache
   as the globe, plus `place/data.json` for HDI.
 
+## Tuning knob
+
+A mechanical knob sits to the right of the dial. Scrolling over it, dragging
+it round, the arrow keys when it has focus, or a plain click move the dial
+one station per detent (360° / 7); `knobSync()` turns the mark the short
+way round whenever something else tunes the globe (dial buttons, pills).
+Pointer capture makes the drag work on touch screens.
+
 ## Hide any panel
 
 Every floating panel (HERE, legend, ticker, year bar, alert and election
