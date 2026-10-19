@@ -266,6 +266,13 @@ async function handleFloods(url, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // /whereami — the visitor's country from Cloudflare's edge, nothing stored
+    if (url.pathname === "/whereami") {
+      const cf = request.cf || {};
+      const res = json({ country: cf.country || null, region: cf.region || null, city: cf.city || null });
+      res.headers.set("Cache-Control", "no-store");
+      return res;
+    }
     if (url.pathname === "/floods") return handleFloods(url, ctx);
     const route =
       url.pathname.startsWith("/wb/") ? wbRoute(url)

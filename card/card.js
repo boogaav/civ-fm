@@ -378,7 +378,10 @@ async function render() {
   draw();
   state.busy = false;
   const missing = metrics(iso3).filter((m) => m.value === "—").length;
-  $("#status").textContent = missing ? `${missing} of 12 metrics have no data for this country.` : "";
+  $("#status").textContent = [
+    state.suggested === iso3 ? `${data.facts.by3[iso3].name.common} is where you seem to be. Pick any other country above.` : "",
+    missing ? `${missing} of 12 metrics have no data for this country.` : "",
+  ].filter(Boolean).join(" ");
   location.hash = iso3;
   document.title = `${data.facts.by3[iso3].name.common} — Country card — CIV FM`;
 }
@@ -468,11 +471,22 @@ async function locate() {
   $("#btn-locate").addEventListener("click", locate);
   if (!navigator.canShare) $("#btn-share").textContent = "Share (save)";
 
-  // the hash, then the browser's own region, then a sensible first card
+  // the hash wins; otherwise the country the visitor is in (from their IP,
+  // answered by the Worker's edge, nothing stored), then the browser's own
+  // region, then a sensible first card
   const hash = location.hash.replace("#", "").toUpperCase();
-  const region = (navigator.language || "").split("-")[1]?.toUpperCase();
-  const byRegion = region && rows.find((r) => r.cca2 === region)?.cca3;
-  pick(data.facts.by3[hash] ? hash : byRegion || "UKR");
+  if (data.facts.by3[hash]) pick(hash);
+  else {
+    const region = (navigator.language || "").split("-")[1]?.toUpperCase();
+    const byRegion = region && rows.find((r) => r.cca2 === region)?.cca3;
+    pick(byRegion || "UKR");
+    getJSON(`${PROXY}/whereami`, 6000).then((w) => {
+      const hit = w.country && rows.find((r) => r.cca2 === w.country);
+      if (!hit || location.hash.replace("#", "").toUpperCase() !== state.iso3) return;
+      state.suggested = hit.cca3;
+      if (hit.cca3 !== state.iso3) pick(hit.cca3); else render();
+    }).catch(() => {});
+  }
   window.addEventListener("hashchange", () => {
     const h = location.hash.replace("#", "").toUpperCase();
     if (h !== state.iso3 && data.facts.by3[h]) pick(h);

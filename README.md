@@ -89,6 +89,11 @@ deep-links a country.
   (phones: the sheet lists Instagram and X), else download. "Copy image"
   uses the async clipboard. "Post on X" opens the intent with the caption;
   X's web intent cannot attach images, so the page says to attach it.
+- **Default country**: the URL hash if present; otherwise the Worker's
+  `/whereami` route answers with the visitor's country from Cloudflare's
+  edge (`request.cf.country`, nothing stored, `no-store`), and the page
+  says "X is where you seem to be"; the browser's locale region is the
+  fallback while that answers.
 - Data comes through the same Worker `/wb/` route and `localStorage` cache
   as the globe, plus `place/data.json` for HDI.
 
