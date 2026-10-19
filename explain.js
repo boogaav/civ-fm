@@ -28,30 +28,34 @@ const EXPLAIN = {
     src: WB("ER.H2O.FWST.ZS") + " Originally from FAO AQUASTAT. Local rain, soil moisture and river flow come from Open-Meteo.",
   },
 
-  place: {
+  home: {
     what: "The region you are in, not the country average: 1,774 regions coloured by how people live there. Click anywhere for that region's numbers and how it compares with its country.",
     src: "Global Data Lab, Subnational Human Development Database, 1990 to 2019, via the Open Numbers mirror. Regions are the ones the database defines, usually provinces or states.",
   },
-  "place/living": {
+  "home/living": {
     what: "The Human Development Index for each region: health, schooling and income combined into one number from 0 to 1. Above 0.8 is very high, below 0.55 is low.",
     src: "Global Data Lab, Subnational HDI, 2019.",
   },
-  "place/health": {
+  "home/health": {
     what: "Life expectancy at birth in each region, in years. Green is longer.",
     src: "Global Data Lab, Subnational HDI, 2019.",
   },
-  "place/school": {
+  "home/school": {
     what: "Average years of schooling completed by adults aged 25 and over in each region. The panel adds how many years today's children can expect.",
     src: "Global Data Lab, Subnational HDI, 2019.",
   },
-  "place/income": {
+  "home/income": {
     what: "Gross national income per person in each region, adjusted for local prices. The scale is logarithmic: each step is ten times more.",
     src: "Global Data Lab, Subnational HDI, 2019, in 2011 international dollars.",
   },
 
-  "place/internet": {
+  "home/internet": {
     what: "Measured download speed on fixed lines in each region, in megabits per second, from real speed tests. The panel adds mobile.",
     src: "Ookla Open Data, Speedtest results aggregated to 600 m tiles, latest quarter, averaged per region weighted by the number of tests.",
+  },
+  "home/lights": {
+    what: "Earth at night. The lights show where electricity reaches people. The panel gives the share of people with electricity and with internet, and the measured internet speed in this region.",
+    src: "NASA Black Marble, a cloud-free composite from the VIIRS satellite sensor (2016), served by NASA GIBS. Access figures: World Bank, indicators EG.ELC.ACCS.ZS and IT.NET.USER.ZS.",
   },
 
   body: {
@@ -61,6 +65,10 @@ const EXPLAIN = {
   "body/life": {
     what: "Life expectancy at birth, in years. Green is longer. The panel adds doctors per 1,000 people and health spending.",
     src: WB("SP.DYN.LE00.IN"),
+  },
+  "body/care": {
+    what: "Doctors per 1,000 people in each country. Green means more physicians to go round. The panel adds health spending as a share of GDP.",
+    src: "World Bank Open Data, indicator SH.MED.PHYS.ZS, latest year each country reported. Originally from the WHO.",
   },
   "body/cannabis": {
     what: "Whether cannabis is legal for adults, medical only, decriminalised or tolerated, illegal, or illegal with severe penalties.",
@@ -78,15 +86,7 @@ const EXPLAIN = {
     what: "Legal status of psilocybin mushrooms and other natural psychedelics, from legal or unregulated to illegal with severe penalties.",
     src: CURATED,
   },
-  "body/decrim": {
-    what: "Where having a small amount of a drug for your own use is not a crime: for all drugs, for cannabis only, or not at all.",
-    src: CURATED,
-  },
 
-  grid: {
-    what: "Earth at night. The lights show where electricity reaches people. The panel gives the share of people with electricity and with internet.",
-    src: "NASA Black Marble, a cloud-free composite from the VIIRS satellite sensor (2016), served by NASA GIBS. Access figures: World Bank, indicators EG.ELC.ACCS.ZS and IT.NET.USER.ZS.",
-  },
 
   money: {
     what: "How rich a country is, what its currency is doing, how much it owes, and how much it takes in tax.",
@@ -117,35 +117,39 @@ const EXPLAIN = {
     src: CURATED_TAX,
   },
 
-  people: {
-    what: "Who lives here, what they are reading, when they next vote, and what humanity is doing at this moment.",
-    src: "World Bank, Wikipedia, Wikidata and Google Trends. See each sub-section.",
+
+  state: {
+    what: "The state you live under: how it is governed, who holds power, the constitution, and when people next vote.",
+    src: "CIA World Factbook (public domain), the Constitute Project for constitution texts, and Wikidata for election dates.",
   },
-  "people/density": {
-    what: "People per square kilometre of land. The panel adds population, languages and the capital.",
-    src: WB("EN.POP.DNST"),
-  },
-  "people/reading": {
-    what: "What each country read most on Wikipedia yesterday. Click a country for its top ten articles and what it is searching for now.",
-    src: "Wikimedia pageviews, top articles per country, for yesterday in UTC. Searches: Google Trends daily feed.",
-  },
-  "people/ballot": {
-    what: "Days until each country's next national election. Red is within a month, yellow within half a year, grey more than a year away or unknown.",
-    src: "Wikidata, refreshed daily. Snap elections and dates not yet set will be missing.",
-  },
-  "people/state": {
+  "state/system": {
     what: "How each country is governed: republic or monarchy, who holds power and how they got it. Click a country for its heads of state and government, legislature, voting age and constitution, with the full text one tap away.",
     src: "CIA World Factbook, public domain, updated through 2025. Constitution texts: Constitute Project (Comparative Constitutions Project), CC BY-NC, copied to civ.fm.",
   },
-  "people/faith": {
+  "state/vote": {
+    what: "Days until each country's next national election. Red is within a month, yellow within half a year, grey more than a year away or unknown.",
+    src: "Wikidata, refreshed daily. Snap elections and dates not yet set will be missing.",
+  },
+  mind: {
+    what: "What people here believe, read, listen to and are doing right now.",
+    src: "CIA World Factbook for religion, Wikipedia and Google Trends for reading, Radio Browser for stations, Wikimedia EventStreams for the live feed.",
+  },
+  "mind/faith": {
     what: "The largest religion in each country. Click one for the full breakdown as reported, grouped into families.",
     src: "CIA World Factbook, public domain; each country's latest census or survey estimate, which can be years apart.",
   },
-  "people/signal": {
+  "mind/reading": {
+    what: "What each country read most on Wikipedia yesterday. Click a country for its top ten articles and what it is searching for now.",
+    src: "Wikimedia pageviews, top articles per country, for yesterday in UTC. Searches: Google Trends daily feed.",
+  },
+  "mind/radio": {
+    what: "Real radio from every country. Brighter countries stream more stations. Click one to list its stations, then click a station to listen. Popular, Rising and News switch the list.",
+    src: "Radio Browser, a free community directory, queried live. Only stations with a secure stream are listed, since browsers refuse the rest.",
+  },
+  "mind/signal": {
     what: "Every flash is a person editing Wikipedia, as it happens. Also the International Space Station and the next rocket launch.",
     src: "Wikimedia EventStreams (live), wheretheiss.at for the ISS, and Launch Library for launches.",
   },
-
   future: {
     what: "What each region becomes over the next century if emissions stay worst-case. Drag the year bar to move through time.",
     src: FUTURE_SRC,
@@ -167,22 +171,6 @@ const EXPLAIN = {
     src: FUTURE_SRC,
   },
 
-  radio: {
-    what: "Real radio from every country. Brighter countries stream more stations. Click one to list its stations, then click a station to listen.",
-    src: "Radio Browser, a free community directory, queried live. Only stations with a secure stream are listed, since browsers refuse the rest.",
-  },
-  "radio/popular": {
-    what: "The country's stations ordered by how many people tune in.",
-    src: "Radio Browser listener counts, live.",
-  },
-  "radio/rising": {
-    what: "The country's stations ordered by how fast they are gaining listeners.",
-    src: "Radio Browser click trend over the last day, live.",
-  },
-  "radio/news": {
-    what: "Only the country's news and talk stations.",
-    src: "Radio Browser, filtered by the tags and names stations give themselves.",
-  },
 };
 
 /* ---------------- tooltip ---------------- */

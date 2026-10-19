@@ -1,8 +1,8 @@
-/* CIV FM — Place channel (93.0): the region you are in, not the country average.
+/* CIV FM — Home channel (93.0): the region you are in, not the country average.
    1,774 sub-national regions from Global Data Lab's Subnational Human
    Development Database (via the Open Numbers mirror, 1990 to 2019), baked by
    place/build_place.py into regions.json (TopoJSON) and data.json (series).
-   Registers CHANNELS.place after app.js, like future/future.js. Other
+   Registers CHANNELS.home after app.js, like future/future.js. Other
    channels call placeHint() to add a "this region" line to their HERE card. */
 
 const PLACE = { fc: null, data: null, loading: null, hoverBound: false, colorKey: "" };
@@ -16,15 +16,15 @@ const PLACE_RAMPS = {
 };
 
 const PLACE_SUBS = {
-  living: { label: "Living", key: "hdi", title: "Place — Human Development Index", from: "0.35", to: "0.95",
+  living: { label: "Living", key: "hdi", title: "Home — Human Development Index", from: "0.35", to: "0.95",
     fmt: (v) => `HDI ${v.toFixed(3)}`, pts: true, label2: "Human development" },
-  health: { label: "Health", key: "life", title: "Place — life expectancy", from: "55 yrs", to: "86 yrs",
+  health: { label: "Health", key: "life", title: "Home — life expectancy", from: "55 yrs", to: "86 yrs",
     fmt: (v) => `Life expectancy ${v.toFixed(1)} yrs`, pts: true, label2: "Years of life" },
-  school: { label: "School", key: "msch", title: "Place — years of schooling, adults 25+", from: "1 yr", to: "13+ yrs",
+  school: { label: "School", key: "msch", title: "Home — years of schooling, adults 25+", from: "1 yr", to: "13+ yrs",
     fmt: (v) => `${v.toFixed(1)} years of schooling`, pts: true, label2: "Schooling" },
-  income: { label: "Income", key: "gni", title: "Place — income per person, GNI at PPP", from: "$500", to: "$100k",
+  income: { label: "Income", key: "gni", title: "Home — income per person, GNI at PPP", from: "$500", to: "$100k",
     fmt: (v) => `$${fmtBig(v)} per person`, pts: false, label2: "Income per person", log: true },
-  internet: { label: "Internet", key: "netf", title: "Place — measured download speed, fixed lines", from: "1 Mbps", to: "500+ Mbps",
+  internet: { label: "Internet", key: "netf", title: "Home — measured download speed, fixed lines", from: "1 Mbps", to: "500+ Mbps",
     fmt: (v) => `${v} Mbps download`, pts: false, label2: "Internet speed", log: true },
 };
 
@@ -134,11 +134,12 @@ function placeAt(lat, lng) {
 
 /* ---------------- globe ---------------- */
 
-const placeSub = () => PLACE_SUBS[state.subs.place || "living"];
+const placeSub = () => PLACE_SUBS[state.subs.home || "living"];
 
 function placeRecolor() {
   if (!map.getSource("place")) return;
   const sub = placeSub();
+  if (!sub) return;
   if (PLACE.colorKey === sub.key) return;
   PLACE.colorKey = sub.key;
   const ramp = PLACE_RAMPS[sub.key];
@@ -151,6 +152,7 @@ function placeRecolor() {
 
 function placeLegend() {
   const sub = placeSub();
+  if (!sub) return;
   legend(sub.title, [
     { gradient: gradientCSS(PLACE_RAMPS[sub.key]), from: sub.from, to: sub.to },
     { color: "transparent", label: sub.key === "netf" ? `Ookla Speedtest tiles · ${PLACE.net?.quarter || ""}` : "1,763 regions · Global Data Lab, 2019" },
@@ -159,7 +161,8 @@ function placeLegend() {
 
 function placeTeardown() {
   PLACE.colorKey = "";
-  document.body.classList.remove("ch-place");
+  document.body.classList.remove("ch-home");
+  if (typeof removeNightLights === "function") removeNightLights();
 }
 
 /* ---------------- HERE ---------------- */
@@ -226,6 +229,7 @@ async function herePlace(el) {
        trend(gni, { better: "up", label: "Income" })) +
     ro("People", pop ? fmtBig(pop.value * 1000) : "—", "", pop ? `in the region · ${pop.year}` : "", false,
        trend(pop, { label: "Population" })) +
+    ((state.subs.home || "living") === "living" && typeof nationBlock === "function" ? nationBlock() : "") +
     (netf || netm
       ? ro("Internet", netf ? `${netf.value} <small>Mbps</small>` : "—",
            netf ? (netf.value >= 100 ? "good" : netf.value >= 25 ? "" : netf.value >= 10 ? "warn" : "bad") : "",
@@ -253,24 +257,33 @@ async function placeHint(el, key, label, fmt) {
     `<span class="val">${fmt(rec.value)}</span>` +
     `<span class="sub">${nat ? placeCompare(rec, nat, key !== "gni", key === "hdi" ? 3 : 1) + " · " : ""}region, ${rec.year} · <a href="#" class="place-go">Place channel →</a></span>`;
   host.appendChild(div);
-  div.querySelector(".place-go").addEventListener("click", (e) => { e.preventDefault(); tune("place"); });
+  div.querySelector(".place-go").addEventListener("click", (e) => { e.preventDefault(); tune("home"); });
 }
 
 /* ---------------- channel ---------------- */
 
 const PLACE_CHANNEL = {
-  num: "93.0", name: "Place",
-  q: "What is this region like, not the country average?",
-  subs: Object.entries(PLACE_SUBS).map(([id, s]) => ({ id, label: s.label })),
+  num: "93.0", name: "Home",
+  q: "What is it like where you actually live, not the country average?",
+  subs: [...Object.entries(PLACE_SUBS).map(([id, s]) => ({ id, label: s.label })), { id: "lights", label: "Lights" }],
   async applySub(id) {
-    state.subs.place = id;
+    state.subs.home = id;
     document.querySelectorAll("#subdial button").forEach((b) => b.classList.toggle("active", b.dataset.sub === id));
-    placeRecolor(); placeLegend(); renderHere();
+    // Lights is the night-time satellite view over the whole globe; the
+    // region fills step aside for it
+    const lights = id === "lights";
+    if (map.getLayer("place")) {
+      map.setLayoutProperty("place", "visibility", lights ? "none" : "visible");
+      map.setLayoutProperty("place-line", "visibility", lights ? "none" : "visible");
+    }
+    if (lights) addNightLights(); else { removeNightLights(); placeRecolor(); placeLegend(); }
+    if (state.borders) applyBorders();
+    renderHere();
   },
   async activate() {
     setStatus("Tuning… loading 1,774 regions");
-    await Promise.all([loadPlace(), loadFacts()]);
-    if (state.channel !== "place") return;
+    await Promise.all([loadPlace(), loadFacts(), wb("EG.ELC.ACCS.ZS"), wb("IT.NET.USER.ZS"), wb("SP.POP.TOTL"), wb("EN.POP.DNST")]);
+    if (state.channel !== "home") return;
     map.addSource("place", { type: "geojson", data: PLACE.fc });
     map.addLayer({
       id: "place", type: "fill", source: "place",
@@ -298,12 +311,14 @@ const PLACE_CHANNEL = {
       map.on("mouseleave", "place", () => popup.remove());
     }
     PLACE.colorKey = "";
-    placeRecolor(); placeLegend();
-    document.body.classList.add("ch-place");
-    if (state.borders) applyBorders();
+    document.body.classList.add("ch-home");
+    await this.applySub(state.subs.home || "living");
     if (!state.here) showCaption("Every country, region by region. Click anywhere for the region you are in.");
   },
-  here: herePlace,
+  async here(el) {
+    if ((state.subs.home || "living") === "lights") return hereLights(el);
+    return herePlace(el);
+  },
 };
 
-CHANNELS.place = PLACE_CHANNEL;
+CHANNELS.home = PLACE_CHANNEL;

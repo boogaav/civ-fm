@@ -1113,7 +1113,7 @@ async function applyReading() {
       "text-opacity": ["match", ["get", "bucket"], 3, 1, 2, 0.9, 0.75],
     },
   });
-  legend("People — what each country read yesterday", [
+  legend("Mind — what each country read yesterday", [
     { color: "#f5f5f7", label: "Label = #1 Wikipedia article · size = views" },
     { color: "#636366", label: "Wikimedia pageviews · yesterday, UTC" },
   ]);
@@ -1143,7 +1143,7 @@ async function hereReading(el) {
   el.innerHTML = tuningHTML;
   let rec = null;
   try { rec = await fetchReading(cc); } catch (e) {}
-  if (state.channel !== "people" || state.subs.people !== "reading") return;
+  if (state.channel !== "mind" || state.subs.mind !== "reading") return;
   if (!rec || !rec.articles.length) {
     el.innerHTML = `<div class="here-hint">Wikipedia's top list for ${c.name.common} is unavailable right now.</div>`;
     return;
@@ -1202,7 +1202,7 @@ async function applyBallot() {
   const [shapes, facts] = await Promise.all([loadCountryShapes(), loadFacts(), loadCentroids()]);
   if (!data) {
     removeChoro();
-    legend("People — upcoming elections", [{ color: "#636366", label: "Wikidata is unavailable right now" }]);
+    legend("State — upcoming elections", [{ color: "#636366", label: "Wikidata is unavailable right now" }]);
     return;
   }
   const natByCc = {}, allByCc = {};
@@ -1251,7 +1251,7 @@ async function applyBallot() {
     }, 60);
   }
 
-  legend("People — days until the next national vote", [
+  legend("State — days until the next national vote", [
     { gradient: gradientCSS(RAMPS.ballot.slice(0, 5)), from: "Today", to: "1 year" },
     { color: "#3a3a3c", label: "Grey = beyond a year · dashed = regional or by-election only" },
     { color: "#636366", label: "Wikidata · scheduled elections through 2027" },
@@ -1269,10 +1269,14 @@ function startBallotPill(next) {
       `<span class="bdot"></span><span class="bk">NEXT VOTE</span>` +
       `<span>${e.countryLabel || e.cc} ${shortKind(e.label)}</span>` +
       `<span class="bt">${fmtCountdown(e.date + "T00:00:00Z")}</span>`;
-    pill.onclick = () => {
+    pill.onclick = async () => {
       const c = state.cache.centroids?.[e.cc];
       if (!c) return;
       state.interacted = true;
+      if (state.channel !== "state" || state.subs.state !== "vote") {
+        await tune("state");
+        if (state.subs.state !== "vote") await CHANNELS.state.applySub("vote");
+      }
       map.flyTo({ center: [c.lon, c.lat], zoom: 4, duration: 1800 });
     };
   };
@@ -1322,7 +1326,7 @@ const taxHere = (layer) => {
 };
 
 // Signal lives inside People now; every live-feed guard asks this instead of the channel
-const signalActive = () => state.channel === "people" && state.subs.people === "signal";
+const signalActive = () => state.channel === "mind" && state.subs.mind === "signal";
 
 /* ---------------- Body sub-dials: what's legal here ---------------- */
 
@@ -1435,7 +1439,7 @@ async function applyCivic(which) {
   map.addLayer({ id: "choro", type: "fill", source: "choro", paint: { "fill-color": match, "fill-opacity": 0.62 } }, "terminator-fill");
   state.choroFmt = (v) => v;
   ensureChoroHover();
-  legend(which === "state" ? "People — political system" : "People — largest religion", [
+  legend(which === "state" ? "State — political system" : "Mind — largest religion", [
     ...Object.entries(colors).map(([k, color]) => ({ color, label: k })),
     { color: "transparent", label: "CIA World Factbook, public domain" },
   ]);
@@ -1466,6 +1470,7 @@ async function hereState(el) {
     civicRow("Constitution", constLine) +
     civicRow("How it is amended", K.amend) +
     (K.local ? `<a class="ro wide pm-link" href="civic/constitution/?c=${c.cca3}">Read ${c.name.common}'s constitution, full text →</a>` : "") +
+    `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
     civicRow("Independence", v.indep) +
     civicRow("National day", v.holiday) +
     `<div class="psrc">CIA World Factbook, public domain${K.local ? " · constitution text: Constitute Project, CC BY-NC" : ""}</div>` +
@@ -1502,9 +1507,65 @@ const RAMPS = {
   gold: [[7, "#2a251a"], [9, "#57491d"], [10.5, "#a8871f"], [12, "#ffd60a"]], // log10 USD
   debt: [[20, "#30d158"], [50, "#ffd60a"], [80, "#ff9f0a"], [130, "#ff453a"]],
   body: [[55, "#ff453a"], [65, "#ff9f0a"], [73, "#ffd60a"], [80, "#30d158"], [86, "#6ae58a"]],
+  care: [[0.1, "#ff453a"], [1, "#ff9f0a"], [2, "#ffd60a"], [3.5, "#30d158"], [5, "#6ae58a"]],
   water: [[0, "#30d158"], [25, "#ffd60a"], [50, "#ff9f0a"], [100, "#ff453a"]],
   people: [[2, "#231a33"], [25, "#4a2d73"], [100, "#7d4dbb"], [400, "#bf5af2"], [2000, "#e0a9ff"]],
 };
+
+/* ---- Home › Lights: Earth at night (NASA Black Marble) + access readouts ---- */
+function addNightLights() {
+  if (map.getSource("grid-lights")) return;
+  map.addSource("grid-lights", {
+    type: "raster",
+    tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png"],
+    tileSize: 256,
+    maxzoom: 8,
+    attribution: "NASA GIBS · Black Marble",
+  });
+  map.addLayer({ id: "grid-lights", type: "raster", source: "grid-lights", paint: { "raster-opacity": 0.85 } }, "terminator-fill");
+  legend("Home — Earth at night", [
+    { color: "#ffd60a", label: "City lights = the grid, seen from orbit" },
+    { color: "transparent", label: "NASA Black Marble (VIIRS)" },
+  ]);
+}
+function removeNightLights() {
+  if (map.getLayer("grid-lights")) map.removeLayer("grid-lights");
+  if (map.getSource("grid-lights")) map.removeSource("grid-lights");
+}
+function hereLights(el) {
+  if (needCountry(el)) return;
+  const elec = wbHere("EG.ELC.ACCS.ZS");
+  const net = wbHere("IT.NET.USER.ZS");
+  el.innerHTML =
+    `<div class="readouts">` +
+    ro("Electricity", elec ? `${Math.round(elec.value)}<small>%</small>` : "—",
+       elec ? (elec.value >= 99 ? "good" : elec.value >= 80 ? "warn" : "bad") : "",
+       elec ? `with access · ${elec.year}` : "population with access", false,
+       trend(elec, { pts: true, better: "up", label: "Access" })) +
+    ro("Online", net ? `${Math.round(net.value)}<small>%</small>` : "—",
+       net ? (net.value >= 80 ? "good" : net.value >= 50 ? "warn" : "bad") : "",
+       net ? `using the internet · ${net.year}` : "population using internet", false,
+       trend(net, { pts: true, better: "up", label: "Internet use" })) +
+    `</div>`;
+  if (typeof placeHint === "function") placeHint(el, "netf", "Download speed", (v) => `${v} <small>Mbps</small>`);
+}
+
+// national block for Home › Living: who lives in the country around the region
+function nationBlock() {
+  const c = state.here.country;
+  if (!c) return "";
+  const langs = Object.values(c.languages || {}).slice(0, 4).join(", ");
+  const pop = wbHere("SP.POP.TOTL");
+  const density = wbHere("EN.POP.DNST");
+  return (
+    ro("Population", pop ? fmtBig(pop.value) : "—", "", pop ? `${c.name.common} · ${pop.year}` : c.name.common, false,
+       trend(pop, { label: "Population" })) +
+    ro("Density", density ? Math.round(density.value) : "—", "", "people / km²", false,
+       trend(density, { label: "Density" })) +
+    ro("Languages", langs || "—", "", "", true) +
+    ro("Capital", c.capital?.[0] || "—", "", "", true)
+  );
+}
 
 const CHANNELS = {
   air: {
@@ -1736,15 +1797,15 @@ const CHANNELS = {
   },
 
   body: {
-    num: "95.5", name: "Body",
+    num: "91.0", name: "Body",
     q: "Will this place keep me healthy — and what may I legally consume?",
     subs: [
       { id: "life", label: "Life" },
+      { id: "care", label: "Care" },
       { id: "cannabis", label: "Cannabis" },
       { id: "alcohol", label: "Alcohol" },
       { id: "tobacco", label: "Tobacco" },
       { id: "psychedelics", label: "Psychedelics" },
-      { id: "decrim", label: "Decrim" },
     ],
     async applySub(id) {
       state.subs.body = id;
@@ -1760,6 +1821,16 @@ const CHANNELS = {
         legend("Body — life expectancy", [
           { gradient: gradientCSS(RAMPS.body), from: "55 yrs", to: "86 yrs" },
         ]);
+      } else if (id === "care") {
+        await addChoropleth({
+          values: state.cache.wb["SH.MED.PHYS.ZS"] || {},
+          ramp: RAMPS.care,
+          fmt: (v) => `${v.toFixed(1)} physicians per 1,000 people`,
+          pts: false,
+        });
+        legend("Body — physicians per 1,000 people", [
+          { gradient: gradientCSS(RAMPS.care), from: "0.1", to: "5+" },
+        ]);
       } else {
         await addCategoricalChoro({ layer: id });
         showCaption("What's legal here — curated, mid-2026. Laws change; verify before you travel.");
@@ -1772,7 +1843,7 @@ const CHANNELS = {
       await this.applySub(state.subs.body || "life");
     },
     async here(el) {
-      if ((state.subs.body || "life") !== "life") return hereSubstances(el);
+      if (!["life", "care"].includes(state.subs.body || "life")) return hereSubstances(el);
       if (needCountry(el)) return;
       const life = wbHere("SP.DYN.LE00.IN");
       const phys = wbHere("SH.MED.PHYS.ZS");
@@ -1792,48 +1863,8 @@ const CHANNELS = {
     },
   },
 
-  grid: {
-    num: "98.0", name: "Grid",
-    q: "Do the lights turn on and does the internet work?",
-    async activate() {
-      map.addSource("grid-lights", {
-        type: "raster",
-        tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png"],
-        tileSize: 256,
-        maxzoom: 8,
-        attribution: "NASA GIBS · Black Marble",
-      });
-      map.addLayer({
-        id: "grid-lights", type: "raster", source: "grid-lights",
-        paint: { "raster-opacity": 0.85 },
-      });
-      await Promise.all([wb("EG.ELC.ACCS.ZS"), wb("IT.NET.USER.ZS")]);
-      legend("Grid — Earth at night", [
-        { color: "#ffd60a", label: "City lights = the grid, seen from orbit" },
-        { color: "transparent", label: "NASA Black Marble (VIIRS)" },
-      ]);
-    },
-    async here(el) {
-      if (needCountry(el)) return;
-      const elec = wbHere("EG.ELC.ACCS.ZS");
-      const net = wbHere("IT.NET.USER.ZS");
-      el.innerHTML =
-        `<div class="readouts">` +
-        ro("Electricity", elec ? `${Math.round(elec.value)}<small>%</small>` : "—",
-           elec ? (elec.value >= 99 ? "good" : elec.value >= 80 ? "warn" : "bad") : "",
-           elec ? `with access · ${elec.year}` : "population with access", false,
-           trend(elec, { pts: true, better: "up", label: "Access" })) +
-        ro("Online", net ? `${Math.round(net.value)}<small>%</small>` : "—",
-           net ? (net.value >= 80 ? "good" : net.value >= 50 ? "warn" : "bad") : "",
-           net ? `using the internet · ${net.year}` : "population using internet", false,
-           trend(net, { pts: true, better: "up", label: "Internet use" })) +
-        `</div>`;
-      if (typeof placeHint === "function") placeHint(el, "netf", "Download speed", (v) => `${v} <small>Mbps</small>`);
-    },
-  },
-
   money: {
-    num: "100.5", name: "Money",
+    num: "98.0", name: "Money",
     q: "What does a life cost here, and what is my money worth?",
     subs: [
       { id: "gdp", label: "GDP", title: "Money — GDP per capita, PPP",
@@ -1945,76 +1976,74 @@ const CHANNELS = {
     },
   },
 
-  people: {
-    num: "103.0", name: "People",
-    q: "Who lives here, what are they reading, and when do they vote?",
+  state: {
+    num: "100.5", name: "State",
+    q: "Who governs here, by what rules, and when do people vote?",
     subs: [
-      { id: "density", label: "Density" },
-      { id: "reading", label: "Reading" },
-      { id: "ballot", label: "Ballot" },
-      { id: "state", label: "State" },
-      { id: "faith", label: "Faith" },
-      { id: "signal", label: "Signal" },
+      { id: "system", label: "System" },
+      { id: "vote", label: "Vote" },
     ],
     async applySub(id) {
-      state.subs.people = id;
+      state.subs.state = id;
       document.querySelectorAll("#subdial button").forEach((b) =>
         b.classList.toggle("active", b.dataset.sub === id)
       );
-      clearChannelLayers(); // choropleths, people extras, and Signal's live layers/timers
+      clearChannelLayers();
+      if (id === "vote") await applyBallot();
+      else await applyCivic("state");
+      if (state.borders) applyBorders();
+      renderHere();
+    },
+    async activate() {
+      await Promise.all([loadFacts(), loadCivic().catch(() => null)]);
+      await this.applySub(state.subs.state || "system");
+    },
+    async here(el) {
+      if ((state.subs.state || "system") === "vote") return hereBallot(el);
+      return hereState(el);
+    },
+  },
+
+  mind: {
+    num: "103.0", name: "Mind",
+    q: "What do people here believe, read and listen to, right now?",
+    subs: [
+      { id: "faith", label: "Faith" },
+      { id: "reading", label: "Reading" },
+      { id: "radio", label: "Radio" },
+      { id: "signal", label: "Signal" },
+    ],
+    async applySub(id) {
+      state.subs.mind = id;
+      document.querySelectorAll("#subdial button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.sub === id)
+      );
+      clearChannelLayers(); // choropleths, extras, Signal's live layers and timers, Radio's layout
       const ticker = $("#ticker");
       ticker.classList.toggle("hidden", id !== "signal");
       map.getLayer("terminator-fill") &&
         map.setLayoutProperty("terminator-fill", "visibility", id === "signal" ? "visible" : "none");
-      $("#freq-question").textContent = id === "signal" ? CHANNELS.signal.q : this.q;
+      $("#freq-question").textContent = id === "signal" ? CHANNELS.signal.q : id === "radio" ? CHANNELS.radio.q : this.q;
       if (id === "signal") {
         $("#ticker-lines").innerHTML = "";
         showCaption("Every flash is a person editing Wikipedia — live.");
         await CHANNELS.signal.activate();
       } else if (id === "reading") await applyReading();
-      else if (id === "ballot") await applyBallot();
-      else if (id === "state") await applyCivic("state");
-      else if (id === "faith") await applyCivic("faith");
-      else {
-        await addChoropleth({
-          values: state.cache.wb["EN.POP.DNST"] || {},
-          ramp: RAMPS.people,
-          fmt: (v) => `${v < 10 ? v.toFixed(1) : Math.round(v)} people / km²`,
-        });
-        legend("People — population density", [
-          { gradient: gradientCSS(RAMPS.people), from: "2 /km²", to: "2,000 /km²" },
-        ]);
-      }
-      if (state.borders) applyBorders(); // keep country lines above the new fills
+      else if (id === "radio") await CHANNELS.radio.activate();
+      else await applyCivic("faith");
+      if (state.borders) applyBorders();
       renderHere();
     },
     async activate() {
-      await Promise.all([wb("EN.POP.DNST"), wb("SP.POP.TOTL"), loadFacts()]);
-      await this.applySub(state.subs.people || "density");
+      await Promise.all([loadFacts(), loadCivic().catch(() => null)]);
+      await this.applySub(state.subs.mind || "faith");
     },
     async here(el) {
-      const sub = state.subs.people || "density";
+      const sub = state.subs.mind || "faith";
       if (sub === "signal") return CHANNELS.signal.here(el);
       if (sub === "reading") return hereReading(el);
-      if (sub === "ballot") return hereBallot(el);
-      if (sub === "state") return hereState(el);
-      if (sub === "faith") return hereFaith(el);
-      if (needCountry(el)) return;
-      const c = state.here.country;
-      const langs = Object.values(c.languages || {}).slice(0, 4).join(", ");
-      const pop = wbHere("SP.POP.TOTL");
-      const density = wbHere("EN.POP.DNST");
-      el.innerHTML =
-        `<div class="readouts">` +
-        ro("Population", pop ? fmtBig(pop.value) : "—", "", pop ? `${c.name.common} · ${pop.year}` : c.name.common, false,
-           trend(pop, { label: "Population" })) +
-        ro("Density", density ? Math.round(density.value) : "—", "", "people / km²", false,
-           trend(density, { label: "Density" })) +
-        ro("Languages", langs || "—", "", "", true) +
-        ro("Capital", c.capital?.[0] || "—", "", "", true) +
-        `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
-        `</div>`;
-      if (typeof placeHint === "function") placeHint(el, "hdi", "Human development", (v) => v.toFixed(3));
+      if (sub === "radio") return CHANNELS.radio.here(el);
+      return hereFaith(el);
     },
   },
 

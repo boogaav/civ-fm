@@ -6,27 +6,31 @@ every citizen of Earth actually has.
 
 Spec: https://claude.ai/code/artifact/5024b0e4-4ae7-4645-b146-7809fa48be20
 
-## The dial — eight channels, Apple-style UI
+## The dial — seven channels, Apple-style UI
 
-Air, Ground and Water were merged into one **Earth** channel, and Signal into **People**, each as a sub-dial (2026-09-22); the original implementations live on as sub-views.
+Restructured 2026-10-19 so the dial reads the way a person zooms out from
+themselves: the planet, the body, the home region, money, the state, the
+mind, the future. Earlier merges: Air + Ground + Water → Earth (2026-09-22);
+Grid, People, Place and Radio dissolved into Home, State and Mind
+(2026-10-19). Old channel definitions (`signal`, `radio`) live on off-dial
+and are delegated to by Mind.
 
 | Freq  | Channel | Globe layer | HERE readouts |
 |-------|---------|-------------|----------------|
-| 88.0  | Earth   | Sub-dial: Air (live city temperatures + day/night) · Ground (USGS quakes, GDACS alerts, EONET events) · Water (water-stress choropleth) | Air: temp, AQI, UV, wind, sun, 24 h sparkline · Ground: nearest hazards · Water: stress %, soil moisture, river discharge, rain |
-| 93.0  | Place   | Sub-dial: Living (HDI) · Health · School · Income (· Internet) — 1,763 sub-national regions, the region you are in rather than the country average | Region name, rank within its country, HDI with tier, life expectancy, schooling, income, population, each against the national level and with its ten-year trend |
-| 95.5  | Body    | Sub-dial: Life · Cannabis · Alcohol · Tobacco · Psychedelics · Decrim (what's legal where, curated) | Life expectancy, physicians, health spend; "what's legal here" card |
-| 98.0  | Grid    | NASA Black Marble — Earth at night | Electricity access, internet use |
-| 100.5 | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, top income + corporate tax |
-| 106.5 | Future  | Sub-dial: Outlook · Climate zone · Crops · Warming — all 4,595 first-level regions under the worst-case SSP5-8.5 pathway, 2026–2125, with a year bar (play, slider, Central / High-end sensitivity) | Local warming, net outlook (gain vs risk) for the region and nationwide, Köppen zone today → year, climate twin ("feels like today's …"), growing season, crop potential, summer highs / winter lows, new or lost crops, top gains and risks |
-| 103.0 | People  | Sub-dial: Density · Reading (what each country read yesterday on Wikipedia) · Ballot (days until each country votes) · Signal (live Wikipedia edit pulses, ISS with trail, next-launch marker, GDELT news when up, terminator) | Population/density/languages · top-10 articles + Google Trends · upcoming elections with Wikidata links · UTC, sun, wiki edits/min, ISS, launch countdown |
-| 108.0 | Radio   | Sub-dial: Popular · Rising · News — countries shaded by how many radio stations stream online (log scale) | Click a country: its stations, most listened first. Click one to tune in. The player sits at the top of the HERE panel and keeps playing on every channel |
+| 88.0  | Earth   | Sub-dial: Air (live city temperatures + day/night) · Ground (USGS quakes, GDACS alerts, EONET events) · Water (water-stress choropleth) | Weather, AQI, UV · quake/disaster distance · soil moisture, river discharge |
+| 91.0  | Body    | Sub-dial: Life (life expectancy) · Care (physicians per 1,000) · Cannabis · Alcohol · Tobacco · Psychedelics (what's legal where, curated) | Life expectancy, physicians, health spend · substance law card incl. decriminalisation |
+| 93.0  | Home    | Sub-dial: Living (HDI) · Health · School · Income · Internet (Ookla) · Lights (NASA Black Marble) — 1,763 sub-national regions | Region name and rank, HDI, life expectancy, schooling, income, population, internet speed, national population / density / languages / capital · Lights: electricity and internet access |
+| 98.0  | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, taxes, regional income |
+| 100.5 | State   | Sub-dial: System (political system, CIA Factbook) · Vote (days until each country votes, Wikidata) | Government type, heads of state and government, legislature, suffrage, constitution + full-text reader link, passport-map link · upcoming elections |
+| 103.0 | Mind    | Sub-dial: Faith (largest religion) · Reading (what each country read yesterday on Wikipedia) · Radio (stations streaming online, player) · Signal (live Wikipedia edits, ISS, next launch) | Religion breakdown · top-10 articles + Google Trends · station list with Popular/Rising/News switch · UTC, sun, edits/min, ISS, launch countdown |
+| 106.5 | Future  | Sub-dial: Outlook · Climate zone · Crops · Warming — 4,595 regions under SSP5-8.5, 2026–2125, with a year bar | Local warming, net outlook, Köppen zone, climate twin, crops |
 
 UI is macOS-style: system SF font stack, frosted-glass panels
 (backdrop blur + hairlines), segmented-control dial, Apple system colors,
 Maps-style blue location puck. Day/night terminator shows only on channels
 where it means something (Air, Ground, Signal); data channels get full clarity.
 
-## Place — the region, not the country average
+## Home — the region, not the country average
 
 `place/place.js` registers `CHANNELS.place` after `app.js` loads, like Future.
 
@@ -67,7 +71,7 @@ so the series go through the Worker (`/wb/<indicator>`, compacted, 12 h edge
 cache) and are kept for 24 h in `localStorage`. A failed indicator leaves
 "—" readouts and a "Weak signal" status instead of blanking the channel.
 
-## People › State and Faith, and /civic/constitution
+## State › System, Mind › Faith, and /civic/constitution
 
 `civic/build_civic.py` bakes `civic/civic.json` (412 KB) from the CIA
 World Factbook (public domain, via github.com/factbook/factbook.json, one
@@ -168,7 +172,7 @@ caching (source in `proxy/`, deploy with `npx wrangler deploy`).
   EONET every 15 min — no reload needed.
 - Ground's HERE panel includes the nearest Orange/Red alert and distance.
 
-## People › Signal — the live nervous system
+## Mind › Signal — the live nervous system
 
 - **Wikipedia pulses**: one SSE connection to Wikimedia EventStreams; every
   human (non-bot) edit becomes a fading blip placed by the wiki's language →
@@ -212,7 +216,7 @@ channel and registers itself as `CHANNELS.future` after `app.js` loads.
   CO₂ fertilisation and local effects (mountains, monsoon shifts) are not
   modelled.
 
-## Radio — what is on the air
+## Mind › Radio — what is on the air
 
 `radio.js` registers the channel the same way `future/future.js` does
 (`CHANNELS.radio = …`), so `app.js` only knows about it through one teardown
@@ -268,7 +272,7 @@ alcohol, tobacco: legal; decrim: no). There is no keyless API for drug law,
 so this is maintained by hand — the caption says so and tells you to verify
 locally. Edit `substances.js` to update; no code changes needed.
 
-## People sub-dials — Reading and Ballot
+## Mind › Reading and State › Vote
 
 **Reading** — one floating label per country: its #1 Wikipedia article
 yesterday, from Wikimedia's `top-per-country` pageviews API (keyless,

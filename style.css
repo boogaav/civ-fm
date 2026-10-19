@@ -585,3 +585,8 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   #statusline { flex-wrap: wrap; justify-content: flex-end; max-width: 60%; gap: 6px; }
   #status-text { max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* ---------- Mind › Radio: list filter inside the card ---------- */
+.rfilter { display: flex; gap: 3px; background: var(--glass-2); border-radius: 8px; padding: 2px; margin-bottom: 7px; width: fit-content; }
+.rfilter button { appearance: none; border: none; background: none; cursor: pointer; border-radius: 6px; font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 9px; }
+.rfilter button.active { background: rgba(255,255,255,.14); color: var(--ink); }

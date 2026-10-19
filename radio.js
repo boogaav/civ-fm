@@ -265,8 +265,10 @@ function radioCountryHere() {
   return h._radioCc || h.country?.cca2 || null;
 }
 
+const radioActive = () => state.channel === "mind" && (state.subs.mind || "faith") === "radio";
+
 function radioFilter(list) {
-  const sub = state.subs.radio || "popular";
+  const sub = state.radioFilter || "popular";
   if (sub === "news") return list.filter((s) => RADIO_NEWS.test(s.tags.join(",") + " " + s.name));
   if (sub === "rising") return [...list].sort((a, b) => b.trend - a.trend);
   return list;
@@ -290,10 +292,10 @@ async function hereRadio(el) {
     el.innerHTML = `<div class="here-hint">The station directory is unreachable right now.</div>`;
     return;
   }
-  if (state.channel !== "radio" || !el.isConnected) return;
+  if (!radioActive() || !el.isConnected) return;
   const list = radioFilter(all);
   RADIO.list = list;
-  const sub = state.subs.radio || "popular";
+  const sub = state.radioFilter || "popular";
   if (!list.length) {
     el.innerHTML = `<div class="here-hint">${all.length
       ? `No news or talk stations listed for ${rEsc(name)}. Try Popular.`
@@ -305,7 +307,10 @@ async function hereRadio(el) {
     return `<li data-id="${rEsc(s.id)}" tabindex="0" role="button"><span class="ri"></span>` +
       `<span class="rb"><b>${rEsc(s.name)}</b>${meta ? `<span>${rEsc(meta)}</span>` : ""}</span></li>`;
   }).join("");
+  const filters = ["popular", "rising", "news"].map((f) =>
+    `<button data-f="${f}"${f === sub ? ' class="active"' : ""}>${f[0].toUpperCase() + f.slice(1)}</button>`).join("");
   el.innerHTML =
+    `<div class="rfilter" role="group" aria-label="Station list">${filters}</div>` +
     `<div class="ro wide"><span class="k">${rEsc(name)} · ${list.length}${sub === "news" ? " news and talk" : ""} station${list.length > 1 ? "s" : ""}</span>` +
     `<ul class="rlist">${rows}</ul>` +
     `<div class="psrc">Directory: <a href="https://www.radio-browser.info/" target="_blank" rel="noopener">Radio Browser</a> · ${sub === "rising" ? "fastest growing first" : "most listened first"}</div></div>`;
@@ -315,6 +320,8 @@ async function hereRadio(el) {
     if (RADIO.now?.id === st.id && (RADIO.status === "on" || RADIO.status === "tuning")) radioPause();
     else radioPlay(st);
   };
+  el.querySelectorAll(".rfilter button").forEach((b) =>
+    b.addEventListener("click", () => { state.radioFilter = b.dataset.f; renderHere(); }));
   el.querySelectorAll(".rlist li").forEach((li) => {
     li.addEventListener("click", () => pick(li));
     li.addEventListener("keydown", (e) => {
@@ -326,23 +333,15 @@ async function hereRadio(el) {
 
 /* ---------------- channel ---------------- */
 
+// Lives under Mind › Radio since the 2026-10-19 restructure; kept as its own
+// definition so Mind can delegate to it.
 const RADIO_CHANNEL = {
-  num: "108.0", name: "Radio",
+  num: "103.0", name: "Radio",
   q: "What is on the air here right now?",
-  subs: [
-    { id: "popular", label: "Popular" },
-    { id: "rising", label: "Rising" },
-    { id: "news", label: "News" },
-  ],
-  async applySub(id) {
-    state.subs.radio = id;
-    document.querySelectorAll("#subdial button").forEach((b) => b.classList.toggle("active", b.dataset.sub === id));
-    renderHere();
-  },
   async activate() {
     document.body.classList.add("ch-radio");
     const counts = await loadRadioCounts();
-    if (state.channel !== "radio") return;
+    if (!radioActive()) return;
     await addChoropleth({
       values: counts,
       ramp: RADIO_RAMP,
@@ -350,7 +349,7 @@ const RADIO_CHANNEL = {
       fmt: (v) => `${Number(v).toLocaleString("en")} radio station${v === 1 ? "" : "s"} online`,
       opacity: 0.6,
     });
-    legend("Radio — stations streaming online", [
+    legend("Mind — radio stations streaming online", [
       { gradient: gradientCSS(RADIO_RAMP), from: "1", to: "6,000+" },
     ]);
     if (state.borders) applyBorders();
