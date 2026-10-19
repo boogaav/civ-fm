@@ -1498,6 +1498,183 @@ async function hereFaith(el) {
     `</div>`;
 }
 
+/* ---- State › Passport, Citizenship, Immigration ---- */
+// Shares passport-data.js with the Passport page: visa categories, curated
+// naturalisation and immigration tables. The visa matrix is the CSV in vendor/.
+
+const PD = window.PASSPORT_DATA;
+
+async function loadVisa() {
+  if (state.cache.visa) return state.cache.visa;
+  const txt = await (await fetch(VENDOR + "passport-index-tidy-iso3.csv")).text();
+  const visa = {};
+  for (const line of txt.split("\n").slice(1)) {
+    const [p, d, req] = line.trim().split(",");
+    if (!p || !d) continue;
+    (visa[p] ||= {})[d] = req;
+  }
+  state.cache.visa = visa;
+  return visa;
+}
+
+// the passport being drawn: chosen in the card, else the HERE country, else
+// the visitor's own country from the Worker's edge, else Ukraine
+async function passportIso() {
+  if (state.passport) return state.passport;
+  if (state.here?.country?.cca3) return (state.passport = state.here.country.cca3);
+  try {
+    const w = await getJSON(`${PROXY}/whereami`, 5000);
+    const facts = await loadFacts();
+    const c = w.country && facts.by2[w.country];
+    if (c) return (state.passport = c.cca3);
+  } catch (e) {}
+  return (state.passport = "UKR");
+}
+
+// a choropleth whose features carry their own colour and hover text
+function addPaintedChoro(features, fmt, opacity = 0.62) {
+  removeChoro();
+  map.addSource("choro", { type: "geojson", data: { type: "FeatureCollection", features } });
+  map.addLayer({ id: "choro", type: "fill", source: "choro", paint: { "fill-color": ["get", "color"], "fill-opacity": opacity } }, "terminator-fill");
+  state.choroFmt = fmt || ((v) => v);
+  ensureChoroHover();
+}
+
+async function applyPassport() {
+  const [visa, shapes, facts, iso] = await Promise.all([loadVisa(), loadCountryShapes(), loadFacts(), passportIso()]);
+  const reqs = visa[iso] || {};
+  const counts = {};
+  const features = [];
+  for (const f of shapes.features) {
+    const req = f.id === iso ? "-1" : reqs[f.id];
+    if (req == null) continue;
+    const info = PD.classify(req);
+    counts[info.cat] = (counts[info.cat] || 0) + 1;
+    features.push({ ...f, properties: { name: f.properties.name, value: info.label, year: "", color: PD.CATS[info.cat].color } });
+  }
+  addPaintedChoro(features);
+  const open = PD.OPEN_CATS.reduce((n, c) => n + (counts[c] || 0), 0);
+  legend(`State — where a ${facts.by3[iso]?.name.common || iso} passport can go`, [
+    ...Object.entries(PD.CATS).filter(([c]) => counts[c]).map(([c, k]) => ({ color: k.color, label: `${k.label} · ${counts[c]}` })),
+    { color: "transparent", label: `${open} of ${features.length - 1} destinations without a pre-arranged visa` },
+  ]);
+  state.passportCounts = counts;
+}
+
+async function applyCitizenship() {
+  const shapes = await loadCountryShapes();
+  const counts = {};
+  const features = [];
+  for (const f of shapes.features) {
+    const rec = PD.NATURALIZATION.data[f.id];
+    if (!rec) continue;
+    const [years, note] = rec;
+    const [, color, label] = PD.citBucket(years);
+    counts[label] = (counts[label] || 0) + 1;
+    features.push({ ...f, properties: { name: f.properties.name, value: years >= 99 ? "No practical route" : `${years} years of residence`, year: note, color } });
+  }
+  addPaintedChoro(features);
+  legend("State — years of residence before citizenship", [
+    ...PD.CIT_BUCKETS.filter(([, , l]) => counts[l]).map(([, color, l]) => ({ color, label: `${l} · ${counts[l]}` })),
+    { color: "transparent", label: `Curated ${PD.NATURALIZATION.updated} · standard route · verify locally` },
+  ]);
+}
+
+async function applyImmigration() {
+  const shapes = await loadCountryShapes();
+  const counts = {};
+  const features = [];
+  for (const f of shapes.features) {
+    const rec = PD.IMMIGRATION.data[f.id];
+    if (!rec) continue;
+    const [approach, who] = rec;
+    const [color, label] = PD.IMM_APPROACH[approach];
+    counts[approach] = (counts[approach] || 0) + 1;
+    features.push({ ...f, properties: { name: f.properties.name, value: label, year: who, color } });
+  }
+  addPaintedChoro(features);
+  legend("State — who each country's immigration system attracts", [
+    ...Object.entries(PD.IMM_APPROACH).filter(([k]) => counts[k]).map(([k, [color, label]]) => ({ color, label: `${label} · ${counts[k]}` })),
+    { color: "transparent", label: `Curated ${PD.IMMIGRATION.updated} · dominant approach only · verify locally` },
+  ]);
+}
+
+async function herePassport(el) {
+  el.innerHTML = tuningHTML;
+  let visa, facts, iso;
+  try { [visa, facts, iso] = await Promise.all([loadVisa(), loadFacts(), passportIso()]); } catch (e) {
+    el.innerHTML = `<div class="here-hint">Visa data unreachable right now.</div>`; return;
+  }
+  if (!el.isConnected) return;
+  const names = Object.keys(visa).filter((c) => facts.by3[c]).sort((a, b) => facts.by3[a].name.common.localeCompare(facts.by3[b].name.common));
+  const opts = names.map((c) => `<option value="${c}"${c === iso ? " selected" : ""}>${facts.by3[c].flag || ""} ${facts.by3[c].name.common}</option>`).join("");
+  const counts = state.passportCounts || {};
+  const open = PD.OPEN_CATS.reduce((n, c) => n + (counts[c] || 0), 0);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0) - 1;
+  const here = state.here?.country;
+  let toHere = "";
+  if (here && here.cca3 !== iso) {
+    const req = visa[iso]?.[here.cca3];
+    if (req != null) {
+      const info = PD.classify(req);
+      toHere = `<div class="ro wide"><span class="k">To ${here.name.common}</span><span class="val" style="font-size:15px;color:${PD.CATS[info.cat].color}">${info.label}</span></div>`;
+    }
+  }
+  const rows = Object.entries(PD.CATS).filter(([c]) => counts[c] && c !== "home")
+    .map(([c, k]) => `<li><span class="n" style="color:${k.color}">●</span><a>${k.label}</a><span class="v">${counts[c]}</span></li>`).join("");
+  el.innerHTML =
+    `<div class="readouts">` +
+    `<div class="ro wide"><span class="k">Passport</span><select id="pp-pick" class="pp-pick" aria-label="Passport">${opts}</select>` +
+    `<span class="sub">${open} of ${total} destinations without a pre-arranged visa</span></div>` +
+    toHere +
+    `<div class="ro wide"><ul class="plist">${rows}</ul></div>` +
+    `<a class="ro wide pm-link" href="passport/#${iso}">Open the Passport page for ${facts.by3[iso]?.name.common || iso} →</a>` +
+    `<div class="psrc">Passport Index dataset (vendor/) · visa-free, on arrival and ETA count as open</div>` +
+    `</div>`;
+  $("#pp-pick")?.addEventListener("change", async (e) => {
+    state.passport = e.target.value;
+    await applyPassport();
+    if (state.borders) applyBorders();
+    renderHere();
+  });
+}
+
+function hereCitizenship(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country;
+  const rec = PD.NATURALIZATION.data[c.cca3];
+  if (!rec) { el.innerHTML = `<div class="here-hint">No naturalisation entry for ${c.name.common} yet.</div>`; return; }
+  const [years, note, dual] = rec;
+  const [, color] = PD.citBucket(years);
+  const dualText = dual === "yes" ? "Dual citizenship allowed" : dual === "no" ? "Must renounce other citizenship" : "Dual citizenship restricted";
+  el.innerHTML =
+    `<div class="readouts">` +
+    ro("Residence before citizenship", years >= 99 ? "No practical route" : `${years} <small>years</small>`, "", c.name.common, true) +
+    `<div class="ro wide"><span class="k">Standard route</span><span class="civ">${note}</span></div>` +
+    `<div class="ro wide"><span class="k">Dual citizenship</span><span class="civ" style="color:${dual === "yes" ? "var(--ok)" : dual === "no" ? "var(--bad)" : "var(--warn)"}">${dualText}</span></div>` +
+    `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport page →</a>` +
+    `<div class="psrc">Curated ${PD.NATURALIZATION.updated} · spouses, descent and investment routes are faster · verify locally</div>` +
+    `</div>`;
+  void color;
+}
+
+function hereImmigration(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country;
+  const rec = PD.IMMIGRATION.data[c.cca3];
+  if (!rec) { el.innerHTML = `<div class="here-hint">No immigration-policy entry for ${c.name.common} yet.</div>`; return; }
+  const [approach, who, why] = rec;
+  const [color, label] = PD.IMM_APPROACH[approach];
+  el.innerHTML =
+    `<div class="readouts">` +
+    `<div class="ro wide"><span class="k">${c.name.common} is built to attract</span><span class="val" style="font-size:17px;color:${color}">${label}</span></div>` +
+    `<div class="ro wide"><span class="k">Who</span><span class="civ">${who}</span></div>` +
+    `<div class="ro wide"><span class="k">Why</span><span class="civ">${why}</span></div>` +
+    `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport page →</a>` +
+    `<div class="psrc">Curated ${PD.IMMIGRATION.updated} · dominant approach; most countries run several routes · verify locally</div>` +
+    `</div>`;
+}
+
 const RAMPS = {
   income: [[0, "#30d158"], [15, "#66d4cf"], [30, "#ffd60a"], [45, "#ff9f0a"], [57, "#ff453a"]],
   corporate: [[0, "#30d158"], [10, "#66d4cf"], [20, "#ffd60a"], [28, "#ff9f0a"], [35, "#ff453a"]],
@@ -1982,6 +2159,9 @@ const CHANNELS = {
     subs: [
       { id: "system", label: "System" },
       { id: "vote", label: "Vote" },
+      { id: "passport", label: "Passport" },
+      { id: "citizenship", label: "Citizenship" },
+      { id: "immigration", label: "Immigration" },
     ],
     async applySub(id) {
       state.subs.state = id;
@@ -1990,6 +2170,9 @@ const CHANNELS = {
       );
       clearChannelLayers();
       if (id === "vote") await applyBallot();
+      else if (id === "passport") await applyPassport();
+      else if (id === "citizenship") await applyCitizenship();
+      else if (id === "immigration") await applyImmigration();
       else await applyCivic("state");
       if (state.borders) applyBorders();
       renderHere();
@@ -1999,7 +2182,11 @@ const CHANNELS = {
       await this.applySub(state.subs.state || "system");
     },
     async here(el) {
-      if ((state.subs.state || "system") === "vote") return hereBallot(el);
+      const sub = state.subs.state || "system";
+      if (sub === "vote") return hereBallot(el);
+      if (sub === "passport") return herePassport(el);
+      if (sub === "citizenship") return hereCitizenship(el);
+      if (sub === "immigration") return hereImmigration(el);
       return hereState(el);
     },
   },

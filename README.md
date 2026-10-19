@@ -21,7 +21,7 @@ and are delegated to by Mind.
 | 91.0  | Body    | Sub-dial: Life (life expectancy) · Care (physicians per 1,000) · Cannabis · Alcohol · Tobacco · Psychedelics (what's legal where, curated) | Life expectancy, physicians, health spend · substance law card incl. decriminalisation |
 | 93.0  | Home    | Sub-dial: Living (HDI) · Health · School · Income · Internet (Ookla) · Lights (NASA Black Marble) — 1,763 sub-national regions | Region name and rank, HDI, life expectancy, schooling, income, population, internet speed, national population / density / languages / capital · Lights: electricity and internet access |
 | 98.0  | Money   | Sub-dial: GDP · Inflation · Gold reserves · Gov. debt · Income tax · Corporate tax | GDP, inflation, gold, debt, currency, live USD rate, taxes, regional income |
-| 100.5 | State   | Sub-dial: System (political system, CIA Factbook) · Vote (days until each country votes, Wikidata) | Government type, heads of state and government, legislature, suffrage, constitution + full-text reader link, passport-map link · upcoming elections |
+| 100.5 | State   | Sub-dial: System (political system, CIA Factbook) · Vote (days until each country votes, Wikidata) · Passport (where one passport can go, picker in the card) · Citizenship (years to naturalise, curated) · Immigration (who each country attracts, curated) | Government type, heads, legislature, suffrage, constitution + reader link · upcoming elections · visa counts and the rule for the HERE country · residence years, dual citizenship · approach, who, why |
 | 103.0 | Mind    | Sub-dial: Faith (largest religion) · Reading (what each country read yesterday on Wikipedia) · Radio (stations streaming online, player) · Signal (live Wikipedia edits, ISS, next launch) | Religion breakdown · top-10 articles + Google Trends · station list with Popular/Rising/News switch · UTC, sun, edits/min, ISS, launch countdown |
 | 106.5 | Future  | Sub-dial: Outlook · Climate zone · Crops · Warming — 4,595 regions under SSP5-8.5, 2026–2125, with a year bar | Local warming, net outlook, Köppen zone, climate twin, crops |
 
@@ -301,6 +301,18 @@ T−4d 12h`), click flies there; on election day the country pulses. The
 panel lists a country's upcoming elections, every line linking to its
 Wikidata item. Last good copy is kept in localStorage so the sub-dial
 survives the Worker being down.
+
+## State › Passport, Citizenship, Immigration on the globe
+
+Since 2026-10-19 the three Passport-page modes also run on the main globe
+as State sub-dials. `passport-data.js` holds what both share: visa
+categories and colours (`CATS`, `OPEN_CATS`), the curated `NATURALIZATION`
+and `IMMIGRATION` tables, `CIT_BUCKETS` and `classify()`; it loads before
+`passport-map.js` on the Passport page and before `app.js` on the globe.
+The globe parses the same `vendor/passport-index-tidy-iso3.csv` once
+(`loadVisa`). The passport being drawn is chosen in the card, else the HERE
+country, else the visitor's country from `/whereami`. `addPaintedChoro`
+draws features that carry their own colour and hover text.
 
 ## /passport — PassportMap component
 

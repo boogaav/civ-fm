@@ -130,6 +130,18 @@ const EXPLAIN = {
     what: "Days until each country's next national election. Red is within a month, yellow within half a year, grey more than a year away or unknown.",
     src: "Wikidata, refreshed daily. Snap elections and dates not yet set will be missing.",
   },
+  "state/passport": {
+    what: "Where one passport can go: green visa-free, teal on arrival, yellow e-visa, orange a visa in advance, red no admission. Pick the passport in the panel; it starts with the country you are in.",
+    src: "Passport Index dataset (ilyankou, MIT), copied to civ.fm; visa rules change, so check before you fly.",
+  },
+  "state/citizenship": {
+    what: "How many years you must live in a country before you can apply for citizenship by the standard route. Green is three years or less, red twenty or more.",
+    src: "Compiled by hand for CIV FM from national nationality laws, snapshot of September 2026. Spouses, descent and investment routes are usually faster.",
+  },
+  "state/immigration": {
+    what: "Who each country's immigration system is built to attract: skilled talent, investors, nomads and retirees, guest workers, diaspora, open door, family and humanitarian, or largely closed.",
+    src: "Compiled by hand for CIV FM from published policy, snapshot of September 2026. Dominant approach only; most countries run several routes.",
+  },
   mind: {
     what: "What people here believe, read, listen to and are doing right now.",
     src: "CIA World Factbook for religion, Wikipedia and Google Trends for reading, Radio Browser for stations, Wikimedia EventStreams for the live feed.",
