@@ -100,6 +100,22 @@ networks that block third parties.
   (`/service/constitutions?lang=en`) and each in-force `/service/html?cons_id=`,
   then run the script with both directories.
 
+## /civic/compare — what unites constitutions
+
+`civic/build_compare.py <constitute dir>` reads the raw Constitute HTML
+(the `data-topics` tags on every section, 387 topics in 12 groups from
+their ontology) and writes `civic/compare.json`: topic shares across the
+186 constitutions in force, each constitution's topic set, up to three
+section ids per topic and constitution (for quotes), and a 2-D layout from
+classical multidimensional scaling of Jaccard distance (pure Python power
+iteration, no numpy). The page: ranked topic bars with group filter and
+search; a topic panel with the 186-tile coverage grid, clauses fetched
+live from `civic/constitutions/<ISO3>.html` by section id, and sibling
+topics in the same group; the similarity map (SVG scatter, colour by
+region, size by topic count) with nearest constitutions, common topics a
+constitution leaves out, and rare ones it includes. Linked from State ›
+System and from the reader header.
+
 ## /card — country card generator
 
 `card/` is a standalone page (no MapLibre): pick a country, get one image

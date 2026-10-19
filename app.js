@@ -1481,6 +1481,7 @@ async function hereState(el) {
     civicRow("Constitution", constLine) +
     civicRow("How it is amended", K.amend) +
     (K.local ? `<a class="ro wide pm-link" href="civic/constitution/?c=${c.cca3}">Read ${c.name.common}'s constitution, full text →</a>` : "") +
+    (K.local ? `<a class="ro wide pm-link" href="civic/compare/?c=${c.cca3}">How it compares with every other constitution →</a>` : "") +
     `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
     civicRow("Independence", v.indep) +
     civicRow("National day", v.holiday) +

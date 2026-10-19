@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What unites constitutions — CIV FM</title>
+<meta name="description" content="186 constitutions in force, 387 topics: what nearly every constitution guarantees, what is rare, and which constitutions resemble each other.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+<style>
+:root {
+  --space:#0b0b0d; --glass:rgba(28,28,30,.8); --glass-2:rgba(255,255,255,.06); --hairline:rgba(255,255,255,.1);
+  --ink:#f5f5f7; --muted:#98989d; --faint:#636366; --accent:#0a84ff; --ok:#30d158; --warn:#ff9f0a; --bad:#ff453a;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--space); color:var(--ink); font-family:var(--font); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:14px; padding:12px 24px; background:var(--glass); border-bottom:1px solid var(--hairline); backdrop-filter:blur(24px) saturate(1.4); -webkit-backdrop-filter:blur(24px) saturate(1.4); }
+.brand { font-size:17px; font-weight:700; letter-spacing:-.02em; color:var(--ink); text-decoration:none; }
+header a.lnk { font-size:12.5px; font-weight:500; color:var(--accent); text-decoration:none; }
+.spacer { flex:1; }
+main { max-width:1180px; margin:0 auto; padding:28px 24px 80px; }
+h1 { font-size:28px; letter-spacing:-.02em; line-height:1.15; margin:0 0 8px; }
+.lead { color:var(--muted); font-size:14.5px; max-width:70ch; margin:0 0 10px; }
+.stats { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 28px; }
+.stat { background:var(--glass-2); border:1px solid var(--hairline); border-radius:12px; padding:10px 14px; min-width:150px; }
+.stat b { display:block; font-size:22px; font-weight:600; letter-spacing:-.01em; }
+.stat span { font-size:11.5px; color:var(--muted); }
+h2 { font-size:18px; letter-spacing:-.01em; margin:34px 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin:0 0 14px; max-width:70ch; }
+.grid2 { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:24px; align-items:start; }
+@media (max-width:860px){ .grid2 { grid-template-columns:1fr; } }
+.panel { background:var(--glass-2); border:1px solid var(--hairline); border-radius:14px; padding:14px 16px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.chips button, .seg button { appearance:none; font-family:var(--font); font-size:12px; font-weight:600; color:var(--muted); background:var(--glass-2); border:1px solid var(--hairline); border-radius:999px; padding:4px 10px; cursor:pointer; }
+.chips button.on, .seg button.on { background:rgba(10,132,255,.18); color:var(--ink); border-color:rgba(10,132,255,.4); }
+input[type=search] { appearance:none; width:100%; font-family:var(--font); font-size:13px; color:var(--ink); background:var(--glass-2); border:1px solid var(--hairline); border-radius:9px; padding:7px 10px; margin-bottom:10px; }
+.bars { list-style:none; margin:0; padding:0; max-height:560px; overflow-y:auto; }
+.bars li { display:grid; grid-template-columns:minmax(0,1fr) 150px 44px; gap:10px; align-items:center; padding:5px 6px; border-radius:8px; cursor:pointer; font-size:13px; }
+.bars li:hover { background:var(--glass-2); }
+.bars li.on { background:rgba(10,132,255,.14); }
+.bars .l { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bars .l small { color:var(--faint); margin-left:6px; }
+.bars .b { height:7px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+.bars .b i { display:block; height:100%; border-radius:4px; background:var(--accent); }
+.bars .b.u i { background:var(--ok); }
+.bars .p { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
+.detail h3 { font-size:16px; margin:0 0 4px; }
+.detail .desc { color:var(--muted); font-size:13px; margin:0 0 12px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(26px, 1fr)); gap:3px; margin:8px 0 12px; }
+.tile { aspect-ratio:1; border-radius:4px; background:rgba(255,255,255,.08); display:grid; place-items:center; font-size:9px; color:var(--faint); cursor:pointer; }
+.tile.in { background:rgba(10,132,255,.55); color:var(--ink); }
+.tile.sel { outline:2px solid var(--warn); }
+.quotes { display:flex; flex-direction:column; gap:8px; }
+.quote { background:rgba(0,0,0,.25); border:1px solid var(--hairline); border-radius:10px; padding:9px 11px; font-size:12.5px; }
+.quote b { display:block; font-size:11px; color:var(--accent); margin-bottom:3px; font-weight:600; }
+.quote a { color:var(--faint); font-size:11px; text-decoration:none; margin-left:6px; }
+.quote p { margin:0; color:var(--ink); line-height:1.45; }
+.sib { list-style:none; margin:8px 0 0; padding:0; }
+.sib li { display:grid; grid-template-columns:minmax(0,1fr) 90px 40px 24px; gap:8px; font-size:12.5px; padding:3px 0; align-items:center; border-top:1px solid var(--hairline); cursor:pointer; }
+.sib li:first-child { border-top:0; }
+.sib .b { height:5px; background:rgba(255,255,255,.08); border-radius:3px; } .sib .b i { display:block; height:100%; background:var(--muted); border-radius:3px; }
+.sib .y { color:var(--ok); } .sib .n { color:var(--faint); }
+.k { font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin:12px 0 4px; }
+.k:first-child { margin-top:0; }
+#map { width:100%; aspect-ratio:1.25; background:rgba(0,0,0,.25); border:1px solid var(--hairline); border-radius:14px; display:block; }
+#map circle { cursor:pointer; transition:r .12s ease; }
+#map circle:hover { stroke:#fff; stroke-width:1.5; }
+#map circle.sel { stroke:var(--warn); stroke-width:2.5; }
+#map text { font-family:var(--font); fill:var(--ink); font-size:11px; paint-order:stroke; stroke:#0b0b0d; stroke-width:3px; pointer-events:none; }
+.legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:8px; font-size:11.5px; color:var(--muted); }
+.legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.near { list-style:none; margin:6px 0 0; padding:0; }
+.near li { display:grid; grid-template-columns:minmax(0,1fr) 110px 46px; gap:10px; align-items:center; padding:4px 0; border-top:1px solid var(--hairline); font-size:13px; cursor:pointer; }
+.near li:first-child { border-top:0; }
+.near .b { height:6px; background:rgba(255,255,255,.08); border-radius:3px; } .near .b i { display:block; height:100%; background:var(--warn); border-radius:3px; }
+.near .p { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pills { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.pill { font-size:11.5px; background:var(--glass-2); border:1px solid var(--hairline); border-radius:999px; padding:2px 9px; cursor:pointer; color:var(--ink); }
+.pill.miss { color:var(--warn); border-color:rgba(255,159,10,.35); }
+select { appearance:none; font-family:var(--font); font-size:13px; font-weight:600; color:var(--ink); background:var(--glass-2); border:1px solid var(--hairline); border-radius:9px; padding:7px 28px 7px 10px; max-width:100%; }
+footer { max-width:1180px; margin:0 auto; padding:0 24px 40px; font-size:12px; color:var(--faint); line-height:1.6; }
+footer a { color:var(--muted); }
+.status { color:var(--muted); font-size:12.5px; }
+mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../../">CIV FM</a>
+  <a class="lnk" href="../constitution/">Read a constitution</a>
+  <span class="spacer"></span>
+  <a class="lnk" href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute ↗</a>
+</header>
+
+<main>
+  <h1>What unites the world's constitutions</h1>
+  <p class="lead">Every constitution in force, read through one set of 387 topics. The topics almost all of them share, the ones few do, and which constitutions resemble each other most.</p>
+  <div class="stats" id="stats"></div>
+
+  <h2>Shared ground</h2>
+  <p class="sub">Each bar is the share of constitutions that contain the topic. Click a topic to see who has it, read the clause in several countries, and compare it with its neighbours in meaning.</p>
+  <div class="grid2">
+    <div class="panel">
+      <input id="q" type="search" placeholder="Find a topic: religion, privacy, army, language…" aria-label="Find a topic">
+      <div class="chips" id="groups"></div>
+      <ul class="bars" id="bars"></ul>
+    </div>
+    <div class="panel detail" id="detail"><p class="status">Pick a topic on the left.</p></div>
+  </div>
+
+  <h2>The constitutional map</h2>
+  <p class="sub">Each dot is a constitution, placed so that documents covering similar topics sit close together (classical scaling of topic overlap). Colour is region, size is how many topics the text covers. Click one to see its nearest relatives and what makes it unusual.</p>
+  <div class="grid2">
+    <div>
+      <svg id="map" viewBox="0 0 1000 800" role="img" aria-label="Constitutions placed by similarity"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="panel" id="cons"><p class="status">Pick a constitution on the map, or choose one: <select id="pick"><option value="">—</option></select></p></div>
+  </div>
+</main>
+
+<footer>Topic tags and texts: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a>, Comparative Constitutions Project, CC BY-NC 3.0. The topic ontology is theirs; the overlap measures, the map and the wording here are CIV FM's. A constitution that lacks a topic may still cover the idea in ordinary law.</footer>
+
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const [D, facts] = await Promise.all([fetch("../compare.json").then((r) => r.json()), fetch("../../vendor/world-countries.json").then((r) => r.json())]);
+  const by3 = {}; for (const f of facts) by3[f.cca3] = f;
+  const flag = (iso) => by3[iso]?.flag || "";
+  const T = D.topics, C = D.cons, N = D.n;
+  const groupLabel = Object.fromEntries(D.groups.map((g) => [g.k, g.label]));
+  const tIndex = Object.fromEntries(T.map((t, i) => [t.k, i]));
+  C.forEach((c) => { c.set = new Set(c.t); });
+  const REGION_COLORS = { Europe: "#0a84ff", Asia: "#ff9f0a", Africa: "#30d158", Americas: "#bf5af2", Oceania: "#64d2ff", Antarctic: "#98989d" };
+  let topic = null, sel = null, group = "", query = "";
+
+  // ---- stats ----
+  const n90 = T.filter((t) => t.share >= 0.9).length, n75 = T.filter((t) => t.share >= 0.75).length, n50 = T.filter((t) => t.share >= 0.5).length;
+  $("#stats").innerHTML =
+    `<div class="stat"><b>${N}</b><span>constitutions in force</span></div>` +
+    `<div class="stat"><b>${T.length}</b><span>topics in the ontology</span></div>` +
+    `<div class="stat"><b>${n90}</b><span>topics in 9 of 10 constitutions</span></div>` +
+    `<div class="stat"><b>${n75}</b><span>in 3 of 4</span></div>` +
+    `<div class="stat"><b>${n50}</b><span>in at least half</span></div>`;
+
+  // ---- topic list ----
+  $("#groups").innerHTML = `<button data-g="" class="on">All</button>` + D.groups.map((g) => `<button data-g="${g.k}">${esc(g.label)}</button>`).join("");
+  $("#groups").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    group = b.dataset.g;
+    $("#groups").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    renderBars();
+  });
+  let qt; $("#q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(() => { query = $("#q").value.trim().toLowerCase(); renderBars(); }, 150); });
+
+  function renderBars() {
+    const list = T.filter((t) => (!group || t.group === group) && (!query || t.label.toLowerCase().includes(query) || (t.desc || "").toLowerCase().includes(query)));
+    $("#bars").innerHTML = list.map((t) => {
+      const has = sel ? sel.set.has(tIndex[t.k]) : null;
+      return `<li data-k="${t.k}" class="${topic === t.k ? "on" : ""}">` +
+        `<span class="l">${esc(t.label)}${sel ? `<small>${has ? "✓ " + esc(sel.name) : "· not in " + esc(sel.name)}</small>` : ""}</span>` +
+        `<span class="b ${t.share >= 0.9 ? "u" : ""}"><i style="width:${Math.round(t.share * 100)}%"></i></span>` +
+        `<span class="p">${Math.round(t.share * 100)}%</span></li>`;
+    }).join("") || `<li><span class="l status">No topic matches.</span></li>`;
+  }
+  $("#bars").addEventListener("click", (e) => { const li = e.target.closest("li[data-k]"); if (li) showTopic(li.dataset.k); });
+
+  // ---- clause fetching: pull a section's text from the hosted constitution ----
+  const htmlCache = {};
+  async function sectionText(iso, sid) {
+    if (!htmlCache[iso]) htmlCache[iso] = fetch(`../constitutions/${iso}.html`).then((r) => r.text()).then((h) => { const d = document.createElement("div"); d.innerHTML = h; return d; }).catch(() => null);
+    const doc = await htmlCache[iso];
+    if (!doc) return "";
+    const el = doc.querySelector(`[id="${sid}"]`);
+    if (!el) return "";
+    const heads = [...el.querySelectorAll("h2,h3,h4")].map((h) => h.textContent.trim()).filter(Boolean).slice(0, 2).join(" · ");
+    const body = [...el.querySelectorAll("p, li")].map((p) => p.textContent.trim()).filter(Boolean).join(" ");
+    const txt = (body || el.textContent).replace(/\s+/g, " ").trim();
+    return (heads ? heads + " — " : "") + (txt.length > 420 ? txt.slice(0, 420).replace(/\s\S*$/, "") + "…" : txt);
+  }
+
+  async function showTopic(k) {
+    topic = k;
+    const t = T[tIndex[k]];
+    renderBars();
+    const have = C.filter((c) => c.set.has(tIndex[k]));
+    const haveSet = new Set(have.map((c) => c.iso));
+    const sibs = T.filter((x) => x.group === t.group && x.k !== k).slice(0, 14);
+    const tiles = C.map((c) => `<span class="tile ${haveSet.has(c.iso) ? "in" : ""} ${sel && sel.iso === c.iso ? "sel" : ""}" data-iso="${c.iso}" title="${esc(c.name)}${haveSet.has(c.iso) ? "" : " · not covered"}">${esc(c.iso.slice(0, 3))}</span>`).join("");
+    const pickFor = [];
+    if (sel && haveSet.has(sel.iso)) pickFor.push(sel.iso);
+    for (const iso of ["USA", "DEU", "IND", "JPN", "BRA", "ZAF", "FRA", "UKR", "KOR", "NGA", "MEX", "IDN"]) if (haveSet.has(iso) && !pickFor.includes(iso) && pickFor.length < 5) pickFor.push(iso);
+    for (const c of have) if (!pickFor.includes(c.iso) && pickFor.length < 5) pickFor.push(c.iso);
+    $("#detail").innerHTML =
+      `<h3>${esc(t.label)} <span class="status">· ${esc(groupLabel[t.group] || t.group)}</span></h3>` +
+      `<p class="desc">${esc(t.desc || "")}</p>` +
+      `<div class="k">${have.length} of ${N} constitutions · ${Math.round(t.share * 100)}%${sel ? ` · ${haveSet.has(sel.iso) ? "in" : "not in"} ${esc(sel.name)}` : ""}</div>` +
+      `<div class="tiles">${tiles}</div>` +
+      `<div class="k">The clause, in a few countries</div><div class="quotes" id="quotes"><span class="status">Loading…</span></div>` +
+      `<div class="k">Close in meaning: other topics in ${esc(groupLabel[t.group] || t.group)}</div>` +
+      `<ul class="sib">${sibs.map((x) => `<li data-k="${x.k}"><span>${esc(x.label)}</span><span class="b"><i style="width:${Math.round(x.share * 100)}%"></i></span><span class="p status">${Math.round(x.share * 100)}%</span><span class="${sel ? (sel.set.has(tIndex[x.k]) ? "y" : "n") : ""}">${sel ? (sel.set.has(tIndex[x.k]) ? "✓" : "–") : ""}</span></li>`).join("")}</ul>`;
+    $("#detail").querySelectorAll(".tile").forEach((el) => el.addEventListener("click", () => selectCons(el.dataset.iso)));
+    $("#detail").querySelectorAll(".sib li").forEach((el) => el.addEventListener("click", () => showTopic(el.dataset.k)));
+    const secs = D.secs[k] || {};
+    const quotes = await Promise.all(pickFor.map(async (iso) => {
+      const sid = (secs[iso] || [])[0];
+      const txt = sid ? await sectionText(iso, sid) : "";
+      return txt ? `<div class="quote"><b>${flag(iso)} ${esc(by3[iso]?.name.common || iso)}<a href="../constitution/?c=${iso}#${sid}" target="_blank" rel="noopener">open ↗</a></b><p>${esc(txt)}</p></div>` : "";
+    }));
+    if (topic === k) $("#quotes").innerHTML = quotes.join("") || `<span class="status">No quotable section found.</span>`;
+  }
+
+  // ---- map ----
+  const svg = $("#map");
+  const px = (x) => 500 + x * 440, py = (y) => 400 - y * 340;
+  function renderMap() {
+    svg.innerHTML = C.map((c) => {
+      const r = 4 + 9 * (c.n / Math.max(...C.map((x) => x.n)));
+      return `<circle cx="${px(c.x)}" cy="${py(c.y)}" r="${r.toFixed(1)}" fill="${REGION_COLORS[c.region] || "#98989d"}" fill-opacity=".75" data-iso="${c.iso}" class="${sel && sel.iso === c.iso ? "sel" : ""}"><title>${esc(c.name)} · ${c.n} topics</title></circle>`;
+    }).join("") + (sel ? `<text x="${px(sel.x) + 12}" y="${py(sel.y) + 4}">${esc(sel.name)}</text>` : "");
+    $("#legend").innerHTML = Object.entries(REGION_COLORS).filter(([r]) => C.some((c) => c.region === r)).map(([r, col]) => `<span><i style="background:${col}"></i>${r}</span>`).join("");
+  }
+  svg.addEventListener("click", (e) => { const c = e.target.closest("circle"); if (c) selectCons(c.dataset.iso); });
+  const pick = $("#pick");
+  pick.innerHTML = `<option value="">—</option>` + [...C].sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${c.iso}">${flag(c.iso)} ${esc(c.name)}</option>`).join("");
+  pick.addEventListener("change", () => pick.value && selectCons(pick.value));
+
+  function jaccard(a, b) { let i = 0; for (const x of a) if (b.has(x)) i++; const u = a.size + b.size - i; return u ? i / u : 0; }
+
+  function selectCons(iso) {
+    sel = C.find((c) => c.iso === iso) || null;
+    renderMap();
+    renderBars();
+    if (topic) showTopic(topic);
+    if (!sel) return;
+    const near = C.filter((c) => c.iso !== iso).map((c) => ({ c, s: jaccard(sel.set, c.set) })).sort((a, b) => b.s - a.s).slice(0, 8);
+    const universal = T.slice(0, 40).filter((t) => t.share >= 0.6);
+    const missing = universal.filter((t) => !sel.set.has(tIndex[t.k]));
+    const rare = [...sel.set].map((i) => T[i]).filter((t) => t.share < 0.2).sort((a, b) => a.share - b.share).slice(0, 12);
+    $("#cons").innerHTML =
+      `<h3 style="margin:0 0 2px">${flag(iso)} ${esc(sel.name)} <span class="status">· ${sel.year ? "enacted " + sel.year + " · " : ""}${sel.n} of ${T.length} topics</span></h3>` +
+      `<p class="status" style="margin:0 0 10px"><a href="../constitution/?c=${iso}" style="color:var(--accent);text-decoration:none">Read it →</a></p>` +
+      `<div class="k">Most similar constitutions</div>` +
+      `<ul class="near">${near.map(({ c, s }) => `<li data-iso="${c.iso}"><span>${flag(c.iso)} ${esc(c.name)}</span><span class="b"><i style="width:${Math.round(s * 100)}%"></i></span><span class="p">${Math.round(s * 100)}%</span></li>`).join("")}</ul>` +
+      `<div class="k">Common topics it leaves out</div>` +
+      (missing.length ? `<div class="pills">${missing.map((t) => `<span class="pill miss" data-k="${t.k}">${esc(t.label)} · ${Math.round(t.share * 100)}%</span>`).join("")}</div>` : `<p class="status">Has every topic that at least 60% of constitutions share.</p>`) +
+      `<div class="k">Unusual topics it includes</div>` +
+      (rare.length ? `<div class="pills">${rare.map((t) => `<span class="pill" data-k="${t.k}">${esc(t.label)} · ${Math.round(t.share * 100)}%</span>`).join("")}</div>` : `<p class="status">Nothing rarer than one constitution in five.</p>`);
+    $("#cons").querySelectorAll(".near li").forEach((el) => el.addEventListener("click", () => selectCons(el.dataset.iso)));
+    $("#cons").querySelectorAll(".pill").forEach((el) => el.addEventListener("click", () => { showTopic(el.dataset.k); $("#detail").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+    pick.value = iso;
+    history.replaceState(null, "", `?c=${iso}${topic ? "&t=" + topic : ""}`);
+  }
+
+  renderBars(); renderMap();
+  const u = new URLSearchParams(location.search);
+  if (u.get("c")) selectCons(u.get("c").toUpperCase());
+  showTopic(u.get("t") && tIndex[u.get("t")] != null ? u.get("t") : T[0].k);
+})();
+</script>
+</body>
+</html>

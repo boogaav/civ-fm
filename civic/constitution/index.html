@@ -77,6 +77,7 @@ footer a { color: var(--muted); }
   <input id="find" type="search" placeholder="Find in the text…" aria-label="Find in the text">
   <span class="spacer"></span>
   <a class="lnk" id="src" href="https://www.constituteproject.org/" target="_blank" rel="noopener">Open at Constitute ↗</a>
+  <a class="lnk" id="cmp" href="../compare/">Compare ↗</a>
   <a class="lnk" href="../../card/">Country card</a>
 </header>
 
@@ -131,6 +132,7 @@ footer a { color: var(--muted); }
       `<a href="https://www.constituteproject.org/constitution/${c.id}" target="_blank" rel="noopener">Constitute ↗</a>`,
     ].filter(Boolean).join(" · ");
     $("#src").href = `https://www.constituteproject.org/constitution/${c.id}`;
+    $("#cmp").href = `../compare/?c=${iso}`;
     const L = v.legis || {};
     $("#facts").innerHTML =
       `<span class="k">Political system</span><span class="v">${esc(v.gov || "—")}</span>` +
