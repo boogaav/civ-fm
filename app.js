@@ -1510,6 +1510,67 @@ async function hereFaith(el) {
     `</div>`;
 }
 
+/* ---- State › Parties: who sits in the lower house, and how much of it ---- */
+// civic/parties.json from civic/build_parties.py: Factbook or Wikipedia seat
+// lists, Wikidata logos and colours, head-of-government's party as "leads".
+
+const PARTY_RAMP = [[20, "#30d158"], [40, "#ffd60a"], [55, "#ff9f0a"], [75, "#ff453a"], [100, "#7a0f0f"]];
+
+async function loadParties() {
+  if (state.cache.parties) return state.cache.parties;
+  state.cache.parties = await getJSON(new URL("civic/parties.json", document.baseURI).href, 30000);
+  return state.cache.parties;
+}
+
+async function applyParties() {
+  const [P, shapes] = await Promise.all([loadParties(), loadCountryShapes()]);
+  const values = {};
+  for (const [iso, rec] of Object.entries(P.c)) {
+    const top = rec.parties.find((p) => !p.other) || rec.parties[0];
+    if (!top || top.pct == null) continue;
+    values[iso] = { value: top.pct, year: `${top.name}` };
+  }
+  await addChoropleth({
+    values, ramp: PARTY_RAMP, opacity: 0.6,
+    fmt: (v) => `largest party holds ${Math.round(v)}% of seats`,
+  });
+  legend("State — share of seats held by the largest party", [
+    { gradient: gradientCSS(PARTY_RAMP), from: "20% · fragmented", to: "100% · one party" },
+    { color: "transparent", label: "Lower or single house · Factbook, Wikipedia, Wikidata" },
+  ]);
+}
+
+const partyColor = (p) => (p.color && /^[0-9a-f]{6}$/i.test(p.color) ? `#${p.color}` : p.other ? "#636366" : "#4a4a4f");
+const initials = (name) => name.split(/[\s\-]+/).filter((w) => /^[A-Za-z\u00C0-\u024F]/.test(w)).slice(0, 3).map((w) => w[0].toUpperCase()).join("");
+
+async function hereParties(el) {
+  if (needCountry(el)) return;
+  el.innerHTML = tuningHTML;
+  let P;
+  try { P = await loadParties(); } catch (e) { el.innerHTML = `<div class="here-hint">Party data unreachable right now.</div>`; return; }
+  if (!el.isConnected) return;
+  const c = state.here.country, rec = P.c[c.cca3];
+  if (!rec) { el.innerHTML = `<div class="here-hint">No seat-by-party list for ${c.name.common} yet. ${civicHere()?.legis?.name ? `Its legislature: ${civicHere().legis.name}.` : ""}</div>`; return; }
+  const lead = rec.parties.find((p) => p.leads);
+  const rows = rec.parties.map((p) => {
+    const col = partyColor(p);
+    const badge = p.logo
+      ? `<img class="plogo" src="civic/logos/${p.qid}.png" alt="" loading="lazy">`
+      : `<span class="plogo pini" style="background:${col}">${initials(p.name) || "·"}</span>`;
+    return `<li class="${p.leads ? "leads" : ""}${p.other ? " other" : ""}">${badge}` +
+      `<span class="pn"><b>${rEsc(p.name)}${p.short && p.short.toLowerCase() !== p.name.toLowerCase() ? ` <small>${rEsc(p.short)}</small>` : ""}</b>` +
+      `<span class="pbar"><i style="width:${Math.min(100, p.pct || 0)}%;background:${col}"></i></span></span>` +
+      `<span class="pv">${p.seats}<small>${p.pct != null ? ` · ${p.pct}%` : ""}</small>${p.leads ? `<em>leads government</em>` : ""}</span></li>`;
+  }).join("");
+  el.innerHTML =
+    `<div class="readouts">` +
+    `<div class="ro wide"><span class="k">${rEsc(rec.house)} · ${rec.total} seats${rec.date ? ` · elected ${rEsc(rec.date)}` : ""}</span>` +
+    (lead ? `<span class="val" style="font-size:15px">${rEsc(lead.name)} leads the government with ${lead.pct}% of seats</span>` : `<span class="sub">Seats by party, largest first</span>`) +
+    `<ul class="parties">${rows}</ul>` +
+    `<div class="psrc">${rec.src === "factbook" ? "CIA World Factbook, public domain" : "English Wikipedia infobox, CC BY-SA"} · logos and colours: Wikidata and Wikimedia Commons · share of the lower or single house, not of cabinet posts</div>` +
+    `</div>`;
+}
+
 /* ---- State › Passport, Citizenship, Immigration ---- */
 // Shares passport-data.js with the Passport page: visa categories, curated
 // naturalisation and immigration tables. The visa matrix is the CSV in vendor/.
@@ -2171,6 +2232,7 @@ const CHANNELS = {
     subs: [
       { id: "system", label: "System" },
       { id: "vote", label: "Vote" },
+      { id: "parties", label: "Parties" },
       { id: "passport", label: "Passport" },
       { id: "citizenship", label: "Citizenship" },
       { id: "immigration", label: "Immigration" },
@@ -2182,6 +2244,7 @@ const CHANNELS = {
       );
       clearChannelLayers();
       if (id === "vote") await applyBallot();
+      else if (id === "parties") await applyParties();
       else if (id === "passport") await applyPassport();
       else if (id === "citizenship") await applyCitizenship();
       else if (id === "immigration") await applyImmigration();
@@ -2199,6 +2262,7 @@ const CHANNELS = {
     async here(el) {
       const sub = state.subs.state || "system";
       if (sub === "vote") return hereBallot(el);
+      if (sub === "parties") return hereParties(el);
       if (sub === "passport") return herePassport(el);
       if (sub === "citizenship") return hereCitizenship(el);
       if (sub === "immigration") return hereImmigration(el);

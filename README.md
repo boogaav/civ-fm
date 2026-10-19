@@ -100,6 +100,25 @@ networks that block third parties.
   (`/service/constitutions?lang=en`) and each in-force `/service/html?cons_id=`,
   then run the script with both directories.
 
+## State › Parties — who sits in parliament
+
+`civic/build_parties.py <factbook dir> <wdparties dir> <hog.csv>` writes
+`civic/parties.json` (lower or single house per country: name, total
+seats, election date, parties with seats and share, logo flag, colour,
+"leads") and fills `civic/logos/<QID>.png` (96 px thumbnails from Commons).
+Seats come from the Factbook's "parties elected and seats per party" where
+it exists, else from the lower house's English Wikipedia infobox
+(`political_groups1`, parsed with template-depth tracking; bold lines are
+bloc headers; the indent level whose seats add up closest to the house size
+wins; the UK's list lives in a template with one branch per house). Logos,
+colours and abbreviations come from one Wikidata SPARQL per country
+(`dl/wdparties/<ISO3>.csv`), matched by normalised name, alias or
+abbreviation. "Leads government" is the head of government's party
+(Wikidata P6 → P102), accepted when the person's surname appears in the
+Factbook's head-of-government line, or by abbreviation inside a group name
+(CDU in CDU/CSU). The map colours countries by the largest party's seat
+share. Shares are of the house, not of cabinet posts.
+
 ## /civic/compare — what unites constitutions
 
 `civic/build_compare.py <constitute dir>` reads the raw Constitute HTML

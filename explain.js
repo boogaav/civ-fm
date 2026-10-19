@@ -130,6 +130,10 @@ const EXPLAIN = {
     what: "Days until each country's next national election. Red is within a month, yellow within half a year, grey more than a year away or unknown.",
     src: "Wikidata, refreshed daily. Snap elections and dates not yet set will be missing.",
   },
+  "state/parties": {
+    what: "How concentrated power is in each parliament: the share of seats held by the largest party. Green is a fragmented house, red a single party holding almost everything. Click a country for every party with its logo, seats and share, and which one leads the government.",
+    src: "Seats: CIA World Factbook (public domain) for most countries, else the lower house's English Wikipedia infobox. Logos and colours: Wikidata and Wikimedia Commons. Share is of the lower or single house, not of cabinet posts.",
+  },
   "state/passport": {
     what: "Where one passport can go: green visa-free, teal on arrival, yellow e-visa, orange a visa in advance, red no admission. Pick the passport in the panel; it starts with the country you are in.",
     src: "Passport Index dataset (ilyankou, MIT), copied to civ.fm; visa rules change, so check before you fly.",

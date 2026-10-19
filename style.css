@@ -629,3 +629,20 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat;
 }
+
+/* ---------- State › Parties ---------- */
+.parties { list-style: none; margin: 8px 0 0; padding: 0; }
+.parties li { display: grid; grid-template-columns: 30px minmax(0,1fr) auto; gap: 9px; align-items: center; padding: 5px 0; border-top: 1px solid var(--hairline); }
+.parties li:first-child { border-top: 0; }
+.parties li.other { opacity: .6; }
+.plogo { width: 30px; height: 30px; border-radius: 7px; object-fit: contain; background: rgba(255,255,255,.9); padding: 2px; }
+.plogo.pini { display: grid; place-items: center; font-size: 10px; font-weight: 700; color: #fff; letter-spacing: .02em; background: #4a4a4f; padding: 0; }
+.parties .pn { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.parties .pn b { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.parties .pn b small { font-weight: 500; color: var(--muted); }
+.parties .pbar { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.parties .pbar i { display: block; height: 100%; border-radius: 3px; }
+.parties .pv { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.parties .pv small { font-weight: 500; color: var(--muted); font-size: 11px; }
+.parties .pv em { display: block; font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ok); }
+.parties li.leads .pn b { color: var(--ok); }
