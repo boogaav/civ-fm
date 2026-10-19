@@ -67,6 +67,31 @@ so the series go through the Worker (`/wb/<indicator>`, compacted, 12 h edge
 cache) and are kept for 24 h in `localStorage`. A failed indicator leaves
 "—" readouts and a "Weak signal" status instead of blanking the channel.
 
+## /card — country card generator
+
+`card/` is a standalone page (no MapLibre): pick a country, get one image
+with its outline and the twelve national metrics the globe knows, drawn on
+a canvas you can download, copy or share. Formats: Square 1080×1080
+(Instagram post), Story 1080×1920, Wide 1600×900 (X). `#ISO3` in the URL
+deep-links a country.
+
+- **Metrics**: population, density, life expectancy, HDI (GDL national),
+  GDP per person PPP, inflation, government debt, internet use,
+  electricity access, water stress, top income + corporate tax (curated),
+  passport reach (visa-free or on-arrival destinations from the Passport
+  Index CSV in `vendor/`). World Bank cells carry the ten-year sparkline
+  and change, same rule as the globe.
+- **Outline**: `vendor/countries.geo.json`, fitted to a box with an
+  equirectangular projection scaled by cos(latitude); countries across the
+  antimeridian are unwrapped first so Russia, Fiji and the USA draw whole.
+  Countries without a shape (microstates) get the text "No outline".
+- **Sharing**: Web Share API with the PNG as a file where supported
+  (phones: the sheet lists Instagram and X), else download. "Copy image"
+  uses the async clipboard. "Post on X" opens the intent with the caption;
+  X's web intent cannot attach images, so the page says to attach it.
+- Data comes through the same Worker `/wb/` route and `localStorage` cache
+  as the globe, plus `place/data.json` for HDI.
+
 ## Explanations — what each section means
 
 `explain.js` holds one entry per channel and per sub-dial (`EXPLAIN`, keyed

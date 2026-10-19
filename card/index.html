@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Country card — CIV FM</title>
+<meta name="description" content="Any country in numbers on one shareable card: outline, population, life expectancy, income, inflation, debt, internet, taxes, passport reach, with ten-year trends.">
+<meta property="og:title" content="Country card — CIV FM">
+<meta property="og:description" content="Any country in numbers on one shareable card, with ten-year trends.">
+<meta property="og:url" content="https://civ.fm/card/">
+<link rel="canonical" href="https://civ.fm/card/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪪</text></svg>">
+<link rel="stylesheet" href="card.css">
+</head>
+<body>
+
+<header>
+  <a class="brand" href="../">CIV FM</a>
+  <nav class="pages">
+    <a href="../">Globe</a>
+    <a href="../passport/">Passport</a>
+    <a href="../relief/">Relief</a>
+  </nav>
+</header>
+
+<main>
+  <section class="controls">
+    <h1>Country card</h1>
+    <p class="lead">One country, every number the globe knows about it, on one image for Instagram or X.</p>
+    <div class="row">
+      <select id="country" aria-label="Country"></select>
+      <button id="btn-locate" class="ghost" title="Use my location">Locate</button>
+    </div>
+    <div class="row">
+      <div id="format" class="seg" role="group" aria-label="Format"></div>
+    </div>
+    <div class="row actions">
+      <button id="btn-share" class="primary">Share</button>
+      <button id="btn-download">Download PNG</button>
+      <button id="btn-copy">Copy image</button>
+      <button id="btn-x">Post on X</button>
+    </div>
+    <p id="status" class="status" aria-live="polite"></p>
+    <p class="note">Instagram has no web posting; use Share on your phone, or save the image and post it from the app. X opens with the caption ready; attach the image.</p>
+  </section>
+
+  <section class="preview">
+    <div id="frame" data-format="square"><canvas id="card" width="1080" height="1080"></canvas></div>
+  </section>
+</main>
+
+<script src="../taxes.js"></script>
+<script src="card.js"></script>
+</body>
+</html>
