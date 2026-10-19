@@ -646,7 +646,17 @@ $("#btn-locate").addEventListener("click", () => {
 });
 
 function renderHere() {
-  if (!state.here || !state.channel) return;
+  if (!state.channel) return;
+  // a few cards work without a point on the globe (the passport picker);
+  // a channel offers them through idle()
+  if (!state.here) {
+    const def = CHANNELS[state.channel];
+    const idle = def.idle && def.idle();
+    $("#here-hint").classList.toggle("hidden", !!idle);
+    $("#here-body").classList.toggle("hidden", !idle);
+    if (idle) { const el = document.createElement("div"); $("#here-body").replaceChildren(el); idle(el); }
+    return;
+  }
   // each render gets its own container, so a slow async renderer from a
   // previous channel writes into a detached node instead of clobbering us
   const host = $("#here-body");
@@ -2180,6 +2190,9 @@ const CHANNELS = {
     async activate() {
       await Promise.all([loadFacts(), loadCivic().catch(() => null)]);
       await this.applySub(state.subs.state || "system");
+    },
+    idle() {
+      return (state.subs.state || "system") === "passport" ? herePassport : null;
     },
     async here(el) {
       const sub = state.subs.state || "system";
