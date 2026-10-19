@@ -31,6 +31,9 @@ select, input {
 select { padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; max-width: 260px; }
 input { font-weight: 500; width: 220px; }
 input::placeholder { color: var(--faint); }
+.lnk-btn { appearance: none; cursor: pointer; font-family: var(--font); font-size: 12.5px; font-weight: 600; color: #fff; background: var(--accent); border: none; border-radius: 9px; padding: 7px 12px; }
+.lnk-btn:hover { background: #2b94ff; }
+.lnk-btn:disabled { opacity: .5; cursor: default; }
 .spacer { flex: 1; }
 main { display: grid; grid-template-columns: 260px minmax(0, 72ch); gap: 40px; max-width: 1180px; margin: 0 auto; padding: 28px 24px 80px; }
 aside { position: sticky; top: 72px; align-self: start; max-height: calc(100vh - 90px); overflow-y: auto; font-size: 12.5px; }
@@ -75,6 +78,7 @@ footer a { color: var(--muted); }
   <a class="brand" href="../../">CIV FM</a>
   <select id="country" aria-label="Country"></select>
   <input id="find" type="search" placeholder="Find in the text…" aria-label="Find in the text">
+  <button id="dl" class="lnk-btn" type="button">Download PDF</button>
   <span class="spacer"></span>
   <a class="lnk" id="src" href="https://www.constituteproject.org/" target="_blank" rel="noopener">Open at Constitute ↗</a>
   <a class="lnk" id="cmp" href="../compare/">Compare ↗</a>
@@ -98,6 +102,7 @@ footer a { color: var(--muted); }
   Constitution texts: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a>, Comparative Constitutions Project, licensed CC BY-NC 3.0; copied here so they load on networks that block third parties. Political facts: CIA World Factbook, public domain. Translations are the project's; the official text is the one your country publishes.
 </footer>
 
+<script src="../download.js"></script>
 <script>
 (async () => {
   const $ = (s) => document.querySelector(s);
@@ -187,6 +192,12 @@ footer a { color: var(--muted); }
   let findTimer; $("#find").addEventListener("input", () => { clearTimeout(findTimer); findTimer = setTimeout(applyFind, 200); });
 
   sel.addEventListener("change", () => show(sel.value));
+  $("#dl").addEventListener("click", async () => {
+    const v = civic.c[current], c = v.const, name = by3[current]?.name.common || v.name;
+    const b = $("#dl"); b.disabled = true; const was = b.textContent;
+    await window.downloadConstitution(current, { name, title: c.title, enacted: c.enacted, revised: c.revised, id: c.id }, (msg) => { b.textContent = msg || was; });
+    b.disabled = false; setTimeout(() => (b.textContent = was), 4000);
+  });
   window.addEventListener("hashchange", () => { const h = param(); if (h && h !== current) show(h); });
   show(param() || list.find((c) => c.iso === "UKR")?.iso || list[0].iso);
 })();

@@ -434,6 +434,18 @@ function postX() {
   $("#status").textContent = "Download the image and attach it to the post.";
 }
 
+// the constitution in force, as a PDF built from the hosted text
+async function downloadConst() {
+  const b = $("#btn-const"); b.disabled = true;
+  try {
+    data.civic ||= await getJSON(ROOT + "civic/civic.json", 30000);
+    const v = data.civic.c[state.iso3], c = v?.const;
+    if (!c?.local) { $("#status").textContent = `No constitution text on file for ${data.facts.by3[state.iso3].name.common}.`; return; }
+    await window.downloadConstitution(state.iso3, { name: data.facts.by3[state.iso3].name.common, title: c.title, enacted: c.enacted, revised: c.revised, id: c.id }, (m) => ($("#status").textContent = m));
+  } catch (e) { $("#status").textContent = "Could not load the constitution index."; }
+  finally { b.disabled = false; }
+}
+
 async function locate() {
   if (!navigator.geolocation) return;
   $("#status").textContent = "Locating…";
@@ -468,6 +480,7 @@ async function locate() {
   $("#btn-share").addEventListener("click", share);
   $("#btn-copy").addEventListener("click", copy);
   $("#btn-x").addEventListener("click", postX);
+  $("#btn-const").addEventListener("click", downloadConst);
   $("#btn-locate").addEventListener("click", locate);
   if (!navigator.canShare) $("#btn-share").textContent = "Share (save)";
 
