@@ -152,7 +152,11 @@ live from `civic/constitutions/<ISO3>.html` by section id, and sibling
 topics in the same group; the similarity map (SVG scatter, colour by
 region, size by topic count) with nearest constitutions, common topics a
 constitution leaves out, and rare ones it includes. Linked from State ›
-System and from the reader header.
+System and from the reader header. A MapLibre globe ("On the globe",
+same Carto style as the main page, `vendor/countries.geo.json` as the
+fill source) shades every country by Jaccard similarity to the chosen
+constitution, or by has/has-not when only a topic is chosen; clicking a
+country selects it.
 
 ## /card — country card generator
 

@@ -83,6 +83,15 @@ footer a { color:var(--muted); }
 .status { color:var(--muted); font-size:12.5px; }
 mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<style>
+#globe { width:100%; height:clamp(320px, 52vw, 600px); border:1px solid var(--hairline); border-radius:14px; overflow:hidden; background:#0b0b0d; }
+#globe .maplibregl-popup-content { background:var(--glass) !important; color:var(--ink) !important; border:1px solid var(--hairline); border-radius:10px; font-family:var(--font); font-size:12px; padding:7px 10px !important; }
+#globe .maplibregl-popup-tip { border-top-color:var(--hairline) !important; }
+.gl-legend { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:11.5px; color:var(--muted); }
+.gl-legend .bar { flex:1; max-width:220px; height:6px; border-radius:3px; background:linear-gradient(90deg,#2c2c2e,#14456f,#0a84ff,#9ecfff); }
+.gl-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+</style>
 </head>
 <body>
 <header>
@@ -108,6 +117,11 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
     <div class="panel detail" id="detail"><p class="status">Pick a topic on the left.</p></div>
   </div>
 
+  <h2>On the globe</h2>
+  <p class="sub" id="globe-sub">Pick a constitution and every country is shaded by how much of its text covers the same topics. With only a topic chosen, countries whose constitution has it light up. Click a country to select it.</p>
+  <div id="globe" role="img" aria-label="World map of constitutional similarity"></div>
+  <div class="gl-legend" id="gl-legend"></div>
+
   <h2>The constitutional map</h2>
   <p class="sub">Each dot is a constitution, placed so that documents covering similar topics sit close together (classical scaling of topic overlap). Colour is region, size is how many topics the text covers. Click one to see its nearest relatives and what makes it unusual.</p>
   <div class="grid2">
@@ -121,6 +135,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 
 <footer>Topic tags and texts: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a>, Comparative Constitutions Project, CC BY-NC 3.0. The topic ontology is theirs; the overlap measures, the map and the wording here are CIV FM's. A constitution that lacks a topic may still cover the idea in ordinary law.</footer>
 
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script>
 (async () => {
   const $ = (s) => document.querySelector(s);
@@ -185,6 +200,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
     topic = k;
     const t = T[tIndex[k]];
     renderBars();
+    updateGlobe();
     const have = C.filter((c) => c.set.has(tIndex[k]));
     const haveSet = new Set(have.map((c) => c.iso));
     const sibs = T.filter((x) => x.group === t.group && x.k !== k).slice(0, 14);
@@ -229,10 +245,71 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 
   function jaccard(a, b) { let i = 0; for (const x of a) if (b.has(x)) i++; const u = a.size + b.size - i; return u ? i / u : 0; }
 
+  // ---- globe: matches shaded on the world map ----
+  const GL = { map: null, shapes: null, ready: false };
+  window.__GL = GL; // inspectable from the console
+  const simColor = (v) => {
+    const stops = [[0, [44, 44, 46]], [0.35, [20, 69, 111]], [0.6, [10, 132, 255]], [0.85, [158, 207, 255]]];
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) { a = stops[i - 1]; b = stops[i]; break; }
+    const t = b[0] === a[0] ? 0 : (v - a[0]) / (b[0] - a[0]);
+    return `rgb(${a[1].map((x, k) => Math.round(x + (b[1][k] - x) * t)).join(",")})`;
+  };
+  async function initGlobe() {
+    if (!window.maplibregl) return;
+    GL.shapes = await fetch("../../vendor/countries.geo.json").then((r) => r.json());
+    GL.map = new maplibregl.Map({ container: "globe", style: "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json", center: [15, 25], zoom: 1.1, attributionControl: { compact: true } });
+    GL.map.on("style.load", () => {
+      GL.map.setProjection({ type: "globe" });
+      GL.map.addSource("cons", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      GL.map.addLayer({ id: "cons", type: "fill", source: "cons", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.72 } });
+      GL.map.addLayer({ id: "cons-line", type: "line", source: "cons", paint: { "line-color": ["case", ["get", "sel"], "#ff9f0a", "#0b0b0d"], "line-width": ["case", ["get", "sel"], 2.5, 0.4] } });
+      const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+      GL.map.on("mousemove", "cons", (e) => { const p = e.features[0].properties; GL.map.getCanvas().style.cursor = "pointer"; popup.setLngLat(e.lngLat).setHTML(`<b>${esc(p.name)}</b><br>${esc(p.note)}`).addTo(GL.map); });
+      GL.map.on("mouseleave", "cons", () => { GL.map.getCanvas().style.cursor = ""; popup.remove(); });
+      GL.map.on("click", "cons", (e) => { const iso = e.features[0].properties.iso; if (C.some((c) => c.iso === iso)) { selectCons(iso); document.getElementById("cons").scrollIntoView({ behavior: "smooth", block: "nearest" }); } });
+      GL.ready = true;
+      updateGlobe();
+    });
+  }
+  function updateGlobe() {
+    if (!GL.ready) return;
+    const byIso = Object.fromEntries(C.map((c) => [c.iso, c]));
+    const t = topic ? tIndex[topic] : null;
+    const features = GL.shapes.features.map((f) => {
+      const c = byIso[f.id];
+      let color = "#1c1c1e", note = "no constitution text on file";
+      if (c && sel) {
+        const sim = c.iso === sel.iso ? 1 : jaccard(sel.set, c.set);
+        color = c.iso === sel.iso ? "#ff9f0a" : simColor(sim);
+        note = c.iso === sel.iso ? "the one you chose" : `${Math.round(sim * 100)}% of topics in common with ${sel.name}`;
+      } else if (c && t != null) {
+        const has = c.set.has(t);
+        color = has ? "#0a84ff" : "#2c2c2e";
+        note = `${has ? "has" : "does not have"}: ${T[t].label}`;
+      } else if (c) { color = "#3a3a3c"; note = `${c.n} topics`; }
+      return { type: "Feature", geometry: f.geometry, properties: { iso: f.id, name: f.properties.name, color, note, sel: !!(sel && c && c.iso === sel.iso) } };
+    });
+    GL.map.getSource("cons").setData({ type: "FeatureCollection", features });
+    const lg = document.getElementById("gl-legend");
+    if (sel) lg.innerHTML = `<span><i style="background:#ff9f0a"></i>${esc(sel.name)}</span><span>few topics in common</span><span class="bar"></span><span>most</span>`;
+    else if (t != null) lg.innerHTML = `<span><i style="background:#0a84ff"></i>has "${esc(T[t].label)}"</span><span><i style="background:#2c2c2e"></i>does not</span>`;
+    else lg.innerHTML = "";
+    if (sel && GL.map) { const sh = GL.shapes.features.find((f) => f.id === sel.iso); if (sh) { const b = bbox(sh.geometry); GL.map.easeTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], duration: 900 }); } }
+  }
+  function bbox(g) {
+    let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+    const walk = (r) => { for (const [x, y] of r) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } };
+    (g.type === "Polygon" ? [g.coordinates] : g.coordinates).forEach((p) => p.forEach(walk));
+    if (x1 - x0 > 180) { x0 = 0; x1 = 0; (g.type === "Polygon" ? [g.coordinates] : g.coordinates).forEach((p) => p.forEach((r) => r.forEach(([x]) => { const lx = x < 0 ? x + 360 : x; if (!x0 || lx < x0) x0 = x0 ? Math.min(x0, lx) : lx; x1 = Math.max(x1, lx); }))); }
+    return [x0, y0, x1, y1];
+  }
+
   function selectCons(iso) {
     sel = C.find((c) => c.iso === iso) || null;
     renderMap();
     renderBars();
+    updateGlobe();
     if (topic) showTopic(topic);
     if (!sel) return;
     const near = C.filter((c) => c.iso !== iso).map((c) => ({ c, s: jaccard(sel.set, c.set) })).sort((a, b) => b.s - a.s).slice(0, 8);
@@ -254,7 +331,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
     history.replaceState(null, "", `?c=${iso}${topic ? "&t=" + topic : ""}`);
   }
 
-  renderBars(); renderMap();
+  renderBars(); renderMap(); initGlobe();
   const u = new URLSearchParams(location.search);
   if (u.get("c")) selectCons(u.get("c").toUpperCase());
   showTopic(u.get("t") && tIndex[u.get("t")] != null ? u.get("t") : T[0].k);
