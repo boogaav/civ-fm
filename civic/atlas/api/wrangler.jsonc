@@ -1,0 +1,8 @@
+{
+  "name": "constitutions",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    { "binding": "DB", "database_name": "constitutions", "database_id": "50c25ea7-2997-4fd6-807d-00cce80c10ba" }
+  ]
+}

@@ -1,0 +1,509 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Constitution Atlas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: an archive reading room. Instrument (map / network) on the left, the case file of the selected constitution on the right, families as an index below. */
+:root{
+  --bg:#eef0f3; --panel:#f8f9fb; --ink:#141a24; --ink2:#4a5566; --ink3:#7d8797; --rule:#d5dae2;
+  --accent:#2747c9; --accent-soft:#dfe5fb; --hit:#c2410c; --sea:#e3e7ed; --land:#c9cfd8; --none:#dde1e7;
+  --display:"Spectral",Georgia,"Times New Roman",serif; --ui:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1218; --panel:#151a22; --ink:#e7ebf2; --ink2:#a9b3c3; --ink3:#6f7a8c; --rule:#283040;
+  --accent:#7d97ff; --accent-soft:#1d2645; --hit:#fb923c; --sea:#121821; --land:#2a3240; --none:#1f2632; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1218; --panel:#151a22; --ink:#e7ebf2; --ink2:#a9b3c3; --ink3:#6f7a8c; --rule:#283040;
+  --accent:#7d97ff; --accent-soft:#1d2645; --hit:#fb923c; --sea:#121821; --land:#2a3240; --none:#1f2632; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--ui);font-size:15px;line-height:1.45;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,4vw,42px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--ink2);max-width:62ch;margin:6px 0 0}
+.stats{display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.stats b{display:block;font-family:var(--display);font-size:24px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;background:var(--panel)}
+.seg button{font:500 13px var(--ui);border:0;background:none;color:var(--ink2);padding:6px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lbl{font:600 11px var(--ui);text-transform:uppercase;letter-spacing:.08em;color:var(--ink3)}
+input[type=search],select{font:14px var(--ui);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:7px;padding:6px 10px;min-width:0}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:20px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow:hidden;position:relative;min-width:0}
+.stage svg{display:block;width:100%;height:auto;touch-action:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 14px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink2)}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.legend button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.legend button[aria-pressed="false"]{opacity:.35}
+.ramp{height:10px;width:180px;border-radius:2px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s}
+.country{stroke:var(--panel);stroke-width:.5;cursor:pointer}
+.country.sel{stroke:var(--ink);stroke-width:1.6}
+.country.cmp{stroke:var(--hit);stroke-width:1.6}
+.dot{stroke:var(--panel);stroke-width:1;cursor:pointer}
+.dot.sel{stroke:var(--ink);stroke-width:2}
+.link{stroke:var(--ink3);stroke-opacity:.22}
+.link.on{stroke:var(--accent);stroke-opacity:.9}
+.node text{font:500 9px var(--mono);fill:var(--ink2);pointer-events:none}
+.node.dim{opacity:.18}
+/* case file */
+.file{background:var(--panel);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;min-width:0;max-height:calc(100vh - 40px);position:sticky;top:20px}
+@media (max-width:980px){.file{position:static;max-height:none}}
+.file-head{padding:16px 18px 12px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.file-head h2{font-family:var(--display);font-size:26px;line-height:1.1;margin:0;font-weight:600;text-wrap:balance}
+.sub{color:var(--ink2);font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--ui);padding:2px 8px;border-radius:99px;border:1px solid var(--rule);background:var(--bg);color:var(--ink2);cursor:pointer}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.warn{font-size:12.5px;color:var(--hit)}
+.tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--rule)}
+.tabs button{font:600 13px var(--ui);background:none;border:0;border-bottom:2px solid transparent;color:var(--ink3);padding:10px 8px;cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.pane{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:18px;min-height:0}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kv div{display:flex;flex-direction:column}
+.kv b{font:600 20px var(--display);font-variant-numeric:tabular-nums}
+.kv span{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+.list{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto 70px;gap:10px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--rule);font-size:13.5px;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;color:inherit;text-align:left;font-family:var(--ui)}
+.row:hover{color:var(--accent)}
+.row .num{font:12px var(--mono);color:var(--ink2);font-variant-numeric:tabular-nums}
+.meter{height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.words{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--display);font-style:italic;color:var(--ink2)}
+.grp{display:grid;grid-template-columns:150px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:12.5px;padding:2px 0}
+.grp .track{position:relative;height:8px;background:var(--bg);border-radius:4px}
+.grp .track i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
+.grp .track u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.cmpgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cmpgrid h4,.pane h3{margin:0 0 6px;font:600 11px var(--ui);text-transform:uppercase;letter-spacing:.08em;color:var(--ink3)}
+.tlist{font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;gap:2px}
+.tlist em{font-style:normal;color:var(--ink3);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
+.pass{border:1px solid var(--rule);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-family:var(--display);font-size:13.5px;line-height:1.5}
+.pass div{min-width:0}
+.pass b{display:block;font:600 11px var(--ui);color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+@media (max-width:520px){.pass,.cmpgrid{grid-template-columns:1fr}.kv{grid-template-columns:repeat(2,minmax(0,1fr))}.grp{grid-template-columns:110px minmax(0,1fr) 30px}}
+/* reader */
+.reader{font-family:var(--display);font-size:16px;line-height:1.6;max-width:65ch}
+.reader .h{font-family:var(--display);font-weight:600;margin:1.1em 0 .3em}
+.reader .h1{font-size:20px}.reader .h2{font-size:17px}.reader .h3{font-size:15.5px}
+.reader p{margin:.35em 0}
+.reader .t{display:flex;flex-wrap:wrap;gap:4px;margin:.2em 0 .5em}
+.reader .t span{font:500 10.5px var(--ui);background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:4px}
+mark{background:color-mix(in srgb,var(--hit) 28%,transparent);color:inherit;border-radius:2px}
+.muted{color:var(--ink3);font-size:13px}
+.families{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.fam{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.fam h3{margin:0;font:600 19px var(--display);display:flex;align-items:center;gap:8px}
+.fam h3 i{width:12px;height:12px;border-radius:3px;flex:none}
+.fam .isos{display:flex;flex-wrap:wrap;gap:3px}
+.fam .isos button{font:11px var(--mono);border:1px solid var(--rule);background:var(--bg);color:var(--ink2);border-radius:4px;padding:1px 4px;cursor:pointer}
+.fam p{margin:0;font-size:13px;color:var(--ink2)}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.section-h h2{font:600 24px var(--display);margin:0}
+.results{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
+.res{font-family:var(--display);font-size:14px;border-bottom:1px dashed var(--rule);padding-bottom:6px;cursor:pointer}
+.res b{font:600 12px var(--ui);color:var(--ink2);margin-right:6px}
+.crumbs{font-size:12.5px;color:var(--ink3);margin-bottom:6px}
+.crumbs a{color:var(--accent);text-decoration:none}
+footer{font-size:12.5px;color:var(--ink3);max-width:90ch}
+footer a{color:var(--ink2)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <nav class="crumbs" aria-label="CIV FM"><a href="../../">CIV FM</a> · <a href="../compare/">What unites constitutions</a> · <a href="../constitution/">Read a constitution</a></nav>
+      <h1>Constitution Atlas</h1>
+      <p class="lede">Every national constitution in force, in full, compared three ways: what they cover, how they are worded, and which passages one country took from another.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="View">
+      <button id="v-map" aria-pressed="true">Map</button>
+      <button id="v-net" aria-pressed="false">Network</button>
+    </div>
+    <span class="lbl">Colour by</span>
+    <div class="seg" role="group" aria-label="Colour by" id="colorby">
+      <button data-c="family" aria-pressed="true">Family</button>
+      <button data-c="like" aria-pressed="false">Likeness</button>
+      <button data-c="topic" aria-pressed="false">Topic</button>
+      <button data-c="year" aria-pressed="false">Year</button>
+      <button data-c="words" aria-pressed="false">Length</button>
+      <button data-c="hits" aria-pressed="false">Search</button>
+    </div>
+    <span class="lbl" id="metric-l">Likeness by</span>
+    <div class="seg" role="group" aria-label="Likeness measure" id="metric">
+      <button data-m="cos" aria-pressed="true">Wording</button>
+      <button data-m="jac" aria-pressed="false">Structure</button>
+      <button data-m="sh" aria-pressed="false">Borrowed</button>
+    </div>
+    <input type="search" id="topic" list="topics" placeholder="Pick a topic, e.g. Official religion" style="width:260px" hidden>
+    <datalist id="topics"></datalist>
+  </div>
+
+  <div class="main">
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <div class="stage" id="stage">
+        <svg id="map" viewBox="0 0 960 500" role="img" aria-label="World map of constitutions"></svg>
+        <svg id="net" viewBox="0 0 960 720" role="img" aria-label="Network of similar constitutions" hidden></svg>
+        <div class="legend" id="legend"></div>
+        <div class="tip" id="tip"></div>
+        <div class="muted" style="position:absolute;top:8px;right:12px;font-size:11.5px">Drag to pan · Ctrl/⌘ + scroll or pinch to zoom · Shift-click to compare</div>
+      </div>
+
+      <section class="fam" style="gap:12px">
+        <div class="section-h"><h2>Search every constitution</h2><span class="muted" id="sstat">Full text of all 195 · words are matched exactly, all must appear in one section</span></div>
+        <div class="bar"><input type="search" id="q" placeholder="e.g. God, water, artificial intelligence, abortion, monarchy" style="flex:1;min-width:200px"><button class="chip" id="qgo" style="padding:6px 14px">Search</button></div>
+        <div class="results" id="results"></div>
+      </section>
+    </div>
+
+    <aside class="file" id="file">
+      <div class="file-head" id="fhead"></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="t-over" aria-selected="true">Overview</button>
+        <button role="tab" id="t-cmp" aria-selected="false">Compare</button>
+        <button role="tab" id="t-read" aria-selected="false">Read in full</button>
+      </div>
+      <div class="pane" id="pane"></div>
+    </aside>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+    <div class="section-h"><h2>Constitutional families</h2><span class="muted">Clusters found from wording (70%) and topic coverage (30%); each joins its six nearest neighbours</span></div>
+    <div class="families" id="families"></div>
+  </section>
+
+  <footer>Texts: <a href="https://www.constituteproject.org" target="_blank" rel="noopener">Constitute Project</a> English translations, CC BY-NC 3.0, with Constitute's expert topic tags (one ontology, 330+ topics). Seven countries whose constitution was suspended or replaced after Constitute's last update (Burkina Faso, CAR, Chad, Gabon, Guinea, Oman, Syria) show their latest available text and are marked. San Marino and Vatican City have no codified constitution on Constitute. Wording likeness compares English translations, so a shared translator or legal tradition counts too. Borrowed passages are paragraphs whose seven-word phrases match another country's at 50% or more, ignoring phrases found in more than twelve constitutions. Built 22 Oct 2026. Database API: constitutions.boogaav.workers.dev.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
+<script src="../../track.js" defer></script>
+<script>
+const FAM = ["#2f6fdf","#d9822b","#1a9e77","#c2417a","#7a5cd6","#5aa02c","#c43c3c","#2aa5b8","#a0782a","#6b7a8f","#e05aa8","#3a8f5a","#8f5a3a","#4b5bd6"];
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = d3.format(",");
+const S = { view: "map", color: "family", metric: "cos", sel: null, cmp: null, topic: null, tab: "over", hits: null, famOff: new Set(), texts: {} };
+let A, N, byIso, geo;
+
+const pidx = (i, j) => { if (i > j) [i, j] = [j, i]; return i * N - (i * (i + 1)) / 2 + (j - i - 1); };
+const sim = (m, i, j) => (i === j ? (m === "sh" ? 0 : 1) : A[m][pidx(i, j)]);
+const famColor = (k) => FAM[k % FAM.length];
+
+Promise.all([fetch("atlas.json").then((r) => r.json()), fetch("world.geo.json").then((r) => r.json())]).then(([a, g]) => {
+  A = a; N = A.cons.length; geo = g;
+  A.cons.forEach((c, i) => (c.i = i));
+  byIso = Object.fromEntries(A.cons.map((c) => [c.iso, c]));
+  geo.features.forEach((f) => { if (f.id === "CS-KM") f.id = "UNK"; });
+  $("#stats").innerHTML = [[N, "constitutions"], [d3.sum(A.cons, (c) => c.words), "words"], [A.families.length, "families"], [d3.sum(A.sh), "borrowed passages"]]
+    .map(([n, l]) => `<div><b>${fmt(n)}</b>${l}</div>`).join("");
+  $("#topics").innerHTML = A.topics.filter((t) => t.n).map((t) => `<option value="${esc(t.label)}">`).join("");
+  drawMap(); drawNet(); drawFamilies();
+  const h = location.hash.slice(1).toUpperCase();
+  select(byIso[h] ? h : "UKR");
+});
+
+/* ---------- map ---------- */
+// the wheel zooms only with Ctrl/⌘ held, so scrolling the page never gets trapped by the map
+const zf = (e) => (e.type === "wheel" ? e.ctrlKey || e.metaKey : !e.button);
+let mapSel, dotSel;
+function drawMap() {
+  const svg = d3.select("#map"), W = 960, H = 500;
+  const proj = d3.geoNaturalEarth1().fitExtent([[6, 6], [W - 6, H - 6]], { type: "Sphere" });
+  const path = d3.geoPath(proj);
+  const g = svg.append("g");
+  g.append("path").datum({ type: "Sphere" }).attr("d", path).attr("fill", "var(--sea)");
+  g.append("path").datum(d3.geoGraticule10()).attr("d", path).attr("fill", "none").attr("stroke", "var(--rule)").attr("stroke-width", .4);
+  mapSel = g.selectAll("path.country").data(geo.features).join("path").attr("class", "country").attr("d", path)
+    .on("click", (e, f) => byIso[f.id] && pick(f.id, e)).on("mousemove", (e, f) => tip(e, f.id, f.properties.name)).on("mouseleave", untip);
+  const shaped = new Set(geo.features.map((f) => f.id));
+  const small = A.cons.filter((c) => !shaped.has(c.iso));
+  dotSel = g.selectAll("circle.dot").data(small).join("circle").attr("class", "dot").attr("r", 3.6)
+    .attr("cx", (c) => proj([c.ll[1], c.ll[0]])[0]).attr("cy", (c) => proj([c.ll[1], c.ll[0]])[1])
+    .on("click", (e, c) => pick(c.iso, e)).on("mousemove", (e, c) => tip(e, c.iso)).on("mouseleave", untip);
+  svg.call(d3.zoom().filter(zf).scaleExtent([1, 10]).translateExtent([[0, 0], [W, H]]).on("zoom", (e) => {
+    g.attr("transform", e.transform); dotSel.attr("r", 3.6 / Math.sqrt(e.transform.k)); mapSel.attr("stroke-width", .5 / e.transform.k);
+  }));
+}
+
+/* ---------- network ---------- */
+let nodeSel, linkSel, netLinks;
+function drawNet() {
+  const svg = d3.select("#net"), W = 960, H = 720;
+  const nodes = A.cons.map((c) => ({ c, id: c.i }));
+  netLinks = A.edges.map(([s, t, w]) => ({ source: s, target: t, w }));
+  const r = (c) => 3 + Math.sqrt(c.words) / 22;
+  const simu = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(netLinks).id((d) => d.id).distance((l) => 30 + (1 - l.w) * 60).strength((l) => 0.3 + l.w))
+    .force("charge", d3.forceManyBody().strength(-60))
+    .force("x", d3.forceX(W / 2).strength(.05)).force("y", d3.forceY(H / 2).strength(.07))
+    .force("collide", d3.forceCollide((d) => r(d.c) + 2)).stop();
+  for (let i = 0; i < 400; i++) simu.tick();
+  const [x0, x1] = d3.extent(nodes, (d) => d.x), [y0, y1] = d3.extent(nodes, (d) => d.y);
+  const k = Math.min((W - 40) / (x1 - x0), (H - 40) / (y1 - y0));
+  nodes.forEach((d) => { d.x = 20 + (d.x - x0) * k; d.y = 20 + (d.y - y0) * k; });
+  const g = svg.append("g");
+  linkSel = g.append("g").selectAll("line").data(netLinks).join("line").attr("class", "link")
+    .attr("x1", (l) => l.source.x).attr("y1", (l) => l.source.y).attr("x2", (l) => l.target.x).attr("y2", (l) => l.target.y)
+    .attr("stroke-width", (l) => 0.5 + l.w * 2);
+  nodeSel = g.append("g").selectAll("g").data(nodes).join("g").attr("class", "node").attr("transform", (d) => `translate(${d.x},${d.y})`)
+    .style("cursor", "pointer").on("click", (e, d) => pick(d.c.iso, e)).on("mousemove", (e, d) => tip(e, d.c.iso)).on("mouseleave", untip);
+  nodeSel.append("circle").attr("r", (d) => r(d.c)).attr("stroke", "var(--panel)").attr("stroke-width", 1);
+  nodeSel.append("text").attr("x", (d) => r(d.c) + 2).attr("y", 3).text((d) => d.c.iso);
+  svg.call(d3.zoom().filter(zf).scaleExtent([.6, 8]).on("zoom", (e) => g.attr("transform", e.transform)));
+}
+
+/* ---------- colouring ---------- */
+function colorFn() {
+  const sel = S.sel && byIso[S.sel];
+  if (S.color === "family") return (c) => (S.famOff.has(c.fam) ? "var(--none)" : famColor(c.fam));
+  if (S.color === "like" && sel) {
+    const vals = A.cons.map((c) => (c.i === sel.i ? null : sim(S.metric, sel.i, c.i)));
+    const max = d3.max(vals) || 1;
+    const sc = d3.scaleSequential(S.metric === "sh" ? d3.interpolateOranges : d3.interpolateBlues).domain([0, max]);
+    return (c) => (c.i === sel.i ? "var(--hit)" : S.metric === "sh" && !vals[c.i] ? "var(--none)" : sc(vals[c.i]));
+  }
+  if (S.color === "topic") {
+    if (S.topic == null) return () => "var(--none)";
+    return (c) => (c.t.includes(S.topic) ? "var(--accent)" : "var(--none)");
+  }
+  if (S.color === "year") { const sc = d3.scaleSequential(d3.interpolateViridis).domain([1950, 2025]).clamp(true); return (c) => (c.year ? sc(c.year) : "var(--none)"); }
+  if (S.color === "words") { const sc = d3.scaleSequentialLog(d3.interpolateYlGnBu).domain([3000, 150000]).clamp(true); return (c) => sc(c.words); }
+  if (S.color === "hits") {
+    if (!S.hits) return () => "var(--none)";
+    const max = d3.max(Object.values(S.hits)) || 1, sc = d3.scaleSequentialLog(d3.interpolateOranges).domain([1, max]);
+    return (c) => (S.hits[c.iso] ? sc(S.hits[c.iso]) : "var(--none)");
+  }
+  return () => "var(--none)";
+}
+function paint() {
+  const f = colorFn();
+  mapSel.attr("fill", (g) => (byIso[g.id] ? f(byIso[g.id]) : "var(--land)"))
+    .classed("sel", (g) => g.id === S.sel).classed("cmp", (g) => g.id === S.cmp);
+  dotSel.attr("fill", (c) => f(c)).classed("sel", (c) => c.iso === S.sel);
+  nodeSel.select("circle").attr("fill", (d) => f(d.c)).attr("stroke", (d) => (d.c.iso === S.sel ? "var(--ink)" : d.c.iso === S.cmp ? "var(--hit)" : "var(--panel)"))
+    .attr("stroke-width", (d) => (d.c.iso === S.sel || d.c.iso === S.cmp ? 2.5 : 1));
+  const si = S.sel && byIso[S.sel].i;
+  linkSel.classed("on", (l) => l.source.id === si || l.target.id === si);
+  legend();
+}
+function legend() {
+  const L = $("#legend");
+  if (S.color === "family") {
+    L.innerHTML = A.families.map((f) => `<button data-f="${f.k}" aria-pressed="${!S.famOff.has(f.k)}"><span class="sw" style="background:${famColor(f.k)}"></span>${esc(f.name)} <span class="muted">${f.n}</span></button>`).join("");
+    L.querySelectorAll("button").forEach((b) => (b.onclick = () => { const k = +b.dataset.f; S.famOff.has(k) ? S.famOff.delete(k) : S.famOff.add(k); paint(); }));
+    return;
+  }
+  const ramp = (interp, a, b, note) => `<span>${a}</span><canvas class="ramp" data-i="${interp}"></canvas><span>${b}</span><span class="muted">${note}</span>`;
+  const sel = byIso[S.sel];
+  if (S.color === "like") L.innerHTML = sel ? ramp(S.metric === "sh" ? "Oranges" : "Blues", "least alike", "most alike",
+    `to ${esc(sel.name)} (orange) by ${{ cos: "wording", jac: "topics covered", sh: "passages shared" }[S.metric]}`) : "Select a country";
+  if (S.color === "topic") L.innerHTML = S.topic == null ? `<span>Type a topic in the box above. ${A.topics.length} topics from Constitute's ontology.</span>`
+    : `<span><span class="sw" style="background:var(--accent)"></span>Covers “${esc(A.topics[S.topic].label)}” (${A.topics[S.topic].n})</span><span><span class="sw" style="background:var(--none)"></span>Silent on it (${N - A.topics[S.topic].n})</span>`;
+  if (S.color === "year") L.innerHTML = ramp("Viridis", "≤1950", "2025", "year the text was adopted (oldest: USA 1789)");
+  if (S.color === "words") L.innerHTML = ramp("YlGnBu", "3k", "150k+", "words in the English text (log scale)");
+  if (S.color === "hits") L.innerHTML = S.hits ? ramp("Oranges", "1", "most", `sections matching “${esc($("#q").value)}”`) : "<span>Run a search below to map where a word appears.</span>";
+  L.querySelectorAll("canvas.ramp").forEach((cv) => {
+    cv.width = 180; cv.height = 10; const x = cv.getContext("2d"), f = d3["interpolate" + cv.dataset.i];
+    for (let i = 0; i < 180; i++) { x.fillStyle = f(i / 179); x.fillRect(i, 0, 1, 10); }
+  });
+}
+
+/* ---------- tooltip ---------- */
+function tip(e, iso, fallback) {
+  const c = byIso[iso], t = $("#tip"), box = $("#stage").getBoundingClientRect();
+  let html = c ? `<b>${esc(c.name)}</b> · ${c.year || "?"}<br>${esc(A.families[c.fam].name)}` : `<b>${esc(fallback || iso)}</b><br>No constitution text`;
+  if (c && S.sel && c.iso !== S.sel) {
+    const s = byIso[S.sel].i;
+    html += `<br>vs ${esc(byIso[S.sel].name)}: wording ${(sim("cos", s, c.i) * 100).toFixed(0)} · topics ${(sim("jac", s, c.i) * 100).toFixed(0)} · ${sim("sh", s, c.i)} shared`;
+  }
+  if (c && S.color === "hits" && S.hits) html += `<br>${S.hits[iso] || 0} matching sections`;
+  t.innerHTML = html; t.style.opacity = 1;
+  t.style.left = Math.min(e.clientX - box.left + 12, box.width - 270) + "px"; t.style.top = e.clientY - box.top + 12 + "px";
+}
+function untip() { $("#tip").style.opacity = 0; }
+
+/* ---------- selection ---------- */
+function pick(iso, e) {
+  if ((e && (e.shiftKey || e.metaKey || e.altKey)) || S.tab === "cmp") { if (iso !== S.sel) { S.cmp = iso; S.tab = "cmp"; renderFile(); paint(); return; } }
+  select(iso);
+}
+function select(iso) {
+  S.sel = iso; if (S.cmp === iso) S.cmp = null;
+  try { history.replaceState(null, "", "#" + iso); } catch (e) {}
+  renderFile(); paint();
+}
+function setTab(t) { S.tab = t; renderFile(); }
+["over", "cmp", "read"].forEach((t) => ($("#t-" + t).onclick = () => setTab(t)));
+
+function nearest(i, m, n = 6) {
+  return A.cons.filter((c) => c.i !== i).map((c) => [c, sim(m, i, c.i)]).sort((a, b) => b[1] - a[1]).slice(0, n).filter((x) => x[1] > 0);
+}
+function renderFile() {
+  const c = byIso[S.sel], f = A.families[c.fam];
+  $("#fhead").innerHTML = `<div class="sub">${esc(c.region)}${c.sub ? " · " + esc(c.sub) : ""}</div>
+    <h2>${esc(c.name)}</h2>
+    <div class="sub">${esc(c.title)}</div>
+    <div><button class="chip" id="famchip"><i style="background:${famColor(c.fam)}"></i>${esc(f.name)} family</button></div>
+    ${c.status === "superseded" ? `<div class="warn">${esc(c.note)}. Showing the latest text available.</div>` : ""}`;
+  $("#famchip").onclick = () => document.getElementById("fam-" + c.fam).scrollIntoView({ behavior: "smooth", block: "center" });
+  document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.id === "t-" + S.tab));
+  const P = $("#pane"); P.scrollTop = 0;
+  if (S.tab === "over") P.innerHTML = overview(c);
+  if (S.tab === "cmp") P.innerHTML = compare(c);
+  if (S.tab === "read") { P.innerHTML = `<p class="muted">Loading the full text…</p>`; reader(c); }
+  P.querySelectorAll("[data-cmp]").forEach((b) => (b.onclick = () => { S.cmp = b.dataset.cmp; S.tab = "cmp"; renderFile(); paint(); }));
+  P.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => select(b.dataset.go)));
+  const cs = $("#cmpsel"); if (cs) cs.onchange = () => { S.cmp = cs.value || null; renderFile(); paint(); };
+}
+function overview(c) {
+  const groupsHas = A.groups.map((g) => {
+    const tk = A.topics.map((t, i) => (t.g === g.k ? i : -1)).filter((i) => i >= 0);
+    const mine = c.t.filter((i) => A.topics[i].g === g.k).length;
+    const avg = d3.mean(A.cons, (x) => x.t.filter((i) => A.topics[i].g === g.k).length);
+    return { label: g.label, mine, avg, tot: tk.length };
+  });
+  const near = (m, unit) => `<div class="list">${nearest(c.i, m).map(([x, v]) =>
+    `<button class="row" data-cmp="${x.iso}"><span>${esc(x.name)}</span><span class="num">${m === "sh" ? v + " passages" : (v * 100).toFixed(0) + unit}</span><span class="meter"><i style="width:${m === "sh" ? Math.min(100, v * 3) : v * 100}%"></i></span></button>`).join("") || `<p class="muted">None found.</p>`}</div>`;
+  return `<div class="kv">
+      <div><b>${c.year || "—"}</b><span>Adopted</span></div><div><b>${c.rev || "—"}</b><span>Last revised</span></div>
+      <div><b>${fmt(c.words)}</b><span>Words</span></div><div><b>${fmt(c.arts)}</b><span>Articles</span></div>
+      <div><b>${c.t.length}</b><span>Topics covered</span></div><div><b>${d3.rank(A.cons.map((x) => -x.words))[c.i] + 1}</b><span>Rank by length</span></div></div>
+    <div><h3>Words that set it apart</h3><div class="words">${c.dw.map(esc).join(" · ")}</div></div>
+    <div><h3>Closest in wording</h3>${near("cos", "%")}</div>
+    <div><h3>Closest in topics covered</h3>${near("jac", "%")}</div>
+    <div><h3>Shares passages with</h3>${near("sh")}</div>
+    <div><h3>What it covers, by area <span class="muted" style="text-transform:none;letter-spacing:0">(bar = this text, line = world average)</span></h3>
+      ${groupsHas.map((g) => `<div class="grp"><span>${esc(g.label)}</span><span class="track"><i style="width:${(g.mine / g.tot) * 100}%"></i><u style="left:${(g.avg / g.tot) * 100}%"></u></span><span class="num">${g.mine}/${g.tot}</span></div>`).join("")}</div>
+    <p class="muted">Shift-click another country on the map, or pick one in a list above, to compare.</p>`;
+}
+function compare(c) {
+  const opts = A.cons.filter((x) => x.iso !== c.iso).sort((a, b) => a.name.localeCompare(b.name))
+    .map((x) => `<option value="${x.iso}"${x.iso === S.cmp ? " selected" : ""}>${esc(x.name)}</option>`).join("");
+  let html = `<label class="lbl" for="cmpsel">Compare ${esc(c.name)} with</label><select id="cmpsel"><option value="">Choose a country…</option>${opts}</select>`;
+  if (!S.cmp) return html + `<p class="muted">Or click any country on the map while this tab is open.</p>`;
+  const d = byIso[S.cmp], a = new Set(c.t), b = new Set(d.t);
+  const both = c.t.filter((i) => b.has(i)), onlyA = c.t.filter((i) => !b.has(i)), onlyB = d.t.filter((i) => !a.has(i));
+  const byGroup = (arr) => { const m = d3.group(arr, (i) => A.topics[i].g);
+    return A.groups.filter((g) => m.has(g.k)).map((g) => `<em>${esc(g.label)}</em>${m.get(g.k).map((i) => `<span>${esc(A.topics[i].label)}</span>`).join("")}`).join("") || `<span class="muted">Nothing</span>`; };
+  const [p, q] = [c.iso, d.iso].sort(), pass = A.passages[p + "|" + q] || [];
+  html += `<div class="kv">
+      <div><b>${(sim("cos", c.i, d.i) * 100).toFixed(0)}%</b><span>Wording</span></div>
+      <div><b>${(sim("jac", c.i, d.i) * 100).toFixed(0)}%</b><span>Topic overlap</span></div>
+      <div><b>${sim("sh", c.i, d.i)}</b><span>Shared passages</span></div></div>
+    <p class="sub">${A.families[c.fam] === A.families[d.fam] ? `Both belong to the ${esc(A.families[c.fam].name)} family.` : `${esc(c.name)} is ${esc(A.families[c.fam].name)}; ${esc(d.name)} is ${esc(A.families[d.fam].name)}.`}
+      ${esc(c.name)} has ${fmt(c.words)} words, ${esc(d.name)} ${fmt(d.words)}. They share ${both.length} of ${a.size + b.size - both.length} topics.</p>
+    ${pass.length ? `<div><h3>Passages that match</h3><div style="display:flex;flex-direction:column;gap:8px">${pass.map(([sa, sb, ov, ta, tb]) => {
+      const [ta2, tb2] = p === c.iso ? [ta, tb] : [tb, ta];
+      return `<div class="pass"><div><b>${esc(c.name)}</b>${esc(ta2)}</div><div><b>${esc(d.name)}</b>${esc(tb2)}</div></div>`; }).join("")}
+      ${sim("sh", c.i, d.i) > pass.length ? `<p class="muted">Showing the ${pass.length} closest of ${sim("sh", c.i, d.i)}.</p>` : ""}</div></div>` : ""}
+    <div class="cmpgrid"><div><h4>Only ${esc(c.name)} (${onlyA.length})</h4><div class="tlist">${byGroup(onlyA)}</div></div>
+      <div><h4>Only ${esc(d.name)} (${onlyB.length})</h4><div class="tlist">${byGroup(onlyB)}</div></div></div>
+    <div><h4 class="lbl">Both (${both.length})</h4><div class="tlist">${byGroup(both)}</div></div>
+    <button class="chip" data-go="${d.iso}">Open ${esc(d.name)}</button>`;
+  return html;
+}
+async function loadText(iso) {
+  if (!S.texts[iso]) S.texts[iso] = fetch("data/" + iso + ".json").then((r) => r.json());
+  return S.texts[iso];
+}
+async function reader(c) {
+  const t = await loadText(c.iso); if (S.sel !== c.iso || S.tab !== "read") return;
+  const P = $("#pane");
+  const present = [...new Set(t.s.flatMap((s) => s[5]))].sort((a, b) => A.topics[a].label.localeCompare(A.topics[b].label));
+  P.innerHTML = `<div class="bar"><input type="search" id="rq" placeholder="Find in this text" style="flex:1;min-width:140px">
+      <select id="rt" aria-label="Show only a topic"><option value="">All sections</option>${present.map((i) => `<option value="${i}">${esc(A.topics[i].label)}</option>`).join("")}</select></div>
+    <div class="muted" id="rstat"></div><div class="reader" id="rd"></div>
+    <p class="muted"><a href="https://www.constituteproject.org/constitution/${encodeURIComponent(c.cid)}" target="_blank" rel="noopener">Read on Constitute</a></p>`;
+  const draw = () => {
+    const q = $("#rq").value.trim().toLowerCase(), tf = $("#rt").value === "" ? null : +$("#rt").value;
+    const re = q ? new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi") : null;
+    const hl = (s) => (re ? esc(s).replace(re, "<mark>$1</mark>") : esc(s));
+    let n = 0;
+    const out = t.s.map(([sid, lvl, kind, head, body, tp]) => {
+      if (tf != null && !tp.includes(tf)) return "";
+      if (q && !(head + " " + body).toLowerCase().includes(q)) return "";
+      n++;
+      const h = head ? `<div class="h h${Math.min(3, lvl)}">${hl(head)}</div>` : "";
+      const b = body ? body.split("\n").map((p) => `<p>${hl(p)}</p>`).join("") : "";
+      const chips = tp.length ? `<div class="t">${tp.map((i) => `<span>${esc(A.topics[i].label)}</span>`).join("")}</div>` : "";
+      return h + b + chips;
+    }).join("");
+    $("#rd").innerHTML = out || `<p class="muted">No section matches.</p>`;
+    $("#rstat").textContent = q || tf != null ? `${n} matching sections` : `${t.s.length} sections · ${fmt(c.words)} words · topic tags by Constitute`;
+  };
+  $("#rq").oninput = draw; $("#rt").onchange = draw; draw();
+}
+
+/* ---------- families ---------- */
+function drawFamilies() {
+  $("#families").innerHTML = A.families.map((f) => `<article class="fam" id="fam-${f.k}">
+    <h3><i style="background:${famColor(f.k)}"></i>${esc(f.name)} <span class="muted" style="font:13px var(--ui)">${f.n}</span></h3>
+    <p><b>Over-represented:</b> ${f.marks.slice(0, 4).map(esc).join(", ")}</p>
+    ${f.lacks.length ? `<p><b>Rarer here:</b> ${f.lacks.slice(0, 3).map(esc).join(", ")}</p>` : ""}
+    <div class="isos">${f.members.map((iso) => `<button data-go="${iso}" title="${esc(byIso[iso].name)}">${iso}</button>`).join("")}</div></article>`).join("");
+  $("#families").querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => { select(b.dataset.go); $("#stage").scrollIntoView({ behavior: "smooth" }); }));
+}
+
+/* ---------- full-text search across all ---------- */
+async function searchAll() {
+  const q = $("#q").value.trim(); if (!q) return;
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const R = $("#results"); R.innerHTML = ""; $("#sstat").textContent = "Loading texts…";
+  const hits = {}, snippets = []; let done = 0;
+  const one = async (c) => {
+    const t = await loadText(c.iso);
+    for (const [sid, lvl, kind, head, body] of t.s) {
+      const low = (head + " " + body).toLowerCase();
+      if (words.every((w) => new RegExp("\\b" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b").test(low))) {
+        hits[c.iso] = (hits[c.iso] || 0) + 1;
+        if ((hits[c.iso] || 0) <= 2) snippets.push([c, head, body]);
+      }
+    }
+    done++; if (done % 15 === 0) $("#sstat").textContent = `Reading ${done} of ${N}…`;
+  };
+  const queue = [...A.cons]; await Promise.all(Array.from({ length: 8 }, async () => { while (queue.length) await one(queue.shift()); }));
+  S.hits = hits; setColor("hits");
+  const n = Object.keys(hits).length, tot = d3.sum(Object.values(hits));
+  $("#sstat").textContent = `“${q}” appears in ${tot} sections of ${n} constitutions`;
+  const re = new RegExp("(" + words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "gi");
+  const cut = (s) => { const i = s.toLowerCase().indexOf(words[0]); return (i > 120 ? "…" : "") + s.slice(Math.max(0, i - 120), i + 220) + "…"; };
+  snippets.sort((a, b) => (hits[b[0].iso] - hits[a[0].iso]) || a[0].name.localeCompare(b[0].name));
+  R.innerHTML = snippets.slice(0, 200).map(([c, h, b]) => `<div class="res" data-go="${c.iso}"><b>${esc(c.name)} · ${hits[c.iso]}</b>${h ? esc(h) + " — " : ""}${esc(cut(b || h)).replace(re, "<mark>$1</mark>")}</div>`).join("")
+    || `<p class="muted">No constitution uses those words together in one section.</p>`;
+  R.querySelectorAll("[data-go]").forEach((d) => (d.onclick = () => { select(d.dataset.go); S.tab = "read"; renderFile(); setTimeout(() => { const rq = $("#rq"); if (rq) { rq.value = words[0]; rq.dispatchEvent(new Event("input")); } }, 400); }));
+}
+$("#qgo").onclick = searchAll; $("#q").onkeydown = (e) => e.key === "Enter" && searchAll();
+
+/* ---------- controls ---------- */
+function setColor(c) {
+  S.color = c;
+  document.querySelectorAll("#colorby button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.c === c));
+  $("#topic").hidden = c !== "topic";
+  $("#metric").style.display = $("#metric-l").style.display = c === "like" ? "" : "none";
+  paint();
+}
+document.querySelectorAll("#colorby button").forEach((b) => (b.onclick = () => setColor(b.dataset.c)));
+document.querySelectorAll("#metric button").forEach((b) => (b.onclick = () => {
+  S.metric = b.dataset.m; document.querySelectorAll("#metric button").forEach((x) => x.setAttribute("aria-pressed", x === b)); paint();
+}));
+$("#topic").oninput = () => { const i = A.topics.findIndex((t) => t.label.toLowerCase() === $("#topic").value.trim().toLowerCase()); if (i >= 0) { S.topic = i; paint(); } };
+const setView = (v) => { S.view = v; $("#map").hidden = v !== "map"; $("#net").hidden = v !== "net"; $("#v-map").setAttribute("aria-pressed", v === "map"); $("#v-net").setAttribute("aria-pressed", v === "net"); };
+$("#v-map").onclick = () => setView("map"); $("#v-net").onclick = () => setView("net");
+$("#metric").style.display = $("#metric-l").style.display = "none";
+</script>
