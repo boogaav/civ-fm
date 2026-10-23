@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Civic — every constitution on Earth — CIV FM</title>
+<meta name="description" content="Read, compare and dig into every constitution in force: the full texts, what they all share, their families and borrowed passages, and your country's closest constitutional relative.">
+<meta property="og:title" content="Civic — every constitution on Earth">
+<meta property="og:description" content="Read, compare and dig into 195 constitutions. Find your country's constitutional brother.">
+<meta property="og:url" content="https://civ.fm/civic/">
+<link rel="canonical" href="https://civ.fm/civic/">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+<style>
+:root {
+  --space:#0b0b0d; --glass:rgba(28,28,30,.8); --glass-2:rgba(255,255,255,.06); --hairline:rgba(255,255,255,.1);
+  --ink:#f5f5f7; --muted:#98989d; --faint:#636366; --accent:#0a84ff; --ok:#30d158; --warn:#ff9f0a; --bad:#ff453a;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--space); color:var(--ink); font-family:var(--font); font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+a { color:var(--accent); text-decoration:none; }
+header { position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:16px; padding:12px 24px; background:var(--glass); border-bottom:1px solid var(--hairline); backdrop-filter:blur(24px) saturate(1.4); -webkit-backdrop-filter:blur(24px) saturate(1.4); }
+.brand { font-size:17px; font-weight:700; letter-spacing:-.02em; color:var(--ink); }
+.brand small { color:var(--muted); font-weight:500; margin-left:6px; }
+header nav { display:flex; gap:16px; flex-wrap:wrap; }
+header nav a { font-size:13px; font-weight:500; }
+.spacer { flex:1; }
+main { max-width:1120px; margin:0 auto; padding:36px 24px 80px; }
+h1 { font-size:44px; letter-spacing:-.03em; line-height:1.05; margin:0 0 12px; }
+.lead { color:var(--muted); font-size:17px; max-width:62ch; margin:0 0 24px; }
+.stats { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 34px; }
+.stat { background:var(--glass-2); border:1px solid var(--hairline); border-radius:12px; padding:10px 16px; min-width:140px; }
+.stat b { display:block; font-size:24px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.stat span { font-size:12px; color:var(--muted); }
+h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
+.sub { color:var(--muted); font-size:14px; margin:0 0 16px; max-width:70ch; }
+
+/* lookup */
+.lookup { background:linear-gradient(180deg, rgba(10,132,255,.08), rgba(10,132,255,0)); border:1px solid var(--hairline); border-radius:18px; padding:20px; }
+.search { position:relative; }
+#q { appearance:none; width:100%; font-family:var(--font); font-size:20px; font-weight:600; color:var(--ink); background:rgba(0,0,0,.35); border:1px solid var(--hairline); border-radius:14px; padding:15px 18px; outline:none; }
+#q:focus { border-color:rgba(10,132,255,.6); box-shadow:0 0 0 4px rgba(10,132,255,.15); }
+#q::placeholder { color:var(--faint); font-weight:500; }
+#sug { position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; list-style:none; margin:0; padding:6px; background:#1c1c1e; border:1px solid var(--hairline); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.5); max-height:320px; overflow-y:auto; }
+#sug:empty { display:none; }
+#sug li { padding:9px 12px; border-radius:8px; cursor:pointer; }
+#sug li.on, #sug li:hover { background:rgba(10,132,255,.18); }
+#profile:empty { display:none; }
+.prof { margin-top:20px; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:16px; }
+@media (max-width:860px) { .prof { grid-template-columns:1fr; } }
+.card { background:var(--glass-2); border:1px solid var(--hairline); border-radius:14px; padding:16px; }
+.who { display:flex; gap:14px; align-items:center; }
+.who .flag { font-size:52px; line-height:1; }
+.who h3 { font-size:24px; letter-spacing:-.02em; margin:0; }
+.who p { margin:2px 0 0; color:var(--muted); font-size:13.5px; }
+.facts { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:14px 0 0; }
+.facts div { background:rgba(0,0,0,.25); border-radius:10px; padding:8px 10px; }
+.facts b { display:block; font-size:16px; font-weight:650; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.facts span { font-size:11px; color:var(--muted); }
+.k { font-size:10.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; }
+.btns { display:flex; flex-wrap:wrap; gap:6px; }
+.btns a, .btns button { appearance:none; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.08); border:1px solid var(--hairline); border-radius:9px; padding:7px 11px; }
+.btns a:hover, .btns button:hover { background:rgba(255,255,255,.14); }
+.btns .primary { background:var(--accent); border-color:transparent; color:#fff; }
+.bro { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; }
+.bro .flag { font-size:40px; line-height:1; }
+.bro b { font-size:19px; letter-spacing:-.01em; }
+.bro .pct { font-size:30px; font-weight:700; color:var(--warn); letter-spacing:-.02em; }
+.pills { display:flex; flex-wrap:wrap; gap:6px; }
+.pill { font-size:12.5px; background:rgba(10,132,255,.12); border:1px solid rgba(10,132,255,.3); border-radius:999px; padding:3px 10px; }
+.pill small { color:var(--muted); margin-left:4px; }
+.rel { list-style:none; margin:0; padding:0; }
+.rel li { display:grid; grid-template-columns:minmax(0,1fr) 110px 42px; gap:10px; align-items:center; padding:5px 0; border-top:1px solid var(--hairline); font-size:13.5px; cursor:pointer; }
+.rel li:first-child { border-top:0; }
+.rel .b { height:6px; background:rgba(255,255,255,.08); border-radius:3px; } .rel .b i { display:block; height:100%; border-radius:3px; background:var(--warn); }
+.rel .p { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+.status { color:var(--muted); font-size:12.5px; min-height:18px; margin-top:6px; }
+.borrow { font-size:12.5px; color:var(--muted); margin:8px 0 0; line-height:1.5; }
+.borrow q { color:var(--ink); }
+
+/* tiles */
+.tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
+.tile { display:flex; flex-direction:column; gap:6px; background:var(--glass-2); border:1px solid var(--hairline); border-radius:14px; padding:16px; color:var(--ink); transition:background .15s ease, border-color .15s ease; }
+.tile:hover { background:rgba(255,255,255,.09); border-color:rgba(10,132,255,.35); }
+.tile .ic { font-size:24px; }
+.tile b { font-size:16px; letter-spacing:-.01em; }
+.tile span { font-size:13px; color:var(--muted); }
+.tile em { font-style:normal; font-size:12px; color:var(--accent); margin-top:auto; padding-top:6px; }
+
+/* facts strip */
+.uni { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
+.uni div { background:var(--glass-2); border:1px solid var(--hairline); border-radius:12px; padding:10px 12px; }
+.uni b { font-size:22px; font-weight:700; color:var(--ok); letter-spacing:-.02em; }
+.uni span { display:block; font-size:13px; }
+.uni.rare b { color:var(--warn); }
+.fams { display:flex; flex-wrap:wrap; gap:6px; }
+.fams a { font-size:13px; color:var(--ink); background:var(--glass-2); border:1px solid var(--hairline); border-radius:999px; padding:5px 12px; }
+.fams a small { color:var(--muted); margin-left:4px; }
+.fams a:hover { border-color:rgba(10,132,255,.4); }
+footer { max-width:1120px; margin:0 auto; padding:0 24px 40px; font-size:12px; color:var(--faint); line-height:1.6; }
+footer a { color:var(--muted); }
+@media (max-width:600px) { h1 { font-size:32px; } .facts { grid-template-columns:repeat(2, minmax(0,1fr)); } main { padding:24px 16px 60px; } header { padding:10px 16px; } header nav { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="../">CIV FM<small>Civic</small></a>
+  <nav>
+    <a href="#lookup">Your country</a>
+    <a href="#explore">Explore</a>
+    <a href="#shared">What all share</a>
+    <a href="#families">Families</a>
+  </nav>
+  <span class="spacer"></span>
+  <a href="../" style="font-size:13px">Globe ↗</a>
+</header>
+
+<main>
+  <h1>Every constitution on Earth</h1>
+  <p class="lead">The full text of every national constitution in force, in English, and the tools to read them side by side: what nearly all of them promise, which ones are related, which passages were copied from which, and the country whose constitution is most like yours.</p>
+  <div class="stats" id="stats"></div>
+
+  <section id="lookup" class="lookup">
+    <div class="search">
+      <input id="q" type="search" autocomplete="off" placeholder="Type a country: Ukraine, Brazil, Japan…" aria-label="Country">
+      <ul id="sug" role="listbox"></ul>
+    </div>
+    <div id="profile"></div>
+  </section>
+
+  <h2 id="explore">Explore</h2>
+  <p class="sub">Five ways in, from one clause to the whole world.</p>
+  <div class="tiles">
+    <a class="tile" href="constitution/"><span class="ic">📖</span><b>Read a constitution</b><span>The full text with a contents list and a find box that filters to the clauses you are after. Download any one as a PDF.</span><em>Open the reader →</em></a>
+    <a class="tile" href="compare/"><span class="ic">🤝</span><b>What unites them</b><span>387 topics ranked by how many constitutions contain them, the clause quoted from several countries, a globe of who has what.</span><em>See the shared ground →</em></a>
+    <a class="tile" href="atlas/"><span class="ic">🗺️</span><b>Constitution Atlas</b><span>Families of related constitutions, similarity by wording and by structure, and passages copied word for word between countries.</span><em>Open the atlas →</em></a>
+    <a class="tile" href="../?ch=state&sub=system"><span class="ic">🏛️</span><b>Who governs, on the globe</b><span>Political system, parliament parties with logos and seat shares, the 100 people who hold power, the next vote.</span><em>Open State on the globe →</em></a>
+    <a class="tile" href="../card/"><span class="ic">🪪</span><b>Country card</b><span>Any country in one shareable image, with its constitution one tap away as a PDF.</span><em>Make a card →</em></a>
+  </div>
+
+  <h2 id="shared">What nearly all of them share</h2>
+  <p class="sub">The topics found in the most constitutions, and the rarest guarantees on Earth.</p>
+  <div class="uni" id="uni"></div>
+  <p class="k">Rarest guarantees</p>
+  <div class="uni rare" id="rare"></div>
+
+  <h2 id="families">Constitutional families</h2>
+  <p class="sub">Constitutions grouped by how alike their wording and structure are. Each family shares history: a colonial legal tradition, a common model, or texts drafted with the same advisers.</p>
+  <div class="fams" id="fams"></div>
+</main>
+
+<footer>
+  Texts and topic tags: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a> (Comparative Constitutions Project), CC BY-NC 3.0; the English translations are theirs and the official text is the one each country publishes. Political facts: CIA World Factbook, public domain. Families, similarity and borrowed passages: CIV FM's analysis of those texts. The "brother" match weights each shared topic by its rarity, so sharing something few constitutions guarantee counts for more than sharing an amendment rule that nearly all have.
+</footer>
+
+<script src="download.js"></script>
+<script>
+(async () => {
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmt = (n) => Number(n).toLocaleString("en");
+  const [A, civic, facts] = await Promise.all([
+    fetch("atlas/atlas.json").then((r) => r.json()),
+    fetch("civic.json").then((r) => r.json()).catch(() => ({ c: {} })),
+    fetch("../vendor/world-countries.json").then((r) => r.json()),
+  ]);
+  const by3 = {}; for (const f of facts) by3[f.cca3] = f;
+  const N = A.cons.length, T = A.topics;
+  A.cons.forEach((c, i) => { c.i = i; c.set = new Set(c.t); c.flag = by3[c.iso]?.flag || "🏳️"; c.label = by3[c.iso]?.name.common || c.name; });
+  const byIso = Object.fromEntries(A.cons.map((c) => [c.iso, c]));
+  const inForce = A.cons.filter((c) => c.status === "in_force");
+  const pidx = (i, j) => { if (i > j) [i, j] = [j, i]; return i * N - (i * (i + 1)) / 2 + (j - i - 1); };
+  const pair = (m, a, b) => A[m][pidx(a.i, b.i)];
+  // rarity weight per topic and each constitution's weighted length
+  const w = T.map((t) => Math.log(N / Math.max(1, t.n || 0.5)));
+  for (const c of A.cons) c.norm = Math.sqrt([...c.set].reduce((s, i) => s + w[i] * w[i], 0));
+  const brother = (a, b) => { let s = 0; for (const i of a.set) if (b.set.has(i)) s += w[i] * w[i]; return a.norm && b.norm ? s / (a.norm * b.norm) : 0; };
+
+  // ---- stats ----
+  const words = A.cons.reduce((s, c) => s + (c.words || 0), 0);
+  const borrowed = A.sh.reduce((s, x) => s + x, 0);
+  $("#stats").innerHTML = [[N, "constitutions"], [fmt(words), "words of law"], [T.filter((t) => t.n).length, "topics tracked"], [A.families.length, "families"], [fmt(borrowed), "borrowed passages"]]
+    .map(([n, l]) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
+
+  // ---- shared ground ----
+  const ranked = T.filter((t) => t.n).slice().sort((a, b) => b.n - a.n);
+  $("#uni").innerHTML = ranked.slice(0, 8).map((t) => `<div><b>${Math.round((t.n / N) * 100)}%</b><span>${esc(t.label)}</span></div>`).join("");
+  $("#rare").innerHTML = ranked.filter((t) => t.n >= 2).slice(-6).reverse().map((t) => `<div><b>${t.n}</b><span>${esc(t.label)}</span></div>`).join("");
+
+  // ---- families ----
+  $("#fams").innerHTML = A.families.slice().sort((a, b) => b.n - a.n).map((f) => {
+    const lead = f.members.slice(0, 3).map((iso) => byIso[iso]?.flag || "").join("");
+    return `<a href="atlas/#${f.members[0]}">${lead} ${esc(f.name)}<small>${f.n}</small></a>`;
+  }).join("");
+
+  // ---- lookup ----
+  const ALIAS = { usa: "USA", us: "USA", america: "USA", uk: "GBR", britain: "GBR", england: "GBR", russia: "RUS", korea: "KOR", "south korea": "KOR", "north korea": "PRK", uae: "ARE", holland: "NLD", "czech republic": "CZE", turkey: "TUR", turkiye: "TUR", burma: "MMR", drc: "COD", "україна": "UKR", "украина": "UKR", "россия": "RUS", deutschland: "DEU", espana: "ESP", polska: "POL", brasil: "BRA", "viet nam": "VNM" };
+  const norm = (s) => String(s || "").toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-zЀ-ӿ ]/g, " ").replace(/\s+/g, " ").trim();
+  const index = A.cons.map((c) => ({ iso: c.iso, keys: [c.label, c.name, by3[c.iso]?.name.official, c.iso, by3[c.iso]?.cca2, ...Object.values(by3[c.iso]?.name.nativeName || {}).map((n) => n.common)].filter(Boolean).map(norm) }));
+  function find(q) {
+    const n = norm(q); if (!n) return [];
+    if (ALIAS[n] && byIso[ALIAS[n]]) return [byIso[ALIAS[n]]];
+    const exact = index.filter((x) => x.keys.includes(n)); if (exact.length) return exact.map((x) => byIso[x.iso]);
+    const pre = index.filter((x) => x.keys.some((k) => k.startsWith(n)));
+    const sub = index.filter((x) => !pre.includes(x) && x.keys.some((k) => k.includes(n)));
+    return [...pre, ...sub].slice(0, 8).map((x) => byIso[x.iso]);
+  }
+  const q = $("#q"), sug = $("#sug"); let hits = [], sel = -1;
+  q.addEventListener("input", () => { hits = find(q.value); sel = hits.length ? 0 : -1; sug.innerHTML = q.value.trim() ? hits.map((c, i) => `<li data-iso="${c.iso}" class="${i === sel ? "on" : ""}">${c.flag} ${esc(c.label)}</li>`).join("") : ""; });
+  q.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, Math.min(hits.length - 1, sel + (e.key === "ArrowDown" ? 1 : -1))); [...sug.children].forEach((li, i) => li.classList.toggle("on", i === sel)); }
+    if (e.key === "Enter" && hits[sel]) { e.preventDefault(); show(hits[sel].iso); }
+    if (e.key === "Escape") sug.innerHTML = "";
+  });
+  sug.addEventListener("click", (e) => { const li = e.target.closest("li"); if (li) show(li.dataset.iso); });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".search")) sug.innerHTML = ""; });
+
+  let current = null;
+  function show(iso, scroll = true) {
+    const a = byIso[iso]; if (!a) return;
+    current = iso; sug.innerHTML = ""; q.value = a.label;
+    history.replaceState(null, "", `#${iso}`);
+    document.title = `${a.label} — Civic — CIV FM`;
+    const v = civic.c[iso] || {};
+    const fam = A.families.find((f) => f.k === a.fam);
+    const others = A.cons.filter((c) => c.iso !== iso);
+    const bros = others.map((c) => ({ c, s: brother(a, c) })).sort((x, y) => y.s - x.s);
+    const top = bros[0];
+    const wording = others.map((c) => ({ c, s: pair("cos", a, c) })).sort((x, y) => y.s - x.s)[0];
+    const lenders = others.map((c) => ({ c, n: pair("sh", a, c) })).filter((x) => x.n > 0).sort((x, y) => y.n - x.n);
+    const why = [...a.set].filter((i) => top.c.set.has(i) && T[i].n / N < 0.5).sort((x, y) => w[y] - w[x]).slice(0, 5);
+    const sample = lenders[0] ? (A.passages[[a.iso, lenders[0].c.iso].sort().join("|")] || [])[0] : null;
+    const reply = `${a.flag} ${a.label}'s constitutional brother is ${top.c.flag} ${top.c.label}: ${Math.round(top.s * 100)}% match.` + (why.length ? ` Both guarantee ${why.slice(0, 2).map((i) => T[i].label.toLowerCase()).join(" and ")}.` : "") + ` civ.fm/civic/#${a.iso}`;
+    const has = a.status === "in_force";
+    $("#profile").innerHTML =
+      `<div class="prof">` +
+      // left: the constitution
+      `<div class="card"><div class="who"><span class="flag">${a.flag}</span><div><h3>${esc(a.label)}</h3>` +
+      `<p>${esc(a.title || "")}${a.rev ? ` · amended through ${a.rev}` : ""}${has ? "" : " · <span style='color:var(--warn)'>suspended or superseded; latest text shown</span>"}</p></div></div>` +
+      `<div class="facts">` +
+      `<div><b>${a.year || "—"}</b><span>adopted</span></div>` +
+      `<div><b>${fmt(a.words || 0)}</b><span>words</span></div>` +
+      `<div><b>${a.arts || "—"}</b><span>articles</span></div>` +
+      `<div><b>${a.set.size}</b><span>of ${T.filter((t) => t.n).length} topics</span></div>` +
+      `<div title="${esc(v.gov || "")}"><b>${esc(v.govClass || "—")}</b><span>political system</span></div>` +
+      `<div title="${esc(fam?.name || "")}"><b>${esc(fam?.name || "—")}</b><span>family</span></div>` +
+      `</div>` +
+      `<p class="k">Dig in</p><div class="btns">` +
+      `<a class="primary" href="constitution/?c=${iso}">Read it</a>` +
+      `<button id="dl">Download PDF</button>` +
+      `<a href="compare/?c=${iso}">Compare topic by topic</a>` +
+      `<a href="atlas/#${iso}">Open in the Atlas</a>` +
+      `<a href="../card/#${iso}">Country card</a></div>` +
+      `<p class="k">On the globe</p><div class="btns">` +
+      `<a href="../?ch=state&sub=system&c=${iso}">System</a>` +
+      `<a href="../?ch=state&sub=parties&c=${iso}">Parties</a>` +
+      `<a href="../?ch=state&sub=power&c=${iso}">Who holds power</a>` +
+      `<a href="../?ch=state&sub=vote&c=${iso}">Next vote</a>` +
+      `<a href="../?ch=state&sub=citizenship&c=${iso}">Citizenship</a></div>` +
+      `<p class="status" id="st"></p></div>` +
+      // right: relatives
+      `<div class="card"><p class="k" style="margin-top:0">Constitutional brother</p>` +
+      `<div class="bro"><span class="flag">${top.c.flag}</span><div><b>${esc(top.c.label)}</b><div style="font-size:12.5px;color:var(--muted)">closest by what the text guarantees</div></div><span class="pct">${Math.round(top.s * 100)}%</span></div>` +
+      (why.length ? `<p class="k">Why: rarer things both guarantee</p><div class="pills">${why.map((i) => `<span class="pill">${esc(T[i].label)}<small>${Math.round((T[i].n / N) * 100)}%</small></span>`).join("")}</div>` : "") +
+      `<p class="k">The rest of the family</p><ul class="rel">${bros.slice(1, 6).map(({ c, s }) => `<li data-iso="${c.iso}"><span>${c.flag} ${esc(c.label)}</span><span class="b"><i style="width:${Math.round(s * 100)}%"></i></span><span class="p">${Math.round(s * 100)}%</span></li>`).join("")}</ul>` +
+      `<p class="k">Closest in wording</p><div style="font-size:14px">${wording.c.flag} ${esc(wording.c.label)} <span style="color:var(--muted)">· ${Math.round(wording.s * 100)}% similar vocabulary</span></div>` +
+      (lenders.length ? `<p class="k">Shares passages word for word with</p><div style="font-size:14px">${lenders.slice(0, 4).map((x) => `${x.c.flag} ${esc(x.c.label)} <span style="color:var(--muted)">${x.n}</span>`).join(" · ")}</div>` +
+        (sample ? `<p class="borrow">e.g. <q>${esc(String(sample[3]).slice(0, 180))}${String(sample[3]).length > 180 ? "…" : ""}</q></p>` : "") : "") +
+      `<div class="btns" style="margin-top:14px"><button id="cp">Copy reply text</button><a href="compare/?c=${iso}">See the family on a globe</a></div>` +
+      `</div></div>`;
+    $("#profile").querySelectorAll(".rel li").forEach((li) => li.addEventListener("click", () => show(li.dataset.iso)));
+    $("#dl").addEventListener("click", async () => {
+      if (!window.downloadConstitution) return;
+      const b = $("#dl"); b.disabled = true;
+      await window.downloadConstitution(iso, { name: a.label, title: a.title, enacted: a.year, revised: a.rev }, (m) => ($("#st").textContent = m));
+      b.disabled = false;
+    });
+    $("#cp").addEventListener("click", async () => { try { await navigator.clipboard.writeText(reply); $("#st").textContent = "Copied: " + reply; } catch (e) { $("#st").textContent = reply; } });
+    if (scroll) $("#lookup").scrollIntoView({ behavior: "smooth", block: "start" });
+    window.civTrack?.("civic_lookup", { country: iso, brother: top.c.iso });
+  }
+
+  // start: the link's country, else the visitor's country by IP
+  const h = location.hash.slice(1).toUpperCase();
+  if (byIso[h]) show(h, false);
+  else {
+    try {
+      const wa = await fetch("https://civfm-proxy.boogaav.workers.dev/whereami").then((r) => r.json());
+      const f = facts.find((x) => x.cca2 === wa.country);
+      if (f && byIso[f.cca3] && !current) show(f.cca3, false);
+    } catch (e) {}
+  }
+  window.addEventListener("hashchange", () => { const k = location.hash.slice(1).toUpperCase(); if (byIso[k] && k !== current) show(k); });
+})();
+</script>
+<script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
+<script src="../track.js" defer></script>
+</body>
+</html>

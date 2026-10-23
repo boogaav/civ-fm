@@ -91,11 +91,19 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 .gl-legend { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:11.5px; color:var(--muted); }
 .gl-legend .bar { flex:1; max-width:220px; height:6px; border-radius:3px; background:linear-gradient(90deg,#2c2c2e,#14456f,#0a84ff,#9ecfff); }
 .gl-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.atlas-cta { display:flex; align-items:center; gap:14px; margin:4px 0 6px; padding:14px 16px; border-radius:14px; text-decoration:none; color:var(--ink); background:linear-gradient(90deg, rgba(10,132,255,.18), rgba(10,132,255,.05)); border:1px solid rgba(10,132,255,.4); }
+.atlas-cta:hover { background:linear-gradient(90deg, rgba(10,132,255,.26), rgba(10,132,255,.08)); }
+.atlas-cta > span:first-child { font-size:28px; }
+.atlas-cta b { display:block; font-size:16px; }
+.atlas-cta small { display:block; font-size:12.5px; color:var(--muted); }
+.atlas-cta em { margin-left:auto; font-style:normal; font-size:13px; font-weight:600; color:var(--accent); white-space:nowrap; }
+@media (max-width:640px) { .atlas-cta em { display:none; } }
 </style>
 </head>
 <body>
 <header>
   <a class="brand" href="../../">CIV FM</a>
+  <a class="lnk" href="../">Civic</a>
   <a class="lnk" href="../constitution/">Read a constitution</a>
   <a class="lnk" href="../atlas/">Constitution Atlas</a>
   <span class="spacer"></span>
@@ -105,6 +113,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 <main>
   <h1>What unites the world's constitutions</h1>
   <p class="lead">Every constitution in force, read through one set of 387 topics. The topics almost all of them share, the ones few do, and which constitutions resemble each other most.</p>
+  <a class="atlas-cta" href="../atlas/"><span>🗺️</span><span><b>Go deeper in the Constitution Atlas</b><small>Families of related constitutions, similarity by wording and structure, and passages copied word for word between countries.</small></span><em>civ.fm/civic/atlas →</em></a>
   <div class="stats" id="stats"></div>
 
   <h2>Shared ground</h2>

@@ -138,6 +138,22 @@ government in parliamentary systems and constitutional monarchies, the
 head of state elsewhere. Wikidata is volunteer-edited: stale entries keep a
 former holder on the list, and the card says so.
 
+## /civic — the constitution hub
+
+`civic/index.html` is the landing page for everything constitutional:
+stats from `atlas/atlas.json`, a country lookup (names, codes, native
+names and aliases; opens on the visitor's country via `/whereami`, or
+`#ISO3`), and per country: constitution facts, political system
+(`civic.json`), family (atlas), the constitutional brother (cosine of
+topic sets weighted by rarity, ln(N/n) per topic, so shared rare
+guarantees count most), five runners-up, the closest constitution by
+wording and the countries it shares passages with (atlas `cos`/`sh`
+pair arrays), a copy-ready reply line, PDF download, and deep links into
+the reader, compare, atlas, card and the globe. Tiles lead to each tool;
+the shared-ground and rarest-guarantee strips and the 14 families link
+onward. The globe accepts `?ch=<channel>&sub=<sub>&c=<ISO3>` to open on a
+channel, sub-section and country (`style.load` in app.js).
+
 ## /civic/compare — what unites constitutions
 
 `civic/build_compare.py <constitute dir>` reads the raw Constitute HTML

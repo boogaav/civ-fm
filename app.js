@@ -35,8 +35,21 @@ map.on("style.load", () => {
   map.setProjection({ type: "globe" });
   addTerminator();
   applyBorders();
-  tune("earth");
+  // deep links from other pages: ?ch=state&sub=parties[&c=UKR]
+  const qp = new URLSearchParams(location.search);
+  const ch = qp.get("ch"), sub = qp.get("sub");
+  const start = ch && CHANNELS[ch] && document.querySelector(`.chan[data-ch="${ch}"]`) ? ch : "earth";
+  if (sub && (CHANNELS[start].subs || []).some((s) => s.id === sub)) state.subs[start] = sub;
+  tune(start);
   setStatus(LIVE);
+  const c3 = (qp.get("c") || "").toUpperCase();
+  if (/^[A-Z]{3}$/.test(c3)) loadFacts().then((f) => {
+    const c = f.by3[c3];
+    if (!c || !c.latlng) return;
+    state.interacted = true;
+    map.jumpTo({ center: [c.latlng[1], c.latlng[0]], zoom: 3.2 });
+    setHere(c.latlng[0], c.latlng[1]);
+  }).catch(() => {});
 });
 
 /* ---------------- mobile pill placement ---------------- */
@@ -1482,6 +1495,7 @@ async function hereState(el) {
     civicRow("How it is amended", K.amend) +
     (K.local ? `<a class="ro wide pm-link" href="civic/constitution/?c=${c.cca3}">Read ${c.name.common}'s constitution, full text →</a>` : "") +
     (K.local ? `<a class="ro wide pm-link" href="civic/compare/?c=${c.cca3}">How it compares with every other constitution →</a>` : "") +
+    `<a class="ro wide pm-link" href="civic/#${c.cca3}">${c.name.common}'s constitutional brother and family →</a>` +
     `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
     civicRow("Independence", v.indep) +
     civicRow("National day", v.holiday) +
