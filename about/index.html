@@ -70,7 +70,42 @@ h3 { font-size:21px; line-height:1.3; letter-spacing:-.015em; font-weight:500; m
 @keyframes drift2 { to { transform:translate(-7%, 8%) scale(1.06); } }
 @keyframes drift3 { to { transform:translate(-6%, -7%) scale(1.1); } }
 #globe { position:absolute; inset:0; width:100%; height:100%; }
-.caption { position:absolute; left:24px; bottom:20px; font-size:13px; color:#55556a; background:rgba(255,255,255,.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 12px; border-radius:999px; }
+.caption { position:absolute; right:24px; bottom:20px; z-index:3; display:flex; align-items:center; gap:8px; font-size:13px; color:#55556a; background:rgba(255,255,255,.75); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 12px; border-radius:999px; }
+.caption .bars { display:inline-flex; align-items:flex-end; gap:2px; height:10px; }
+.caption .bars i { width:2px; height:100%; background:#0d0d0d; border-radius:1px; transform-origin:bottom; animation:eq 1s ease-in-out infinite; }
+.caption .bars i:nth-child(2) { animation-delay:-.3s; } .caption .bars i:nth-child(3) { animation-delay:-.6s; }
+.caption .t2 { display:none; }
+.caption.listening .t1 { display:none; } .caption.listening .t2 { display:inline; }
+@keyframes eq { 0%,100% { transform:scaleY(.3); } 50% { transform:scaleY(1); } }
+
+/* ---------- the little doctor ----------
+   Base styles are the final pose (arrived, stethoscope on the globe, eyes
+   closed, listening). The animations play the walk-in and the reach from
+   their first frame, so with reduced motion he simply stands there listening. */
+.doc { position:absolute; z-index:2; bottom:14px; left:calc(50% - 74px); width:100px; height:150px; animation:walkin 3.4s cubic-bezier(.33,.0,.3,1) both; }
+.doc svg { width:100%; height:100%; overflow:visible; }
+.doc .ink { fill:none; stroke:#0d0d0d; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.doc .coat { fill:#fff; stroke:#0d0d0d; stroke-width:2.2; stroke-linejoin:round; }
+.doc .bodybob { animation:bob .425s ease-in-out 8 alternate both; }
+.doc .legL { transform-origin:44px 100px; animation:swing .425s ease-in-out 8 alternate both; }
+.doc .legR { transform-origin:56px 100px; animation:swing .425s ease-in-out 8 alternate-reverse both; }
+.doc .armB { transform-origin:38px 44px; animation:swing .425s ease-in-out 8 alternate-reverse both; }
+.doc .reach { transform-origin:62px 42px; transform:rotate(-128deg); animation:reach .9s cubic-bezier(.3,.7,.3,1) 3.45s both; }
+.doc .head { transform-origin:50px 34px; transform:rotate(9deg); animation:tilt .9s ease 3.45s both, listen 3.2s ease-in-out 4.6s infinite; }
+.doc .eyesOpen { opacity:0; animation:eyesOff .3s ease 4.3s both; }
+.doc .eyesShut { opacity:1; animation:eyesOn .3s ease 4.3s both; }
+.doc .ring { position:absolute; left:84px; top:13px; width:8px; height:8px; margin:-4px 0 0 -4px; border-radius:50%; border:1.5px solid #0d0d0d; opacity:0; animation:ring 2s ease-out 4.2s infinite; }
+.doc .ring.r2 { animation-delay:4.9s; } .doc .ring.r3 { animation-delay:5.6s; }
+@keyframes walkin { from { transform:translateX(-60vw); } to { transform:none; } }
+@keyframes bob { from { transform:translateY(0); } to { transform:translateY(-2.5px); } }
+@keyframes swing { from { transform:rotate(16deg); } to { transform:rotate(-16deg); } }
+@keyframes reach { from { transform:rotate(0deg); } to { transform:rotate(-128deg); } }
+@keyframes tilt { from { transform:rotate(0deg); } to { transform:rotate(9deg); } }
+@keyframes listen { 0%,100% { transform:rotate(9deg); } 50% { transform:rotate(14deg) translateY(1px); } }
+@keyframes eyesOff { from { opacity:1; } to { opacity:0; } }
+@keyframes eyesOn { from { opacity:0; } to { opacity:1; } }
+@keyframes ring { 0% { opacity:.55; transform:scale(1); } 100% { opacity:0; transform:scale(7); } }
+@media (max-width:640px) { .doc { width:76px; height:114px; left:calc(50% - 56px); } .doc .ring { left:64px; top:10px; } .caption { top:14px; bottom:auto; right:14px; } }
 
 /* ---------- numbers ---------- */
 .nums { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); border-top:1px solid var(--rule); margin-top:64px; }
@@ -157,7 +192,35 @@ footer a:hover { color:var(--ink); }
       <div class="field rv d3">
         <div class="wash" aria-hidden="true"><span class="w1"></span><span class="w2"></span><span class="w3"></span><span class="w4"></span></div>
         <canvas id="globe" aria-hidden="true"></canvas>
-        <span class="caption">One globe, every place on Earth</span>
+        <div class="doc" aria-hidden="true">
+          <svg viewBox="0 0 100 150">
+            <g class="legL"><path class="ink" d="M44 100 L43 136 L37 137"/></g>
+            <g class="legR"><path class="ink" d="M56 100 L57 136 L63 137"/></g>
+            <g class="bodybob">
+              <g class="armB"><path class="ink" d="M38 44 L33 76"/></g>
+              <path class="coat" d="M38 40 Q50 36 62 40 L67 102 Q50 106 33 102 Z"/>
+              <path class="ink" d="M50 40 L50 103 M44 41 L50 52 L56 41"/>
+              <path class="ink" d="M55 70 h7" style="stroke-width:1.6"/>
+              <!-- stethoscope: earpieces, Y to the neck, tube down the reaching arm -->
+              <g class="head">
+                <circle class="coat" cx="50" cy="23" r="12"/>
+                <path class="ink" d="M39 18 Q50 8 61 18" style="stroke-width:1.8"/>
+                <circle cx="50" cy="13" r="3.6" fill="#e8e8ee" stroke="#0d0d0d" stroke-width="1.8"/>
+                <g class="eyesOpen"><circle cx="45.5" cy="24" r="1.3" fill="#0d0d0d"/><circle cx="54.5" cy="24" r="1.3" fill="#0d0d0d"/></g>
+                <g class="eyesShut"><path class="ink" d="M43.5 24.5 q2 1.6 4 0 M52.5 24.5 q2 1.6 4 0" style="stroke-width:1.5"/></g>
+                <path class="ink" d="M47 29.5 q3 1.6 6 0" style="stroke-width:1.5"/>
+                <path class="ink" d="M39.5 24 Q41 34 50 37 Q59 34 60.5 24" style="stroke-width:1.6"/>
+              </g>
+              <g class="reach">
+                <path class="ink" d="M62 42 L70 74"/>
+                <path class="ink" d="M50 37 Q60 46 66 58 Q70 68 70.5 74" style="stroke-width:1.4"/>
+                <circle cx="70.5" cy="76" r="4" fill="#fff" stroke="#0d0d0d" stroke-width="2"/>
+              </g>
+            </g>
+          </svg>
+          <span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span>
+        </div>
+        <span class="caption" id="cap"><span class="bars"><i></i><i></i><i></i></span><span class="t1">One globe, every place on Earth</span><span class="t2">Listening to the world</span></span>
       </div>
     </div>
   </section>
@@ -228,6 +291,9 @@ footer a:hover { color:var(--ink); }
 (() => {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const $ = (s) => document.querySelector(s);
+
+  /* the caption changes once the doctor starts listening */
+  setTimeout(() => $("#cap").classList.add("listening"), reduce ? 0 : 4300);
 
   /* nav rule once the page scrolls */
   const bar = $("#bar");
