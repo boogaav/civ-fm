@@ -52,6 +52,7 @@ h2 { font-size:clamp(32px, 4.2vw, 52px); line-height:1.08; letter-spacing:-.03em
 h3 { font-size:21px; line-height:1.3; letter-spacing:-.015em; font-weight:500; margin:0 0 10px; }
 .lead { font-size:clamp(18px, 1.6vw, 21px); line-height:1.55; color:var(--body); max-width:58ch; margin:0 0 36px; }
 .intro { font-size:18px; line-height:1.65; color:var(--body); max-width:62ch; margin:0; }
+.statement { font-size:clamp(26px, 3vw, 38px); line-height:1.3; letter-spacing:-.02em; font-weight:400; color:var(--ink); max-width:30ch; margin:0; }
 .split { display:grid; grid-template-columns:minmax(0, 5fr) minmax(0, 7fr); gap:64px; align-items:start; }
 @media (max-width:900px) { .split { grid-template-columns:1fr; gap:24px; } }
 
@@ -83,18 +84,6 @@ h3 { font-size:21px; line-height:1.3; letter-spacing:-.015em; font-weight:500; m
   .num { padding:24px 16px 24px 0 !important; border-right:0 !important; }
   .num:nth-child(odd) { border-right:1px solid var(--rule) !important; }
   .num:nth-child(even) { padding-left:16px !important; }
-}
-
-/* ---------- beliefs ---------- */
-.beliefs { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0; margin-top:56px; border-top:1px solid var(--rule); }
-.beliefs article { padding:36px 40px 40px 0; border-bottom:1px solid var(--rule); }
-.beliefs article:nth-child(odd) { border-right:1px solid var(--rule); }
-.beliefs article:nth-child(even) { padding-left:40px; }
-.beliefs .n { font-size:14px; color:var(--faint); font-variant-numeric:tabular-nums; margin-bottom:22px; }
-.beliefs p { margin:0; color:var(--body); font-size:16.5px; line-height:1.65; }
-@media (max-width:760px) {
-  .beliefs { grid-template-columns:1fr; }
-  .beliefs article { padding:30px 0 !important; border-right:0 !important; }
 }
 
 /* ---------- instruments ---------- */
@@ -149,7 +138,6 @@ footer a:hover { color:var(--ink); }
   <a class="logo" href="../"><i></i>CIV FM</a>
   <nav>
     <a href="#mission">Mission</a>
-    <a href="#believe">Beliefs</a>
     <a href="#built">Instruments</a>
     <a href="#sources">Sources</a>
   </nav>
@@ -177,27 +165,9 @@ footer a:hover { color:var(--ink); }
 
   <section id="mission">
     <div class="wrap">
-      <div class="split">
-        <div>
-          <p class="label rv">Mission</p>
-          <h2 class="rv">A civilisation dashboard for one human.</h2>
-        </div>
-        <p class="intro rv">Governments, banks and newsrooms have always had instruments for reading the world. Citizens had headlines. We are building the other side: one living globe that shows any person, anywhere, the air they breathe, the rights their constitution promises, the people who hold power over them, and the century ahead of them. Every number sourced. Every tool free.</p>
-      </div>
+      <p class="label rv">Mission</p>
+      <p class="statement rv">One living globe that shows any person, anywhere, the air they breathe, the rights their constitution promises, the people who hold power over them, and the century ahead of them. Every number sourced. Every tool free.</p>
       <div class="nums" id="nums"></div>
-    </div>
-  </section>
-
-  <section id="believe">
-    <div class="wrap">
-      <p class="label rv">What we believe</p>
-      <h2 class="rv">Knowledge that moves the whole world forward.</h2>
-      <div class="beliefs">
-        <article class="rv"><div class="n">01</div><h3>Everyone deserves the full picture.</h3><p>The facts that shape a life (safety, money, health, rights, power) are scattered across thousands of databases. We gather them onto one globe, so a farmer in Vietnam and a student in Kyiv see the same world a minister does.</p></article>
-        <article class="rv"><div class="n">02</div><h3>Open data. Named sources.</h3><p>Every layer says where it comes from and how old it is. When sources disagree, we show it. When data is thin, we say so. Trust is earned one footnote at a time.</p></article>
-        <article class="rv"><div class="n">03</div><h3>Built for one person at a time.</h3><p>Click anywhere on Earth and the whole interface answers for that place. Not averages for a continent: your region, your parliament, your constitution, your sky.</p></article>
-        <article class="rv"><div class="n">04</div><h3>Free, fast, everywhere.</h3><p>No account, no paywall, no tracking you can't see. It runs on a cheap phone and on networks that block half the internet, because the people who need it most often have both.</p></article>
-      </div>
     </div>
   </section>
 
