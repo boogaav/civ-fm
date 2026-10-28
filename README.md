@@ -119,6 +119,22 @@ Factbook's head-of-government line, or by abbreviation inside a group name
 (CDU in CDU/CSU). The map colours countries by the largest party's seat
 share. Shares are of the house, not of cabinet posts.
 
+## State › Tax — what the state collects, from what, and where it goes
+
+All World Bank indicators through the Worker's `/wb/` route (`TAX_WB` in
+app.js): revenue excluding grants and tax revenue (% of GDP), the revenue
+mix (taxes on income and profits, goods and services, international trade,
+other taxes, social contributions, each % of revenue; the remainder is
+fees, property income and grants), expense (% of GDP), government health
+(WHO), education (UNESCO) and military (SIPRI) spending, interest (% of
+revenue), GDP in US$ and population for the money total and per person,
+plus the curated top income and corporate rates. The map shades revenue %
+of GDP. These are central-government figures: in federations states and
+cities collect more on top (Germany shows 29%, general government is
+~47%), and the card says so. The IMF DataMapper API (general government)
+returns 403 to scripts, so it is not used; countries that do not report
+(Vietnam) get their rates and a note.
+
 ## State › Power — who holds it, and for how long
 
 `civic/build_power.py [ISO3 …]` writes `civic/power/<ISO3>.json` (up to

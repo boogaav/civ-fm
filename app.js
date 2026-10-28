@@ -528,7 +528,7 @@ function trend(rec, { pts = false, better = null, label = "", digits = 1 } = {})
   const pt = s.map(([y, v], i) =>
     `${((y - s[0][0]) / Math.max(1, s[s.length - 1][0] - s[0][0]) * (w - 2) + 1).toFixed(1)},${(h - 1 - ((v - min) / (max - min || 1)) * (h - 2)).toFixed(1)}`
   ).join(" ");
-  const flat = Math.abs(t.d) < 1e-9 || (!pts && Math.abs(t.d / (t.from[1] || 1)) < 0.005);
+  const flat = (pts ? Math.abs(t.d) < 0.05 * Math.pow(10, 1 - digits) : Math.abs(t.d / (t.from[1] || 1)) < 0.005);
   const dir = flat ? "flat" : t.d > 0 ? "up" : "down";
   const tone = flat || !better ? "" : (dir === better ? " good" : " bad");
   const arrow = flat ? "→" : dir === "up" ? "↗" : "↘";
@@ -1585,6 +1585,96 @@ async function hereParties(el) {
     `</div>`;
 }
 
+/* ---- State › Tax: how much the state collects, from what, and where it goes ---- */
+// World Bank (IMF Government Finance Statistics underneath). Central
+// government only: in federations states and cities collect a large share on
+// top, so Germany or the USA read low. The card says so.
+
+const TAX_WB = {
+  rev: "GC.REV.XGRT.GD.ZS",   // revenue excluding grants, % of GDP
+  tax: "GC.TAX.TOTL.GD.ZS",   // tax revenue, % of GDP
+  inc: "GC.TAX.YPKG.RV.ZS",   // taxes on income, profits and capital gains, % of revenue
+  gds: "GC.TAX.GSRV.RV.ZS",   // taxes on goods and services (VAT, excise), % of revenue
+  trd: "GC.TAX.INTT.RV.ZS",   // taxes on international trade, % of revenue
+  oth: "GC.TAX.OTHR.RV.ZS",   // other taxes, % of revenue
+  soc: "GC.REV.SOCL.ZS",      // social contributions, % of revenue
+  exp: "GC.XPN.TOTL.GD.ZS",   // expense, % of GDP
+  hea: "SH.XPD.GHED.GD.ZS",   // government health spending, % of GDP
+  edu: "SE.XPD.TOTL.GD.ZS",   // government education spending, % of GDP
+  mil: "MS.MIL.XPND.GD.ZS",   // military spending, % of GDP
+  int: "GC.XPN.INTP.RV.ZS",   // interest payments, % of revenue
+  gdp: "NY.GDP.MKTP.CD",      // GDP, current US$
+  pop: "SP.POP.TOTL",
+};
+const TAX_RAMP = [[5, "#2a2a3a"], [15, "#3d4f8c"], [25, "#5e7fe0"], [35, "#a58bf0"], [48, "#f2c4ff"]];
+const MIX = [
+  ["inc", "Income and profits", "#0a84ff"],
+  ["gds", "Goods and services (VAT, excise)", "#30d158"],
+  ["soc", "Social contributions", "#bf5af2"],
+  ["trd", "Trade and customs", "#ff9f0a"],
+  ["oth", "Other taxes", "#ffd60a"],
+];
+
+async function applyTax() {
+  await Promise.all(Object.values(TAX_WB).map(wb));
+  await addChoropleth({
+    values: state.cache.wb[TAX_WB.rev] || {},
+    ramp: TAX_RAMP, opacity: 0.6,
+    fmt: (v) => `government collects ${v.toFixed(1)}% of GDP`,
+    pts: true,
+  });
+  legend("State — what the government collects, % of GDP", [
+    { gradient: gradientCSS(TAX_RAMP), from: "5%", to: "48%+" },
+    { color: "transparent", label: "Central government revenue, excluding grants · World Bank / IMF" },
+  ]);
+}
+
+const usd = (v) => (v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(v >= 1e11 ? 0 : 1)}B` : v >= 1e6 ? `$${Math.round(v / 1e6)}M` : `$${Math.round(v).toLocaleString("en")}`);
+
+function hereTax(el) {
+  if (needCountry(el)) return;
+  const c = state.here.country, g = (k) => wbHere(TAX_WB[k]);
+  const rev = g("rev"), tax = g("tax"), gdp = g("gdp"), pop = g("pop"), exp = g("exp");
+  if (!rev && !tax) {
+    const inc0 = taxHere("income"), corp0 = taxHere("corporate");
+    el.innerHTML = `<div class="readouts">` +
+      ((inc0 || corp0) ? ro("Top income tax", inc0 ? `${inc0.rate}<small>%</small>` : "—", "", inc0?.note || "", false) + ro("Corporate tax", corp0 ? `${corp0.rate}<small>%</small>` : "—", "", corp0?.note || "", false) : "") +
+      `<div class="ro wide"><span class="k">Revenue and spending</span><span class="civ">${c.name.common} does not report its government revenue to the World Bank and IMF series used here.</span></div>` +
+      `<div class="psrc">Rates: CIV FM's curated table, 2026.</div></div>`;
+    return;
+  }
+  const head = rev || tax;
+  const total = gdp ? (head.value / 100) * gdp.value : null;
+  const perHead = total && pop ? total / pop.value : null;
+  // where the money comes from: shares of revenue; the remainder is fees, property income, grants
+  const parts = MIX.map(([k, label, color]) => { const r = g(k); return r && r.value > 0.05 ? { k, label, color, v: r.value, year: r.year } : null; }).filter(Boolean).sort((a, b) => b.v - a.v);
+  const sum = parts.reduce((a, p) => a + p.v, 0);
+  const rest = Math.max(0, 100 - sum);
+  const bar = parts.length
+    ? `<div class="taxbar">${parts.map((p) => `<i style="width:${p.v}%;background:${p.color}" title="${p.label} ${p.v.toFixed(0)}%"></i>`).join("")}${rest > 0.5 ? `<i style="width:${rest}%;background:#48484a" title="Fees, property income, grants and other"></i>` : ""}</div>` +
+      `<ul class="taxmix">${parts.map((p) => `<li><span class="sw" style="background:${p.color}"></span><span>${p.label}</span><b>${p.v.toFixed(0)}%</b></li>`).join("")}` +
+      (rest > 0.5 ? `<li><span class="sw" style="background:#48484a"></span><span>Fees, property income, grants, other</span><b>${rest.toFixed(0)}%</b></li>` : "") + `</ul>`
+    : `<div class="here-hint" style="margin:6px 0 0">No breakdown by source reported.</div>`;
+  // where it goes
+  const spend = [["hea", "Health"], ["edu", "Education"], ["mil", "Military"]].map(([k, l]) => [l, g(k)]).filter(([, r]) => r);
+  const intr = g("int");
+  const inc = taxHere("income"), corp = taxHere("corporate");
+  el.innerHTML =
+    `<div class="readouts">` +
+    ro("Collected", `${head.value.toFixed(1)}<small>% of GDP</small>`, "", `${rev ? "all revenue" : "taxes"} · ${head.year}`, false, trend(head, { pts: true, label: "Revenue" })) +
+    ro("In money", total ? usd(total) : "—", "", perHead ? `${usd(perHead)} per person a year` : "", false) +
+    (rev && tax ? ro("Of which taxes", `${tax.value.toFixed(1)}<small>% of GDP</small>`, "", `${Math.round((tax.value / rev.value) * 100)}% of revenue · ${tax.year}`, false, trend(tax, { pts: true, label: "Tax revenue" })) : "") +
+    (exp ? ro("Spent", `${exp.value.toFixed(1)}<small>% of GDP</small>`, exp.value > head.value + 2 ? "warn" : "", exp.value > head.value ? `${(exp.value - head.value).toFixed(1)} pts more than collected` : `within revenue · ${exp.year}`, false) : "") +
+    `<div class="ro wide"><span class="k">Where the money comes from · share of revenue</span>${bar}</div>` +
+    (spend.length || intr ? `<div class="ro wide"><span class="k">Where some of it goes · % of GDP</span><ul class="taxmix">` +
+      spend.map(([l, r]) => `<li><span class="sw" style="background:#98989d"></span><span>${l}</span><b>${r.value.toFixed(1)}%</b><small>${r.year}</small></li>`).join("") +
+      (intr ? `<li><span class="sw" style="background:#ff453a"></span><span>Interest on debt</span><b>${intr.value.toFixed(0)}%</b><small>of revenue · ${intr.year}</small></li>` : "") +
+      `</ul></div>` : "") +
+    ((inc || corp) ? ro("Top income tax", inc ? `${inc.rate}<small>%</small>` : "—", "", inc?.note || "", false) + ro("Corporate tax", corp ? `${corp.rate}<small>%</small>` : "—", "", corp?.note || "", false) : "") +
+    `<div class="psrc">World Bank WDI from IMF Government Finance Statistics; central government only, so states and cities in federations collect more on top. Health: WHO; education: UNESCO; military: SIPRI. Rates: CIV FM's curated table.</div>` +
+    `</div>`;
+}
+
 /* ---- State › Power: who holds it, and for how long ---- */
 // civic/power/index.json carries each country's current leader and years in
 // office (the map); civic/power/<ISO3>.json lists up to 100 office holders
@@ -2326,6 +2416,7 @@ const CHANNELS = {
       { id: "vote", label: "Vote" },
       { id: "parties", label: "Parties" },
       { id: "power", label: "Power" },
+      { id: "tax", label: "Tax" },
       { id: "passport", label: "Passport" },
       { id: "citizenship", label: "Citizenship" },
       { id: "immigration", label: "Immigration" },
@@ -2339,6 +2430,7 @@ const CHANNELS = {
       if (id === "vote") await applyBallot();
       else if (id === "parties") await applyParties();
       else if (id === "power") await applyPower();
+      else if (id === "tax") await applyTax();
       else if (id === "passport") await applyPassport();
       else if (id === "citizenship") await applyCitizenship();
       else if (id === "immigration") await applyImmigration();
@@ -2358,6 +2450,7 @@ const CHANNELS = {
       if (sub === "vote") return hereBallot(el);
       if (sub === "parties") return hereParties(el);
       if (sub === "power") return herePower(el);
+      if (sub === "tax") return hereTax(el);
       if (sub === "passport") return herePassport(el);
       if (sub === "citizenship") return hereCitizenship(el);
       if (sub === "immigration") return hereImmigration(el);

@@ -138,6 +138,10 @@ const EXPLAIN = {
     what: "How long the current leader has held power: green is a new leader, red is decades. Click a country for up to 100 people who hold power there, office holders and the richest citizens, each linking to Wikipedia.",
     src: "Wikidata: people currently holding an office of the country (no end date, still living) and citizens with a declared net worth. The ranking weights the office first, then prominence. Wikidata is edited by volunteers; a stale entry can keep a former holder on the list.",
   },
+  "state/tax": {
+    what: "How much each government collects as a share of its economy. Click a country for the total in dollars and per person, how much of it is tax, where the money comes from (income, VAT, social contributions, trade), what it spends on health, education, the military and interest, and its top income and corporate tax rates.",
+    src: "World Bank World Development Indicators, from IMF Government Finance Statistics, latest year reported; central government only, so federations read low. Health spending: WHO; education: UNESCO; military: SIPRI. Tax rates: CIV FM's curated table, 2026.",
+  },
   "state/passport": {
     what: "Where one passport can go: green visa-free, teal on arrival, yellow e-visa, orange a visa in advance, red no admission. Pick the passport in the panel; it starts with the country you are in.",
     src: "Passport Index dataset (ilyankou, MIT), copied to civ.fm; visa rules change, so check before you fly.",
