@@ -5,7 +5,31 @@
    card shared). Nothing personal is sent: no names, no location beyond the
    country of a point the visitor chose to click, no IP on our side. */
 (function () {
-  const t = (name, props) => { try { window.booga && window.booga.track(name, props); } catch (e) {} };
+  // Google Analytics 4 + Microsoft Clarity, for every page that loads this
+  // file. Blank an id to switch that tool off; both stay off until set.
+  const GA_ID = "";       // e.g. "G-XXXXXXXXXX" (GA4 property for civ.fm)
+  const CLARITY_ID = "";  // e.g. "abc123xyz0" (Clarity project for civ.fm)
+  if (GA_ID) {
+    const s = document.createElement("script");
+    s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { dataLayer.push(arguments); };
+    gtag("js", new Date()); gtag("config", GA_ID);
+  }
+  if (CLARITY_ID) {
+    window.clarity = window.clarity || function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
+    const s = document.createElement("script");
+    s.async = true; s.src = "https://www.clarity.ms/tag/" + CLARITY_ID;
+    document.head.appendChild(s);
+  }
+
+  // one event goes to every tool that is switched on
+  const t = (name, props) => {
+    try { window.booga && window.booga.track(name, props); } catch (e) {}
+    try { GA_ID && window.gtag("event", name.replace(/[^a-z0-9_]+/gi, "_").slice(0, 40), props || {}); } catch (e) {}
+    try { CLARITY_ID && window.clarity("event", name.slice(0, 64)); } catch (e) {}
+  };
   window.civTrack = t;
 
   // every click on a button, link, select or dial element becomes
