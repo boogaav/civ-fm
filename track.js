@@ -7,8 +7,8 @@
 (function () {
   // Google Analytics 4 + Microsoft Clarity, for every page that loads this
   // file. Blank an id to switch that tool off; both stay off until set.
-  const GA_ID = "";       // e.g. "G-XXXXXXXXXX" (GA4 property for civ.fm)
-  const CLARITY_ID = "";  // e.g. "abc123xyz0" (Clarity project for civ.fm)
+  const GA_ID = "G-Q161WB5SES";     // GA4 property for civ.fm
+  const CLARITY_ID = "vd20h6p3cw"; // Clarity project for civ.fm
   if (GA_ID) {
     const s = document.createElement("script");
     s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
