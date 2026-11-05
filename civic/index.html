@@ -10,11 +10,13 @@
 <meta property="og:url" content="https://civ.fm/civic/">
 <link rel="canonical" href="https://civ.fm/civic/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --space:#0b0b0d; --glass:rgba(28,28,30,.8); --glass-2:rgba(255,255,255,.06); --hairline:rgba(255,255,255,.1);
-  --ink:#f5f5f7; --muted:#98989d; --faint:#636366; --accent:#0a84ff; --ok:#30d158; --warn:#ff9f0a; --bad:#ff453a;
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
+  --space:#ffffff; --glass:rgba(255,255,255,.88); --glass-2:#f7f7f8; --hairline:#ececf1;
+  --ink:#0d0d0d; --muted:#6e6e80; --faint:#acacbe; --accent:#0d0d0d; --ok:#10a37f; --warn:#c2410c; --bad:#d70015;
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -39,10 +41,10 @@ h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
 /* lookup */
 .lookup { background:linear-gradient(180deg, rgba(10,132,255,.08), rgba(10,132,255,0)); border:1px solid var(--hairline); border-radius:18px; padding:20px; }
 .search { position:relative; }
-#q { appearance:none; width:100%; font-family:var(--font); font-size:20px; font-weight:600; color:var(--ink); background:rgba(0,0,0,.35); border:1px solid var(--hairline); border-radius:14px; padding:15px 18px; outline:none; }
+#q { appearance:none; width:100%; font-family:var(--font); font-size:20px; font-weight:600; color:var(--ink); background:#fff; border:1px solid var(--hairline); border-radius:14px; padding:15px 18px; outline:none; }
 #q:focus { border-color:rgba(10,132,255,.6); box-shadow:0 0 0 4px rgba(10,132,255,.15); }
 #q::placeholder { color:var(--faint); font-weight:500; }
-#sug { position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; list-style:none; margin:0; padding:6px; background:#1c1c1e; border:1px solid var(--hairline); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.5); max-height:320px; overflow-y:auto; }
+#sug { position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:5; list-style:none; margin:0; padding:6px; background:#fff; border:1px solid var(--hairline); border-radius:12px; box-shadow:0 16px 40px rgba(0,0,0,.5); max-height:320px; overflow-y:auto; }
 #sug:empty { display:none; }
 #sug li { padding:9px 12px; border-radius:8px; cursor:pointer; }
 #sug li.on, #sug li:hover { background:rgba(10,132,255,.18); }
@@ -55,13 +57,14 @@ h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
 .who h3 { font-size:24px; letter-spacing:-.02em; margin:0; }
 .who p { margin:2px 0 0; color:var(--muted); font-size:13.5px; }
 .facts { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:14px 0 0; }
-.facts div { background:rgba(0,0,0,.25); border-radius:10px; padding:8px 10px; }
+.facts div { background:var(--glass-2); border-radius:10px; padding:8px 10px; }
 .facts b { display:block; font-size:16px; font-weight:650; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .facts span { font-size:11px; color:var(--muted); }
 .k { font-size:10.5px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; }
 .btns { display:flex; flex-wrap:wrap; gap:6px; }
-.btns a, .btns button { appearance:none; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.08); border:1px solid var(--hairline); border-radius:9px; padding:7px 11px; }
-.btns a:hover, .btns button:hover { background:rgba(255,255,255,.14); }
+.btns a, .btns button { appearance:none; cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; color:var(--ink); background:rgba(0,0,0,.04); border:1px solid var(--hairline); border-radius:9px; padding:7px 11px; }
+.btns a:hover, .btns button:hover { background:rgba(0,0,0,.07); }
+.btns .primary:hover { background:#353740; }
 .btns .primary { background:var(--accent); border-color:transparent; color:#fff; }
 .bro { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; }
 .bro .flag { font-size:40px; line-height:1; }
@@ -73,7 +76,7 @@ h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
 .rel { list-style:none; margin:0; padding:0; }
 .rel li { display:grid; grid-template-columns:minmax(0,1fr) 110px 42px; gap:10px; align-items:center; padding:5px 0; border-top:1px solid var(--hairline); font-size:13.5px; cursor:pointer; }
 .rel li:first-child { border-top:0; }
-.rel .b { height:6px; background:rgba(255,255,255,.08); border-radius:3px; } .rel .b i { display:block; height:100%; border-radius:3px; background:var(--warn); }
+.rel .b { height:6px; background:rgba(0,0,0,.04); border-radius:3px; } .rel .b i { display:block; height:100%; border-radius:3px; background:var(--warn); }
 .rel .p { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
 .status { color:var(--muted); font-size:12.5px; min-height:18px; margin-top:6px; }
 .borrow { font-size:12.5px; color:var(--muted); margin:8px 0 0; line-height:1.5; }
@@ -82,7 +85,7 @@ h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
 /* tiles */
 .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:12px; }
 .tile { display:flex; flex-direction:column; gap:6px; background:var(--glass-2); border:1px solid var(--hairline); border-radius:14px; padding:16px; color:var(--ink); transition:background .15s ease, border-color .15s ease; }
-.tile:hover { background:rgba(255,255,255,.09); border-color:rgba(10,132,255,.35); }
+.tile:hover { background:rgba(0,0,0,.04); border-color:rgba(10,132,255,.35); }
 .tile .ic { font-size:24px; }
 .tile b { font-size:16px; letter-spacing:-.01em; }
 .tile span { font-size:13px; color:var(--muted); }

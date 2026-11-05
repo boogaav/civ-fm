@@ -6,11 +6,13 @@
 <title>What unites constitutions — CIV FM</title>
 <meta name="description" content="186 constitutions in force, 387 topics: what nearly every constitution guarantees, what is rare, and which constitutions resemble each other.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --space:#0b0b0d; --glass:rgba(28,28,30,.8); --glass-2:rgba(255,255,255,.06); --hairline:rgba(255,255,255,.1);
-  --ink:#f5f5f7; --muted:#98989d; --faint:#636366; --accent:#0a84ff; --ok:#30d158; --warn:#ff9f0a; --bad:#ff453a;
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
+  --space:#ffffff; --glass:rgba(255,255,255,.88); --glass-2:#f7f7f8; --hairline:#ececf1;
+  --ink:#0d0d0d; --muted:#6e6e80; --faint:#acacbe; --accent:#0d0d0d; --ok:#10a37f; --warn:#c2410c; --bad:#d70015;
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",sans-serif;
 }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--space); color:var(--ink); font-family:var(--font); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
@@ -40,39 +42,39 @@ input[type=search] { appearance:none; width:100%; font-family:var(--font); font-
 .bars li.on { background:rgba(10,132,255,.14); }
 .bars .l { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bars .l small { color:var(--faint); margin-left:6px; }
-.bars .b { height:7px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+.bars .b { height:7px; background:rgba(0,0,0,.04); border-radius:4px; overflow:hidden; }
 .bars .b i { display:block; height:100%; border-radius:4px; background:var(--accent); }
 .bars .b.u i { background:var(--ok); }
 .bars .p { text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
 .detail h3 { font-size:16px; margin:0 0 4px; }
 .detail .desc { color:var(--muted); font-size:13px; margin:0 0 12px; }
 .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(26px, 1fr)); gap:3px; margin:8px 0 12px; }
-.tile { aspect-ratio:1; border-radius:4px; background:rgba(255,255,255,.08); display:grid; place-items:center; font-size:9px; color:var(--faint); cursor:pointer; }
+.tile { aspect-ratio:1; border-radius:4px; background:rgba(0,0,0,.04); display:grid; place-items:center; font-size:9px; color:var(--faint); cursor:pointer; }
 .tile.in { background:rgba(10,132,255,.55); color:var(--ink); }
 .tile.sel { outline:2px solid var(--warn); }
 .quotes { display:flex; flex-direction:column; gap:8px; }
-.quote { background:rgba(0,0,0,.25); border:1px solid var(--hairline); border-radius:10px; padding:9px 11px; font-size:12.5px; }
+.quote { background:var(--glass-2); border:1px solid var(--hairline); border-radius:10px; padding:9px 11px; font-size:12.5px; }
 .quote b { display:block; font-size:11px; color:var(--accent); margin-bottom:3px; font-weight:600; }
 .quote a { color:var(--faint); font-size:11px; text-decoration:none; margin-left:6px; }
 .quote p { margin:0; color:var(--ink); line-height:1.45; }
 .sib { list-style:none; margin:8px 0 0; padding:0; }
 .sib li { display:grid; grid-template-columns:minmax(0,1fr) 90px 40px 24px; gap:8px; font-size:12.5px; padding:3px 0; align-items:center; border-top:1px solid var(--hairline); cursor:pointer; }
 .sib li:first-child { border-top:0; }
-.sib .b { height:5px; background:rgba(255,255,255,.08); border-radius:3px; } .sib .b i { display:block; height:100%; background:var(--muted); border-radius:3px; }
+.sib .b { height:5px; background:rgba(0,0,0,.04); border-radius:3px; } .sib .b i { display:block; height:100%; background:var(--muted); border-radius:3px; }
 .sib .y { color:var(--ok); } .sib .n { color:var(--faint); }
 .k { font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin:12px 0 4px; }
 .k:first-child { margin-top:0; }
-#map { width:100%; aspect-ratio:1.25; background:rgba(0,0,0,.25); border:1px solid var(--hairline); border-radius:14px; display:block; }
+#map { width:100%; aspect-ratio:1.25; background:var(--glass-2); border:1px solid var(--hairline); border-radius:14px; display:block; }
 #map circle { cursor:pointer; transition:r .12s ease; }
-#map circle:hover { stroke:#fff; stroke-width:1.5; }
+#map circle:hover { stroke:#0d0d0d; stroke-width:1.5; }
 #map circle.sel { stroke:var(--warn); stroke-width:2.5; }
-#map text { font-family:var(--font); fill:var(--ink); font-size:11px; paint-order:stroke; stroke:#0b0b0d; stroke-width:3px; pointer-events:none; }
+#map text { font-family:var(--font); fill:var(--ink); font-size:11px; paint-order:stroke; stroke:#ffffff; stroke-width:3px; pointer-events:none; }
 .legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:8px; font-size:11.5px; color:var(--muted); }
 .legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
 .near { list-style:none; margin:6px 0 0; padding:0; }
 .near li { display:grid; grid-template-columns:minmax(0,1fr) 110px 46px; gap:10px; align-items:center; padding:4px 0; border-top:1px solid var(--hairline); font-size:13px; cursor:pointer; }
 .near li:first-child { border-top:0; }
-.near .b { height:6px; background:rgba(255,255,255,.08); border-radius:3px; } .near .b i { display:block; height:100%; background:var(--warn); border-radius:3px; }
+.near .b { height:6px; background:rgba(0,0,0,.04); border-radius:3px; } .near .b i { display:block; height:100%; background:var(--warn); border-radius:3px; }
 .near .p { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
 .pills { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
 .pill { font-size:11.5px; background:var(--glass-2); border:1px solid var(--hairline); border-radius:999px; padding:2px 9px; cursor:pointer; color:var(--ink); }
@@ -85,11 +87,11 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <style>
-#globe { width:100%; height:clamp(320px, 52vw, 600px); border:1px solid var(--hairline); border-radius:14px; overflow:hidden; background:#0b0b0d; }
+#globe { width:100%; height:clamp(320px, 52vw, 600px); border:1px solid var(--hairline); border-radius:14px; overflow:hidden; background:#eef0f3; }
 #globe .maplibregl-popup-content { background:var(--glass) !important; color:var(--ink) !important; border:1px solid var(--hairline); border-radius:10px; font-family:var(--font); font-size:12px; padding:7px 10px !important; }
 #globe .maplibregl-popup-tip { border-top-color:var(--hairline) !important; }
 .gl-legend { display:flex; align-items:center; gap:10px; margin-top:8px; font-size:11.5px; color:var(--muted); }
-.gl-legend .bar { flex:1; max-width:220px; height:6px; border-radius:3px; background:linear-gradient(90deg,#2c2c2e,#14456f,#0a84ff,#9ecfff); }
+.gl-legend .bar { flex:1; max-width:220px; height:6px; border-radius:3px; background:linear-gradient(90deg,#dcdce0,#9ecfff,#0a84ff,#00408c); }
 .gl-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
 .atlas-cta { display:flex; align-items:center; gap:14px; margin:4px 0 6px; padding:14px 16px; border-radius:14px; text-decoration:none; color:var(--ink); background:linear-gradient(90deg, rgba(10,132,255,.18), rgba(10,132,255,.05)); border:1px solid rgba(10,132,255,.4); }
 .atlas-cta:hover { background:linear-gradient(90deg, rgba(10,132,255,.26), rgba(10,132,255,.08)); }
@@ -259,7 +261,7 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
   const GL = { map: null, shapes: null, ready: false };
   window.__GL = GL; // inspectable from the console
   const simColor = (v) => {
-    const stops = [[0, [44, 44, 46]], [0.35, [20, 69, 111]], [0.6, [10, 132, 255]], [0.85, [158, 207, 255]]];
+    const stops = [[0, [220, 220, 224]], [0.35, [158, 207, 255]], [0.6, [10, 132, 255]], [0.85, [0, 64, 140]]];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 1; i < stops.length; i++) if (v <= stops[i][0]) { a = stops[i - 1]; b = stops[i]; break; }
     const t = b[0] === a[0] ? 0 : (v - a[0]) / (b[0] - a[0]);
@@ -268,12 +270,12 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
   async function initGlobe() {
     if (!window.maplibregl) return;
     GL.shapes = await fetch("../../vendor/countries.geo.json").then((r) => r.json());
-    GL.map = new maplibregl.Map({ container: "globe", style: "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json", center: [15, 25], zoom: 1.1, attributionControl: { compact: true } });
+    GL.map = new maplibregl.Map({ container: "globe", style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json", center: [15, 25], zoom: 1.1, attributionControl: { compact: true } });
     GL.map.on("style.load", () => {
       GL.map.setProjection({ type: "globe" });
       GL.map.addSource("cons", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       GL.map.addLayer({ id: "cons", type: "fill", source: "cons", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.72 } });
-      GL.map.addLayer({ id: "cons-line", type: "line", source: "cons", paint: { "line-color": ["case", ["get", "sel"], "#ff9f0a", "#0b0b0d"], "line-width": ["case", ["get", "sel"], 2.5, 0.4] } });
+      GL.map.addLayer({ id: "cons-line", type: "line", source: "cons", paint: { "line-color": ["case", ["get", "sel"], "#ff9f0a", "#ffffff"], "line-width": ["case", ["get", "sel"], 2.5, 0.4] } });
       const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
       GL.map.on("mousemove", "cons", (e) => { const p = e.features[0].properties; GL.map.getCanvas().style.cursor = "pointer"; popup.setLngLat(e.lngLat).setHTML(`<b>${esc(p.name)}</b><br>${esc(p.note)}`).addTo(GL.map); });
       GL.map.on("mouseleave", "cons", () => { GL.map.getCanvas().style.cursor = ""; popup.remove(); });
@@ -288,22 +290,22 @@ mark { background:rgba(255,214,10,.3); color:inherit; border-radius:3px; }
     const t = topic ? tIndex[topic] : null;
     const features = GL.shapes.features.map((f) => {
       const c = byIso[f.id];
-      let color = "#1c1c1e", note = "no constitution text on file";
+      let color = "#f2f2f5", note = "no constitution text on file";
       if (c && sel) {
         const sim = c.iso === sel.iso ? 1 : jaccard(sel.set, c.set);
         color = c.iso === sel.iso ? "#ff9f0a" : simColor(sim);
         note = c.iso === sel.iso ? "the one you chose" : `${Math.round(sim * 100)}% of topics in common with ${sel.name}`;
       } else if (c && t != null) {
         const has = c.set.has(t);
-        color = has ? "#0a84ff" : "#2c2c2e";
+        color = has ? "#0a84ff" : "#dcdce0";
         note = `${has ? "has" : "does not have"}: ${T[t].label}`;
-      } else if (c) { color = "#3a3a3c"; note = `${c.n} topics`; }
+      } else if (c) { color = "#c7c7cc"; note = `${c.n} topics`; }
       return { type: "Feature", geometry: f.geometry, properties: { iso: f.id, name: f.properties.name, color, note, sel: !!(sel && c && c.iso === sel.iso) } };
     });
     GL.map.getSource("cons").setData({ type: "FeatureCollection", features });
     const lg = document.getElementById("gl-legend");
     if (sel) lg.innerHTML = `<span><i style="background:#ff9f0a"></i>${esc(sel.name)}</span><span>few topics in common</span><span class="bar"></span><span>most</span>`;
-    else if (t != null) lg.innerHTML = `<span><i style="background:#0a84ff"></i>has "${esc(T[t].label)}"</span><span><i style="background:#2c2c2e"></i>does not</span>`;
+    else if (t != null) lg.innerHTML = `<span><i style="background:#0a84ff"></i>has "${esc(T[t].label)}"</span><span><i style="background:#dcdce0"></i>does not</span>`;
     else lg.innerHTML = "";
     if (sel && GL.map) { const sh = GL.shapes.features.find((f) => f.id === sel.iso); if (sh) { const b = bbox(sh.geometry); GL.map.easeTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2], duration: 900 }); } }
   }
