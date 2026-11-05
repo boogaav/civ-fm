@@ -13,6 +13,25 @@
   --data: #64d2ff;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
   --radius: 14px;
+  --active: var(--active); /* pressed pill / chosen tab */
+  --pop: rgba(28, 28, 30, .9);
+}
+/* Day: same layout, light glass on a light planet (toggle in the status line) */
+:root[data-theme="day"] {
+  --space: #e9ecef;
+  --glass: rgba(255, 255, 255, .78);
+  --glass-2: rgba(0, 0, 0, .05);
+  --hairline: rgba(0, 0, 0, .1);
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #a1a1a6;
+  --accent: #0071e3;
+  --ok: #248a3d;
+  --warn: #c93400;
+  --bad: #d70015;
+  --data: #0077b6;
+  --active: rgba(0, 0, 0, .08);
+  --pop: rgba(255, 255, 255, .95);
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +46,7 @@ body {
 }
 
 #map { position: absolute; inset: 0; background: var(--space); }
-.maplibregl-ctrl-attrib { background: rgba(11,11,13,.5) !important; font-size: 9px; }
+.maplibregl-ctrl-attrib { background: var(--glass) !important; font-size: 9px; }
 .maplibregl-ctrl-attrib a { color: var(--faint) !important; }
 .maplibregl-canvas { outline: none; }
 
@@ -76,7 +95,7 @@ body {
   padding: 4px 11px; border-radius: 7px; border-left: 1px solid var(--hairline);
 }
 #subdial a.room:hover { color: var(--ink); background: var(--glass-2); }
-#subdial button.active { background: rgba(255,255,255,.14); color: var(--ink); }
+#subdial button.active { background: var(--active); color: var(--ink); }
 
 /* ---------- HERE panel ---------- */
 #here-panel {
@@ -159,7 +178,7 @@ body {
   font-size: 11.5px; color: var(--muted);
 }
 #statusline .live { color: var(--ok); }
-#btn-borders, #btn-spin {
+#btn-borders, #btn-spin, #btn-theme {
   appearance: none; cursor: pointer;
   font-family: var(--font); font-size: 11px; font-weight: 600;
   color: var(--muted);
@@ -170,8 +189,8 @@ body {
   backdrop-filter: blur(24px) saturate(1.4);
   -webkit-backdrop-filter: blur(24px) saturate(1.4);
 }
-#btn-borders:hover, #btn-spin:hover { color: var(--ink); }
-#btn-borders.on, #btn-spin.on { background: rgba(255,255,255,.16); color: var(--ink); }
+#btn-borders:hover, #btn-spin:hover, #btn-theme:hover { color: var(--ink); }
+#btn-borders.on, #btn-spin.on, #btn-theme.on { background: var(--active); color: var(--ink); }
 
 /* ---------- global alert pill ---------- */
 #alerts {
@@ -274,7 +293,7 @@ body {
 #ballot .bdot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--warn); animation: adotpulse 2s ease-in-out infinite; }
 #ballot .bk { font-size: 10px; letter-spacing: .12em; color: var(--muted); }
 #ballot .bt { color: var(--warn); font-variant-numeric: tabular-nums; }
-#ballot:hover { background: rgba(255,255,255,.1); }
+#ballot:hover { background: var(--glass-2); }
 @media (max-width: 720px) { #ballot { top: 140px; max-width: calc(100% - 48px); } }
 
 /* ---------- People panels: reading + elections lists ---------- */
@@ -362,7 +381,7 @@ body {
 .chan .n { display: block; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
 .chan .f { display: block; font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; margin-top: 1px; }
 .chan:hover { background: var(--glass-2); color: var(--ink); }
-.chan.active { background: rgba(255,255,255,.14); color: var(--ink); }
+.chan.active { background: var(--active); color: var(--ink); }
 .chan.active .f { color: var(--muted); }
 
 /* markers */
@@ -435,7 +454,7 @@ body {
   background: var(--glass-2); border: 1px solid var(--hairline); display: grid; place-items: center;
 }
 #fut-play svg { width: 11px; height: 11px; fill: var(--ink); }
-#fut-play:hover { background: rgba(255,255,255,.14); }
+#fut-play:hover { background: var(--active); }
 .fut-yearbox { display: flex; flex-direction: column; flex: none; min-width: 72px; }
 .fut-yearbox b { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .fut-yearbox span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -445,7 +464,7 @@ body {
   appearance: none; border: none; background: none; cursor: pointer; border-radius: 6px;
   font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 8px;
 }
-.fut-mode button.active { background: rgba(255,255,255,.14); color: var(--ink); }
+.fut-mode button.active { background: var(--active); color: var(--ink); }
 #future-bar button:focus-visible, #fut-slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; }
 .fut-list { list-style: none; margin: 4px 0 0; padding: 0; }
@@ -477,7 +496,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   color: var(--ink); display: grid; place-items: center; padding: 0;
 }
 #radio-now button svg { width: 10px; height: 10px; fill: currentColor; }
-#radio-now button:hover { background: rgba(255,255,255,.14); }
+#radio-now button:hover { background: var(--active); }
 #radio-now button:focus-visible, .rlist li:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #rn-toggle { background: #ff375f !important; border-color: transparent !important; }
 #radio-now[data-status="paused"] #rn-toggle, #radio-now[data-status="dead"] #rn-toggle { background: var(--glass-2) !important; border-color: var(--hairline) !important; }
@@ -529,7 +548,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 #explain {
   position: fixed; z-index: 40; left: 0; top: 0;
   width: 290px; max-width: calc(100vw - 24px);
-  background: rgba(28, 28, 30, .9);
+  background: var(--pop);
   border: 1px solid var(--hairline); border-radius: 12px;
   backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: 0 12px 36px rgba(0,0,0,.5);
@@ -552,7 +571,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   font-family: Georgia, "Times New Roman", serif; font-size: 11px; font-style: italic; font-weight: 600; line-height: 1;
   color: var(--muted); background: var(--glass-2); border: 1px solid var(--hairline);
 }
-#btn-explain:hover, #btn-explain[aria-expanded="true"] { color: var(--ink); background: rgba(255,255,255,.16); }
+#btn-explain:hover, #btn-explain[aria-expanded="true"] { color: var(--ink); background: var(--active); }
 #btn-explain:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { #explain { transition: none; } }
 
@@ -599,7 +618,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
   display: grid; place-items: center; opacity: .75; transition: opacity .15s ease, background .15s ease;
 }
 .hide-x svg { width: 10px; height: 10px; }
-.hide-x:hover { opacity: 1; background: rgba(255,255,255,.16); color: var(--ink); }
+.hide-x:hover { opacity: 1; background: var(--active); color: var(--ink); }
 .hide-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #legend .hide-x { position: absolute; top: 8px; right: 8px; }
 #legend { padding-right: 36px; }
@@ -624,7 +643,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 /* ---------- Mind › Radio: list filter inside the card ---------- */
 .rfilter { display: flex; gap: 3px; background: var(--glass-2); border-radius: 8px; padding: 2px; margin-bottom: 7px; width: fit-content; }
 .rfilter button { appearance: none; border: none; background: none; cursor: pointer; border-radius: 6px; font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 9px; }
-.rfilter button.active { background: rgba(255,255,255,.14); color: var(--ink); }
+.rfilter button.active { background: var(--active); color: var(--ink); }
 
 /* ---------- State › Passport picker inside the card ---------- */
 .pp-pick {
@@ -645,7 +664,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 .parties .pn { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .parties .pn b { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .parties .pn b small { font-weight: 500; color: var(--muted); }
-.parties .pbar { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.parties .pbar { height: 5px; background: var(--glass-2); border-radius: 3px; overflow: hidden; }
 .parties .pbar i { display: block; height: 100%; border-radius: 3px; }
 .parties .pv { text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .parties .pv small { font-weight: 500; color: var(--muted); font-size: 11px; }
@@ -670,7 +689,7 @@ body.ch-future #here-panel { max-height: calc(100vh - 320px); overflow-y: auto; 
 a.plain { color: inherit; text-decoration: none; } a.plain:hover { color: var(--accent); }
 
 /* ---------- State › Tax ---------- */
-.taxbar { display:flex; height:10px; border-radius:5px; overflow:hidden; margin:8px 0 6px; background:rgba(255,255,255,.06); }
+.taxbar { display:flex; height:10px; border-radius:5px; overflow:hidden; margin:8px 0 6px; background:var(--glass-2); }
 .taxbar i { display:block; height:100%; }
 .taxmix { list-style:none; margin:4px 0 0; padding:0; }
 .taxmix li { display:grid; grid-template-columns:10px minmax(0,1fr) auto auto; gap:8px; align-items:center; padding:3px 0; font-size:12px; }

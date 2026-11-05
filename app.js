@@ -35,6 +35,7 @@ map.on("style.load", () => {
   map.setProjection({ type: "globe" });
   addTerminator();
   applyBorders();
+  applyTheme();
   // deep links from other pages: ?ch=state&sub=parties[&c=UKR]
   const qp = new URLSearchParams(location.search);
   const ch = qp.get("ch"), sub = qp.get("sub");
@@ -99,6 +100,65 @@ $("#btn-borders").addEventListener("click", () => {
   state.borders = !state.borders;
   try { localStorage.setItem("civfm-borders", state.borders ? "on" : "off"); } catch (e) {}
   applyBorders();
+});
+
+/* ---------------- day / night ---------------- */
+// Day repaints the dark basemap with Carto Positron's colours: both styles
+// share the same layer ids, so only paint changes and every data layer stays.
+
+const BASEMAP = {
+  night: "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json",
+  day: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json",
+};
+const basemapPaint = {};
+const isDay = () => document.documentElement.dataset.theme === "day";
+
+// Data palettes use near-black greys for "no data" and neutral values; by day
+// those read as holes, so every colour headed for the map passes through here.
+const DAY_GREYS = { "#2c2c2e": "#dcdce0", "#3a3a3c": "#c7c7cc", "#48484a": "#b5b5ba" };
+const dayGrey = (v) =>
+  !isDay() || v == null ? v
+  : typeof v === "string" ? DAY_GREYS[v.toLowerCase()] || v
+  : Array.isArray(v) ? v.map(dayGrey)
+  : typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, dayGrey(x)]))
+  : v;
+for (const [fn, wrap] of Object.entries({
+  addLayer: (l, ...r) => [l && l.paint ? { ...l, paint: dayGrey(l.paint) } : l, ...r],
+  setPaintProperty: (id, k, v, ...r) => [id, k, dayGrey(v), ...r],
+  setFeatureState: (f, st, ...r) => [f, dayGrey(st), ...r],
+})) {
+  const orig = map[fn].bind(map);
+  map[fn] = (...a) => orig(...wrap(...a));
+}
+
+async function applyTheme() {
+  const day = isDay(), btn = $("#btn-theme");
+  btn.classList.toggle("on", day);
+  btn.setAttribute("aria-pressed", String(day));
+  // the page loads Night's basemap, so a Night visitor needs no repaint
+  if (!day && !basemapPaint.day) return;
+  const mode = day ? "day" : "night";
+  try {
+    basemapPaint[mode] ||= (await (await fetch(BASEMAP[mode])).json()).layers;
+  } catch (e) { return; } // basemap stays as is; the panels have already switched
+  if (isDay() !== day) return; // toggled again while fetching
+  for (const l of basemapPaint[mode]) {
+    if (!map.getLayer(l.id)) continue;
+    for (const [k, v] of Object.entries(l.paint || {}))
+      if (k.endsWith("color")) map.setPaintProperty(l.id, k, v);
+  }
+  applyBorders(); // its own line colour wins over the basemap's
+}
+
+$("#btn-theme").addEventListener("click", () => {
+  const day = !isDay();
+  if (day) document.documentElement.dataset.theme = "day";
+  else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem("civfm-theme", day ? "day" : "night"); } catch (e) {}
+  applyTheme();
+  // redraw the current section so its data layers pick up this mode's greys
+  const def = CHANNELS[state.channel];
+  if (def && def.applySub) def.applySub(state.subs[state.channel] || def.subs[0].id);
 });
 
 /* ---------------- idle spin ---------------- */
@@ -706,7 +766,7 @@ function legend(title, rows) {
       .map((r) =>
         r.gradient
           ? `<div class="lg-row"><div class="bar" style="background:linear-gradient(90deg,${r.gradient})"></div></div><div class="lg-row" style="justify-content:space-between"><span>${r.from}</span><span style="margin-left:auto">${r.to}</span></div>`
-          : `<div class="lg-row"><span class="dot" style="background:${r.color}"></span><span>${r.label}</span></div>`
+          : `<div class="lg-row"><span class="dot" style="background:${dayGrey(r.color)}"></span><span>${r.label}</span></div>`
       )
       .join("");
   if (typeof hideButtons !== "undefined" && hideButtons.legend) $("#legend").appendChild(hideButtons.legend);

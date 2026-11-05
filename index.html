@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>try { if (localStorage.getItem("civfm-theme") === "day") document.documentElement.dataset.theme = "day"; } catch (e) {}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CIV FM — Earth Platform</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>">
@@ -46,6 +47,7 @@
 <div id="statusline">
   <button id="btn-spin" aria-pressed="true">Spin</button>
   <button id="btn-borders" aria-pressed="false">Borders</button>
+  <button id="btn-theme" aria-pressed="false" aria-label="Day mode">Day</button>
   <span id="status-text">Starting…</span>
 </div>
 
