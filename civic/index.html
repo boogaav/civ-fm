@@ -12,6 +12,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
 <style>
 :root {
   --space:#ffffff; --glass:rgba(255,255,255,.88); --glass-2:#f7f7f8; --hairline:#ececf1;
@@ -101,6 +102,11 @@ h2 { font-size:22px; letter-spacing:-.015em; margin:44px 0 6px; }
 .fams a { font-size:13px; color:var(--ink); background:var(--glass-2); border:1px solid var(--hairline); border-radius:999px; padding:5px 12px; }
 .fams a small { color:var(--muted); margin-left:4px; }
 .fams a:hover { border-color:rgba(10,132,255,.4); }
+#globe { width:100%; height:clamp(300px, 46vw, 520px); margin:18px 0 6px; border:1px solid var(--hairline); border-radius:14px; overflow:hidden; background:#eef0f3; }
+#globe .maplibregl-popup-content { background:var(--glass) !important; color:var(--ink) !important; border:1px solid var(--hairline); border-radius:10px; font-family:var(--font); font-size:12px; padding:7px 10px !important; }
+#globe .maplibregl-popup-tip { border-top-color:var(--hairline) !important; }
+.gl-legend { display:flex; flex-wrap:wrap; gap:4px 12px; margin:0 0 22px; font-size:11.5px; color:var(--muted); }
+.gl-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:middle; }
 footer { max-width:1120px; margin:0 auto; padding:0 24px 40px; font-size:12px; color:var(--faint); line-height:1.6; }
 footer a { color:var(--muted); }
 @media (max-width:600px) { h1 { font-size:32px; } .facts { grid-template-columns:repeat(2, minmax(0,1fr)); } main { padding:24px 16px 60px; } header { padding:10px 16px; } header nav { display:none; } }
@@ -123,6 +129,8 @@ footer a { color:var(--muted); }
   <h1>Every constitution on Earth</h1>
   <p class="lead">The full text of every national constitution in force, in English, and the tools to read them side by side: what nearly all of them promise, which ones are related, which passages were copied from which, and the country whose constitution is most like yours.</p>
   <div class="stats" id="stats"></div>
+  <div id="globe" role="img" aria-label="Globe of every constitution, coloured by constitutional family. Click a country to open it."></div>
+  <div class="gl-legend" id="gl-legend"></div>
 
   <section id="lookup" class="lookup">
     <div class="search">
@@ -157,6 +165,7 @@ footer a { color:var(--muted); }
   Texts and topic tags: <a href="https://www.constituteproject.org/" target="_blank" rel="noopener">Constitute Project</a> (Comparative Constitutions Project), CC BY-NC 3.0; the English translations are theirs and the official text is the one each country publishes. Political facts: CIA World Factbook, public domain. Families, similarity and borrowed passages: CIV FM's analysis of those texts. The "brother" match weights each shared topic by its rarity, so sharing something few constitutions guarantee counts for more than sharing an amendment rule that nearly all have.
 </footer>
 
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <script src="download.js"></script>
 <script>
 (async () => {
@@ -219,9 +228,48 @@ footer a { color:var(--muted); }
   sug.addEventListener("click", (e) => { const li = e.target.closest("li"); if (li) show(li.dataset.iso); });
   document.addEventListener("click", (e) => { if (!e.target.closest(".search")) sug.innerHTML = ""; });
 
+  // ---- globe: every constitution, coloured by family (Atlas palette) ----
+  const FAM = ["#2f6fdf","#d9822b","#1a9e77","#c2417a","#7a5cd6","#5aa02c","#c43c3c","#2aa5b8","#a0782a","#6b7a8f","#e05aa8","#3a8f5a","#8f5a3a","#4b5bd6"];
+  const famColor = (k) => FAM[k % FAM.length];
+  const GL = { map: null, shapes: null };
+  function paintGlobe() {
+    if (!GL.map || !GL.map.getSource("cons")) return;
+    GL.map.getSource("cons").setData({ type: "FeatureCollection", features: GL.shapes.features.map((f) => {
+      const c = byIso[f.id];
+      const fam = c && A.families.find((x) => x.k === c.fam);
+      return { type: "Feature", geometry: f.geometry, properties: {
+        iso: f.id, sel: f.id === current, color: c ? famColor(c.fam) : "#e3e3e8",
+        tip: c ? `${c.flag} ${c.label}<br>${fam ? fam.name + " family" : ""}` : `${f.properties.name}<br>no constitution text on file` } };
+    }) });
+  }
+  if (window.maplibregl) (async () => {
+    GL.shapes = await fetch("../vendor/countries.geo.json").then((r) => r.json());
+    GL.map = new maplibregl.Map({ container: "globe", style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json", center: [15, 25], zoom: 1.5, attributionControl: { compact: true }, cooperativeGestures: true });
+    new ResizeObserver(() => GL.map.resize()).observe(document.getElementById("globe"));
+    GL.map.on("style.load", () => {
+      GL.map.setProjection({ type: "globe" });
+      GL.map.addSource("cons", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      GL.map.addLayer({ id: "cons", type: "fill", source: "cons", paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", ["get", "sel"], 0.95, 0.7] } });
+      GL.map.addLayer({ id: "cons-line", type: "line", source: "cons", paint: { "line-color": ["case", ["get", "sel"], "#0d0d0d", "#ffffff"], "line-width": ["case", ["get", "sel"], 2.5, 0.4] } });
+      const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 8 });
+      GL.map.on("mousemove", "cons", (e) => { GL.map.getCanvas().style.cursor = "pointer"; popup.setLngLat(e.lngLat).setHTML(e.features[0].properties.tip).addTo(GL.map); });
+      GL.map.on("mouseleave", "cons", () => { GL.map.getCanvas().style.cursor = ""; popup.remove(); });
+      GL.map.on("click", "cons", (e) => { if (byIso[e.features[0].properties.iso]) show(e.features[0].properties.iso); });
+      paintGlobe();
+      if (current) flyTo(current);
+    });
+  })();
+  function flyTo(iso) {
+    const ll = byIso[iso] && byIso[iso].ll; // [lat, lng] from the atlas
+    if (GL.map && ll) GL.map.easeTo({ center: [ll[1], ll[0]], duration: 900 });
+  }
+  $("#gl-legend").innerHTML = A.families.slice().sort((a, b) => b.n - a.n)
+    .map((f) => `<span><i style="background:${famColor(f.k)}"></i>${esc(f.name)}</span>`).join("") + '<span><i style="background:#e3e3e8"></i>no text on file</span>';
+
   let current = null;
   function show(iso, scroll = true) {
     const a = byIso[iso]; if (!a) return;
+    if (iso !== current) { current = iso; paintGlobe(); flyTo(iso); }
     current = iso; sug.innerHTML = ""; q.value = a.label;
     history.replaceState(null, "", `#${iso}`);
     document.title = `${a.label} — Civic — CIV FM`;

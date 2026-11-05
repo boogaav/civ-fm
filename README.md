@@ -157,7 +157,9 @@ former holder on the list, and the card says so.
 ## /civic — the constitution hub
 
 `civic/index.html` is the landing page for everything constitutional:
-stats from `atlas/atlas.json`, a country lookup (names, codes, native
+stats from `atlas/atlas.json`, a light globe of every constitution coloured by
+family (Atlas palette; click a country to open it, the chosen one is outlined),
+a country lookup (names, codes, native
 names and aliases; opens on the visitor's country via `/whereami`, or
 `#ISO3`), and per country: constitution facts, political system
 (`civic.json`), family (atlas), the constitutional brother (cosine of
