@@ -220,6 +220,10 @@ deep-links a country.
 - Data comes through the same Worker `/wb/` route and `localStorage` cache
   as the globe, plus `place/data.json` for HDI.
 
+## /guide, llms.txt — the map for newcomers and AI engines
+
+`node build_guide.mjs` writes `guide/index.html` (the seven layers as one plain-HTML field guide, in learning order: planet → species → settlement → exchange → rules → meaning → trajectory), `llms.txt`, `sitemap.xml` and `robots.txt`, all from `explain.js`. It fails if a layer's section has no explanation, so rerun it whenever a channel or sub-dial changes. Full-page tools hang off their layer as `rooms` at the end of its sub-dial (Earth → Relief, State → Civic; Card lives inside Civic). The header carries only Guide · Civic · About.
+
 ## Tuning knob
 
 A mechanical knob sits to the right of the dial. Scrolling over it, dragging

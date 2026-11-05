@@ -71,6 +71,11 @@ body {
   transition: background .15s ease, color .15s ease;
 }
 #subdial button:hover { color: var(--ink); background: var(--glass-2); }
+#subdial a.room {
+  font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none;
+  padding: 4px 11px; border-radius: 7px; border-left: 1px solid var(--hairline);
+}
+#subdial a.room:hover { color: var(--ink); background: var(--glass-2); }
 #subdial button.active { background: rgba(255,255,255,.14); color: var(--ink); }
 
 /* ---------- HERE panel ---------- */

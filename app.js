@@ -2200,6 +2200,7 @@ const CHANNELS = {
 
   earth: {
     num: "88.0", name: "Earth",
+    rooms: [{ href: "relief/", label: "Relief" }],
     q: "Can I breathe, is the ground safe, can I drink?",
     subs: [
       { id: "air", label: "Air" },
@@ -2410,6 +2411,7 @@ const CHANNELS = {
 
   state: {
     num: "100.5", name: "State",
+    rooms: [{ href: "civic/", label: "Civic" }],
     q: "Who governs here, by what rules, and when do people vote?",
     subs: [
       { id: "system", label: "System" },
@@ -2671,7 +2673,9 @@ async function tune(ch) {
     const current = state.subs[ch] || def.subs[0].id;
     sd.innerHTML = def.subs
       .map((s) => `<button data-sub="${s.id}"${s.id === current ? ' class="active"' : ""}>${s.label}</button>`)
-      .join("");
+      .join("") +
+      // the channel's full-page rooms sit at the end of its own sub-dial
+      (def.rooms || []).map((r) => `<a class="room" href="${r.href}">${r.label} ↗</a>`).join("");
     sd.querySelectorAll("button").forEach((b) =>
       b.addEventListener("click", () => def.applySub(b.dataset.sub))
     );
