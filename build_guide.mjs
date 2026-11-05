@@ -114,7 +114,7 @@ footer { max-width:880px; margin:0 auto; padding:24px 16px 48px; color:var(--mut
 </ol>
 ${layerHtml}
 </main>
-<footer>Built from the same explanations the globe shows on hover. Open data, sources named at every line. <a href="../llms.txt">llms.txt</a></footer>
+<footer>Built from the same explanations the globe shows on hover. Open data, sources named at every line. <a href="../llms.txt">llms.txt</a> · <a href="https://civfm-api.boogaav.workers.dev/">Free JSON API</a> · MCP server for AI assistants: <code>https://civfm-api.boogaav.workers.dev/mcp</code></footer>
 <script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
 <script src="../track.js" defer></script>
 </body>
@@ -144,6 +144,18 @@ ${Object.entries(subs).map(([id, label]) => `- [${label}](${SITE}/?ch=${ch}&sub=
 
 ${LAYERS.flatMap(([, , , , , , , rooms]) => rooms).map(([href, label, d]) => `- [${label}](${SITE}/${href}): ${d}`).join("\n")}
 - [About](${SITE}/about/): who builds CIV FM
+
+## API and MCP
+
+Free, no key. Every answer names its sources and links back to the globe.
+
+- [API index](https://civfm-api.boogaav.workers.dev/): endpoints and examples
+- [Country profile](https://civfm-api.boogaav.workers.dev/v1/country/Ukraine): government, constitution, parties, power, taxes, indicators, trade and migration links
+- [Rank countries](https://civfm-api.boogaav.workers.dev/v1/rank?indicator=life_expectancy&region=Europe): by any of 19 named indicators or a World Bank code
+- [Compare](https://civfm-api.boogaav.workers.dev/v1/compare?c=DEU,FRA,POL): two to six countries side by side
+- [Constitution search](https://civfm-api.boogaav.workers.dev/v1/constitution/USA?q=freedom%20of%20speech): matching clauses with article headings
+- [Constitutional topic](https://civfm-api.boogaav.workers.dev/v1/topic?q=right%20to%20health%20care): which constitutions cover it
+- MCP (Model Context Protocol, Streamable HTTP): https://civfm-api.boogaav.workers.dev/mcp with tools get_country_profile, rank_countries, compare_countries, get_links, search_constitution, constitutions_with_topic
 
 ## Optional
 

@@ -1,0 +1,7 @@
+{
+  "name": "civfm-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  // World Bank tables come from civfm-proxy's 12-hour cache
+  "services": [{ "binding": "PROXY", "service": "civfm-proxy" }]
+}

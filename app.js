@@ -737,6 +737,7 @@ function renderHere() {
   const el = document.createElement("div");
   host.replaceChildren(el);
   CHANNELS[state.channel].here(el);
+  if (typeof drawLinks === "function") drawLinks(host);
 }
 
 /* ---------------- channel plumbing ---------------- */

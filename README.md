@@ -230,6 +230,15 @@ deep-links a country.
 
 The **Day** pill in the status line switches the globe page to light glass on Carto Positron's colours. Both Carto styles share layer ids, so Day only repaints the basemap (`applyTheme` in app.js); data layers stay. Colours headed for the map pass through `dayGrey`, which swaps the near-black "no data" greys for light ones by day. The choice is remembered (`civfm-theme`) and applied in `<head>` before first paint. Night stays the default.
 
+## Links — a country's strongest partners
+
+The **Links** pill in the status line turns on arcs from the country you click to its ten strongest partners, on the layer you are tuned to, with a veil over the channel's colours and a top-5 list leading the HERE card (`links.js`). Orange arcs go out, blue arcs come in.
+
+- **Money:** goods exports ("sells to") and imports ("buys from"), UN Comtrade public preview API, as each country reports, latest of 2021–2024.
+- **Home:** where its emigrants live and where its immigrants were born, UN DESA International Migrant Stock 2024 (via the Our World in Data catalog parquet).
+
+Rebuild: `fetch_trade.py <workdir>` (resumable cache of ~440 Comtrade calls, about 80 min; needs `reporters.json` and `partners.json` from comtradeapi.un.org/files/v1/app/reference/), then `python3 links/build_links.py <migrant_stock_dest_origin.parquet> <workdir>` (pyarrow). Other channels show a one-line note; State (alliances, conflict) and Mind are next.
+
 ## Tuning knob
 
 A mechanical knob sits to the right of the dial. Scrolling over it, dragging
