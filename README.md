@@ -234,10 +234,10 @@ The **Day** pill in the status line switches the globe page to light glass on Ca
 
 The **Links** pill in the status line turns on arcs from the country you click to its ten strongest partners, on the layer you are tuned to, with a veil over the channel's colours and a top-5 list leading the HERE card (`links.js`). Orange arcs go out, blue arcs come in.
 
-- **Money:** goods exports ("sells to") and imports ("buys from"), UN Comtrade public preview API, as each country reports, latest of 2021–2024.
+- **Money:** goods exports ("sells to") and imports ("buys from"), CEPII BACI (HS22 release; Licence Ouverte 2.0, commercial reuse allowed, unlike raw UN Comtrade), latest year in the release.
 - **Home:** where its emigrants live and where its immigrants were born, UN DESA International Migrant Stock 2024 (via the Our World in Data catalog parquet).
 
-Rebuild: `fetch_trade.py <workdir>` (resumable cache of ~440 Comtrade calls, about 80 min; needs `reporters.json` and `partners.json` from comtradeapi.un.org/files/v1/app/reference/), then `python3 links/build_links.py <migrant_stock_dest_origin.parquet> <workdir>` (pyarrow). Other channels show a one-line note; State (alliances, conflict) and Mind are next.
+Rebuild: download `BACI_HS22_V<release>.zip` from cepii.fr (about 300 MB), unzip, then `python3 links/build_links.py <migrant_stock_dest_origin.parquet> <BACI dir>` (pyarrow). Other channels show a one-line note; State (alliances, conflict) and Mind are next.
 
 ## Tuning knob
 

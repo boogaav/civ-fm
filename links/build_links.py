@@ -6,11 +6,12 @@ Migration (Home)
   World in Data's catalog table migrant_stock_dest_origin.parquet. Stocks, not
   flows: people born in A and living in B at mid-2024.
 Trade (Money)
-  UN Comtrade, goods only, all products (HS TOTAL), as each country reported
-  its own exports and imports by partner, latest year 2021-2024. Cached raw
-  responses from fetch_trade.py, one JSON per reporter and flow.
+  CEPII BACI (HS22 release), goods trade reconciled from UN Comtrade's
+  exporter and importer reports, latest year in the release. Licence Ouverte
+  2.0 (Etalab): commercial reuse allowed with attribution, unlike raw Comtrade.
+  https://www.cepii.fr/CEPII/en/bdd_modele/bdd_modele_item.asp?id=37
 
-Usage: python3 build_links.py <migrant parquet> <comtrade dir with trade_raw/ and partners.json>
+Usage: python3 build_links.py <migrant parquet> <unzipped BACI dir>
        (needs pyarrow for the parquet)
 Output: links/migration.json {year, c: {ISO3: {out: [[ISO3, people]..], in: [..], outT, inT}}}
         links/trade.json     {c: {ISO3: {y, x: [[ISO3, usd]..], m: [..], xT, mT}}}
@@ -69,24 +70,29 @@ print(f"migration {year}: {len(mig)} countries; unmatched names (regions are exp
       sorted(m for m in miss if not any(w in m for w in ("countries", "Africa", "Asia", "Europe", "America", "Oceania", "region", "Other", "World", "income", "Caribbean", "Melanesia", "Micronesia", "Polynesia", "Sahara", "Australia and New Zealand", "Small Island"))))
 
 # ---- trade ----
-cd = sys.argv[2]
-P = {p["PartnerCode"]: p.get("PartnerCodeIsoAlpha3") for p in json.load(open(os.path.join(cd, "partners.json")))["results"] if not p["isGroup"]}
-P[490] = "TWN"  # Comtrade's "Other Asia, nes" is Taiwan
-trade = {}
-for f in sorted(os.listdir(os.path.join(cd, "trade_raw"))):
-    iso, flow = f[:-5].split("_")
-    d = json.load(open(os.path.join(cd, "trade_raw", f)))
-    if not d["data"]:
+import csv, glob
+bd = sys.argv[2]
+codes = {r["country_code"]: r["country_iso3"] for r in csv.DictReader(open(glob.glob(os.path.join(bd, "country_codes_*.csv"))[0], encoding="utf-8"))}
+yfile = max(glob.glob(os.path.join(bd, "BACI_HS22_Y*_V*.csv")))  # latest year
+tyear = int(os.path.basename(yfile).split("_Y")[1][:4])
+pair = {}
+with open(yfile, encoding="utf-8") as f:
+    for r in csv.DictReader(f):  # t, i (exporter), j (importer), k (HS6), v (thousand US$), q
+        key = (r["i"], r["j"])
+        pair[key] = pair.get(key, 0) + float(r["v"])
+X, M = {}, {}
+for (i, j), v in pair.items():
+    a, b = codes.get(i), codes.get(j)
+    if not a or not b or a == b:
         continue
-    by = {}
-    for r in d["data"]:
-        p = P.get(r["p"])
-        if p and len(p) == 3 and not p.startswith("_") and p != iso and r["v"]:
-            by[p] = by.get(p, 0) + r["v"]
-    e = trade.setdefault(iso, {"y": d["year"]})
-    e["y"] = max(e["y"], d["year"])
-    e["x" if flow == "X" else "m"] = [[k, round(v)] for k, v in top(by)]
-    e["xT" if flow == "X" else "mT"] = round(sum(by.values()))
-assert trade["UKR"]["x"][0][0] in ("POL", "CHN", "ROU", "TUR", "DEU"), "trade sanity check"
-json.dump({"c": trade}, open(os.path.join(HERE, "trade.json"), "w"), separators=(",", ":"))
-print(f"trade: {len(trade)} reporters")
+    X.setdefault(a, {})[b] = v * 1000
+    M.setdefault(b, {})[a] = v * 1000
+trade = {}
+for iso in set(X) | set(M):
+    x, m = X.get(iso, {}), M.get(iso, {})
+    trade[iso] = {"y": tyear, "x": [[k, round(v)] for k, v in top(x)], "m": [[k, round(v)] for k, v in top(m)],
+                  "xT": round(sum(x.values())), "mT": round(sum(m.values()))}
+assert trade["UKR"]["x"][0][0] in ("POL", "CHN", "ROU", "TUR", "DEU", "ESP", "HUN"), trade["UKR"]["x"][:3]
+assert trade["MEX"]["x"][0][0] == "USA" and trade["CAN"]["x"][0][0] == "USA", "trade sanity check"
+json.dump({"year": tyear, "c": trade}, open(os.path.join(HERE, "trade.json"), "w"), separators=(",", ":"))
+print(f"trade {tyear}: {len(trade)} countries")

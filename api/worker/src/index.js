@@ -150,7 +150,7 @@ async function profile(env, q) {
       "Constitute Project (constitution texts and topics; CC BY-NC 3.0)",
       "Wikidata and Wikipedia (parties, people; CC0 / CC BY-SA)",
       "World Bank Open Data (indicators; CC BY 4.0)",
-      "UN Comtrade (goods trade) and UN DESA International Migrant Stock 2024",
+      "CEPII BACI goods trade (Licence Ouverte 2.0) and UN DESA International Migrant Stock 2024",
       "CIV FM curated tax snapshot (planning summary, not tax advice)",
     ],
   };
@@ -181,10 +181,10 @@ async function links(q, type = "trade") {
     return { country: pick(c), type, year: m.year, unit: "people (stock: born in one country, living in the other)", emigrants_abroad: r.outT, immigrants_resident: r.inT, emigrants_live_in: name(r.out), immigrants_born_in: name(r.in), on_the_globe: globe("home", null, iso), source: "UN DESA International Migrant Stock 2024" };
   }
   if (type !== "trade") throw fail(400, 'type must be "trade" or "migration"');
-  const t = await site("/links/trade.json").catch(() => { throw fail(503, "Trade links are still being collected; try type=migration."); });
+  const t = await site("/links/trade.json").catch(() => { throw fail(503, "Trade links are not loaded yet; try type=migration."); });
   const r = t.c[iso];
   if (!r) throw fail(404, `No trade data for ${c.name.common}.`);
-  return { country: pick(c), type, year: r.y, unit: "US$, goods only", exports_usd: r.xT ?? null, imports_usd: r.mT ?? null, sells_to: name(r.x), buys_from: name(r.m), on_the_globe: globe("money", "gdp", iso), source: "UN Comtrade, as reported by the country" };
+  return { country: pick(c), type, year: r.y, unit: "US$, goods only", exports_usd: r.xT ?? null, imports_usd: r.mT ?? null, sells_to: name(r.x), buys_from: name(r.m), on_the_globe: globe("money", "gdp", iso), source: "CEPII BACI (HS22), goods trade reconciled from UN Comtrade reports; Licence Ouverte 2.0" };
 }
 
 // constitution full-text search: paragraphs that contain every word of the query

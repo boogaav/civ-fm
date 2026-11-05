@@ -1,7 +1,7 @@
 /* CIV FM — Links
    Countries do not stand alone. With the Links pill on, the country you click
    draws arcs to its strongest partners on the layer you are tuned to:
-   Money → who it sells to and buys from (UN Comtrade, goods), Home → where its
+   Money → who it sells to and buys from (CEPII BACI, goods), Home → where its
    people live abroad and where its immigrants were born (UN DESA migrant
    stock 2024). Data is baked by links/build_links.py. */
 
@@ -9,8 +9,8 @@ const LINKS = {
   money: {
     file: "links/trade.json", a: "x", b: "m", aT: "xT", bT: "mT",
     aLabel: "Sells to", bLabel: "Buys from", fmt: (v) => usd(v),
-    src: (r) => `UN Comtrade, goods trade as reported by the country, ${r.y}.`,
-    missing: "Trade links are still being collected from UN Comtrade. Home shows migration links now.",
+    src: (r) => `CEPII BACI, goods trade reconciled from UN Comtrade reports, ${r.y}.`,
+    missing: "Trade links are not loaded yet. Home shows migration links now.",
   },
   home: {
     file: "links/migration.json", a: "out", b: "in", aT: "outT", bT: "inT",
