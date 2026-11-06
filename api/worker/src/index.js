@@ -37,7 +37,9 @@ const mem = new Map(); // per-isolate cache on top of the edge cache
 async function site(path, ttl = 3600) {
   const hit = mem.get(path);
   if (hit && Date.now() - hit.t < ttl * 1000) return hit.v;
-  const r = await fetch(SITE + path, { cf: { cacheTtl: ttl, cacheEverything: true } });
+  // only successes stay long; a missing file is re-checked within a minute
+  // (?c=2 bumps the edge cache key past 404s cached before this rule)
+  const r = await fetch(SITE + path + "?c=2", { cf: { cacheTtlByStatus: { "200-299": ttl, "404": 60, "500-599": 0 }, cacheEverything: true } });
   if (!r.ok) throw new Error(`${path}: ${r.status}`);
   const v = path.endsWith(".json") ? await r.json() : await r.text();
   mem.set(path, { t: Date.now(), v });
