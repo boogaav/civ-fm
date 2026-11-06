@@ -1998,6 +1998,7 @@ const RAMPS = {
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
   inflation: [[0, "#30d158"], [4, "#ffd60a"], [10, "#ff9f0a"], [25, "#ff453a"]],
   gold: [[7, "#2a251a"], [9, "#57491d"], [10.5, "#a8871f"], [12, "#ffd60a"]], // log10 USD
+  markets: [[9, "#1b2b40"], [10.5, "#14456f"], [12, "#0a84ff"], [13, "#4da3ff"], [13.8, "#9ecfff"]], // log10 USD
   debt: [[20, "#30d158"], [50, "#ffd60a"], [80, "#ff9f0a"], [130, "#ff453a"]],
   body: [[55, "#ff453a"], [65, "#ff9f0a"], [73, "#ffd60a"], [80, "#30d158"], [86, "#6ae58a"]],
   care: [[0.1, "#ff453a"], [1, "#ff9f0a"], [2, "#ffd60a"], [3.5, "#30d158"], [5, "#6ae58a"]],
@@ -2378,6 +2379,12 @@ const CHANNELS = {
         ramp: "debt", from: "20%", to: "130%+",
         fmt: (v) => `Debt ${Math.round(v)}% of GDP`,
         values: () => state.cache.wb["GC.DOD.TOTL.GD.ZS"] },
+      { id: "markets", label: "Markets", title: "Money — stock market value, listed domestic companies",
+        ramp: "markets", from: "$1B", to: "$60T",
+        fmt: (v) => `${usd(v)} stock market`,
+        input: ["log10", ["max", ["get", "value"], 1]],
+        load: ["CM.MKT.LCAP.CD", "CM.MKT.LCAP.GD.ZS", "CM.MKT.LDOM.NO"],
+        values: () => state.cache.wb["CM.MKT.LCAP.CD"] },
       { id: "income", label: "Income tax", title: "Money — top personal income-tax rate",
         ramp: "income", from: "0%", to: "57%",
         fmt: (v) => `Top income tax ${v}%`,
@@ -2393,6 +2400,7 @@ const CHANNELS = {
       document.querySelectorAll("#subdial button").forEach((b) =>
         b.classList.toggle("active", b.dataset.sub === id)
       );
+      if (sub.load) await Promise.all(sub.load.map((code) => wb(code)));
       await addChoropleth({
         values: sub.values() || {},
         ramp: RAMPS[sub.ramp],
@@ -2444,8 +2452,16 @@ const CHANNELS = {
       const gold = state.cache.gold?.[c.cca3];
       const debt = wbHere("GC.DOD.TOTL.GD.ZS");
       const inc = taxHere("income"), corp = taxHere("corporate");
+      const mcap = wbHere("CM.MKT.LCAP.CD"), mgdp = wbHere("CM.MKT.LCAP.GD.ZS"), mlist = wbHere("CM.MKT.LDOM.NO");
+      const markets = state.subs.money === "markets"
+        ? ro("Stock market", mcap ? usd(mcap.value) : "—", "", mcap ? `listed domestic companies · ${mcap.year}` : "no data", false,
+             trend(mcap, { better: "up", label: "Market value" })) +
+          ro("Market / GDP", mgdp ? `${Math.round(mgdp.value)}<small>%</small>` : "—", "", mgdp ? `of GDP · ${mgdp.year}` : "no data") +
+          ro("Listed companies", mlist ? fmtBig(mlist.value) : "—", "", mlist ? `domestic · ${mlist.year}` : "no data", false,
+             trend(mlist, { better: "up", label: "Listed companies" }))
+        : "";
       el.innerHTML =
-        `<div class="readouts">` +
+        `<div class="readouts">` + markets +
         ro("GDP / capita", gdp ? `$${fmtBig(gdp.value)}` : "—", "", gdp ? `PPP · ${gdp.year}` : "", false,
            trend(gdp, { better: "up", label: "GDP per person" })) +
         ro("Inflation", infl ? `${infl.value.toFixed(1)}<small>%</small>` : "—",

@@ -104,6 +104,10 @@ const EXPLAIN = {
     what: "The dollar value of the gold held by a country's central bank. The scale is logarithmic: each step is ten times more.",
     src: "World Bank Open Data: total reserves minus reserves without gold (FI.RES.TOTL.CD and FI.RES.XGLD.CD), latest year reported.",
   },
+  "money/markets": {
+    what: "What all listed domestic companies are worth on the stock market, end of year. Click a country for market value as a share of GDP and how many companies are listed.",
+    src: WB("CM.MKT.LCAP.CD") + " Originally from the World Federation of Exchanges. Year-end values, not today's prices.",
+  },
   "money/debt": {
     what: "Central government debt as a share of what the economy produces in a year. Many countries do not report it and stay blank.",
     src: WB("GC.DOD.TOTL.GD.ZS"),

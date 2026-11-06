@@ -22,7 +22,7 @@ const LAYERS = [
     { living: "Living", health: "Health", school: "School", income: "Income", internet: "Internet", lights: "Lights" }, []],
   ["money", "Money", "98.0", "The exchange", "Settled people trade. Money is how they keep score of work, debt and value.",
     "What does a life cost here, and what is my money worth?",
-    { gdp: "GDP", inflation: "Inflation", gold: "Gold", debt: "Debt", income: "Income tax", corporate: "Corporate tax" }, []],
+    { gdp: "GDP", inflation: "Inflation", gold: "Gold", debt: "Debt", markets: "Markets", income: "Income tax", corporate: "Corporate tax" }, []],
   ["state", "State", "100.5", "The rules", "Trade needs rules, so people agree on states: who governs, who votes, who may cross a border, who pays.",
     "Who governs here, by what rules, and when do people vote?",
     { system: "System", vote: "Vote", parties: "Parties", power: "Power", tax: "Tax", passport: "Passport", citizenship: "Citizenship", immigration: "Immigration" },
