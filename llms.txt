@@ -17,6 +17,7 @@ Everything else stands on this: air to breathe, ground that holds, water to drin
 - [Air](https://civ.fm/?ch=earth&sub=air): Each dot is the temperature in a major city at this moment. The shaded half of the globe is night. Click anywhere for local weather, wind, UV and air quality. Source: Open-Meteo weather and air-quality models. City temperatures refresh every 10 minutes.
 - [Ground](https://civ.fm/?ch=earth&sub=ground): Earthquakes of the last 24 hours, plus storms, wildfires, volcanoes and floods that are active now. Source: USGS earthquake feed (magnitude 2.5 and up), NASA EONET open natural events, and GDACS, the UN and EU disaster alert system. Refreshed every few minutes.
 - [Water](https://civ.fm/?ch=earth&sub=water): Water stress: the share of a country's renewable freshwater that people withdraw each year. Above 25% is stressed. Above 100% means taking more than nature puts back. Source: World Bank Open Data, indicator ER.H2O.FWST.ZS, latest year each country reported. Originally from FAO AQUASTAT. Local rain, soil moisture and river flow come from Open-Meteo.
+- [Risk](https://civ.fm/?ch=earth&sub=risk): How likely a country is to be hit by a disaster or crisis it cannot handle: natural hazards and conflict, weighed against how vulnerable people are and how well the state copes. Click a country for its top threats and emergency numbers; the survival plan says what to do. Source: INFORM Risk Index 2025 (EU Joint Research Centre and IASC), CC BY, via the Humanitarian Data Exchange. Emergency numbers from Wikidata.
 
 ### Body: The species
 
@@ -86,6 +87,7 @@ All of it is moving. The last layer asks where a place is heading this century. 
 ## Tools
 
 - [Relief](https://civ.fm/relief/): The shape of the land and where rivers flood.
+- [Survival plan](https://civ.fm/plan/): Your country's threats, ranked, and what to do before, during and after each.
 - [Civic](https://civ.fm/civic/): Every national constitution: read, compare, find a country's constitutional brother.
 - [Constitution Atlas](https://civ.fm/civic/atlas/): What the world's constitutions agree on and where they split.
 - [Country card](https://civ.fm/card/): Any country in one shareable image.

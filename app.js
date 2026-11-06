@@ -1998,6 +1998,7 @@ const RAMPS = {
   money: [[1000, "#1b2b40"], [5000, "#14456f"], [15000, "#0a84ff"], [40000, "#4da3ff"], [90000, "#9ecfff"]],
   inflation: [[0, "#30d158"], [4, "#ffd60a"], [10, "#ff9f0a"], [25, "#ff453a"]],
   gold: [[7, "#2a251a"], [9, "#57491d"], [10.5, "#a8871f"], [12, "#ffd60a"]], // log10 USD
+  risk: [[1, "#1a9e77"], [2.5, "#5aa02c"], [4, "#ffd60a"], [5.5, "#ff9f0a"], [7, "#ff453a"]],
   markets: [[9, "#1b2b40"], [10.5, "#14456f"], [12, "#0a84ff"], [13, "#4da3ff"], [13.8, "#9ecfff"]], // log10 USD
   debt: [[20, "#30d158"], [50, "#ffd60a"], [80, "#ff9f0a"], [130, "#ff453a"]],
   body: [[55, "#ff453a"], [65, "#ff9f0a"], [73, "#ffd60a"], [80, "#30d158"], [86, "#6ae58a"]],
@@ -2217,6 +2218,36 @@ const CHANNELS = {
     },
   },
 
+  // Earth › Risk: what is most likely to go wrong here, from plan/plan.json
+  // (INFORM Risk Index 2025); the full survival plan lives at /plan/
+  risk: {
+    num: "88.0", name: "Risk",
+    q: "What is most likely to go wrong here, and what should I do?",
+    async activate() {
+      if (!state.cache.plan) state.cache.plan = await getJSON("plan/plan.json");
+      const values = {};
+      for (const [iso, p] of Object.entries(state.cache.plan)) if (p.risk != null) values[iso] = { value: p.risk, year: "2025" };
+      await addChoropleth({ values, ramp: RAMPS.risk, fmt: (v) => `Disaster risk ${v.toFixed(1)} / 10`, opacity: 0.6 });
+      legend("Earth — disaster and crisis risk", [
+        { gradient: gradientCSS(RAMPS.risk), from: "Very low", to: "Very high" },
+        { color: "transparent", label: "INFORM Risk Index 2025 · hazards × vulnerability × coping" },
+      ]);
+    },
+    async here(el) {
+      if (needCountry(el)) return;
+      const c = state.here.country, p = state.cache.plan?.[c.cca3];
+      const NAMES = { earthquake: "Earthquake", flood: "River flood", tsunami: "Tsunami", cyclone: "Tropical cyclone", coastal: "Coastal flood", drought: "Drought", epidemic: "Epidemic", conflict: "Conflict risk", war: "Active war" };
+      const top = Object.entries(p?.h || {}).filter(([k, s]) => s >= (k === "war" ? 6.5 : 1)).sort((a, b) => b[1] - a[1]).slice(0, 4);
+      el.innerHTML =
+        `<div class="readouts">` +
+        ro("Overall risk", p?.risk != null ? `${p.risk.toFixed(1)}<small>/10</small>` : "—",
+           p?.risk != null ? (p.risk < 3.5 ? "good" : p.risk < 5 ? "warn" : "bad") : "", p?.cls ? `${p.cls} · rank ${p.rank} of 191` : "not scored") +
+        ro("Emergency", p?.n?.length ? p.n.slice(0, 3).join(" · ") : "112", "", "phone numbers") +
+        top.map(([k, s]) => ro(NAMES[k], `${s.toFixed(1)}<small>/10</small>`, s < 3.5 ? "good" : s < 6.5 ? "warn" : "bad", "hazard score")).join("") +
+        `</div><a class="here-link" href="plan/#${c.cca3}">Survival plan for ${c.name.common} ↗</a>`;
+    },
+  },
+
   water: {
     num: "93.0", name: "Water",
     q: "Can I drink, and will there be food?",
@@ -2262,12 +2293,13 @@ const CHANNELS = {
 
   earth: {
     num: "88.0", name: "Earth",
-    rooms: [{ href: "relief/", label: "Relief" }],
+    rooms: [{ href: "relief/", label: "Relief" }, { href: "plan/", label: "Survival plan" }],
     q: "Can I breathe, is the ground safe, can I drink?",
     subs: [
       { id: "air", label: "Air" },
       { id: "ground", label: "Ground" },
       { id: "water", label: "Water" },
+      { id: "risk", label: "Risk" },
     ],
     async applySub(id) {
       state.subs.earth = id;
@@ -2277,7 +2309,7 @@ const CHANNELS = {
       clearChannelLayers();
       // day/night shading belongs to the sky and the ground, not to a data map
       map.getLayer("terminator-fill") &&
-        map.setLayoutProperty("terminator-fill", "visibility", id === "water" ? "none" : "visible");
+        map.setLayoutProperty("terminator-fill", "visibility", id === "water" || id === "risk" ? "none" : "visible");
       $("#freq-question").textContent = CHANNELS[id].q;
       await CHANNELS[id].activate();
       if (state.borders) applyBorders();
@@ -2768,7 +2800,7 @@ async function tune(ch) {
     map.setLayoutProperty(
       "terminator-fill",
       "visibility",
-      ch === "earth" && (state.subs.earth || "air") !== "water" ? "visible" : "none"
+      ch === "earth" && !["water", "risk"].includes(state.subs.earth || "air") ? "visible" : "none"
     );
   state.weak = false;
   try {

@@ -12,8 +12,8 @@ const SITE = "https://civ.fm";
 // the one before. `why` is that dependency, said once.
 const LAYERS = [
   ["earth", "Earth", "88.0", "The planet", "Everything else stands on this: air to breathe, ground that holds, water to drink.",
-    "Can I breathe, is the ground safe, can I drink?", { air: "Air", ground: "Ground", water: "Water" },
-    [["relief/", "Relief", "The shape of the land and where rivers flood."]]],
+    "Can I breathe, is the ground safe, can I drink?", { air: "Air", ground: "Ground", water: "Water", risk: "Risk" },
+    [["relief/", "Relief", "The shape of the land and where rivers flood."], ["plan/", "Survival plan", "Your country's threats, ranked, and what to do before, during and after each."]]],
   ["body", "Body", "91.0", "The species", "On that planet live eight billion bodies. How long they last, who heals them, what they put into themselves.",
     "Will this place keep me healthy, and what may I legally consume?",
     { life: "Life", care: "Care", cannabis: "Cannabis", alcohol: "Alcohol", tobacco: "Tobacco", psychedelics: "Psychedelics" }, []],
@@ -165,7 +165,7 @@ Free, no key. Every answer names its sources and links back to the globe.
 `);
 
 /* ---------- sitemap.xml + robots.txt ---------- */
-const pages = ["", "guide/", "civic/", "civic/atlas/", "civic/compare/", "civic/constitution/", "card/", "passport/", "relief/", "about/"];
+const pages = ["", "guide/", "civic/", "civic/atlas/", "civic/compare/", "civic/constitution/", "card/", "passport/", "relief/", "plan/", "about/"];
 fs.writeFileSync("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map((p) => `  <url><loc>${SITE}/${p}</loc></url>`).join("\n")}

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Survival plan — CIV FM</title>
+<meta name="description" content="What threatens your country most, ranked by the INFORM Risk Index, and what to do before, during and after each disaster: earthquake, flood, tsunami, cyclone, drought, epidemic, war, nuclear blast, blackout. Emergency numbers for 226 countries.">
+<link rel="canonical" href="https://civ.fm/plan/">
+<meta property="og:title" content="Survival plan for your country — CIV FM">
+<meta property="og:description" content="Your country's real threats, ranked, and the right thing to do in each.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#fff; --surface:#f7f7f8; --ink:#0d0d0d; --body:#353740; --muted:#6e6e80; --faint:#acacbe; --rule:#ececf1;
+  --vh:#d70015; --hi:#e8590c; --me:#d4a106; --lo:#5aa02c; --vl:#1a9e77;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI",sans-serif; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+a { color:inherit; }
+.bar { display:flex; justify-content:space-between; align-items:center; max-width:900px; margin:0 auto; padding:20px 16px; }
+.bar b { font-weight:600; } .bar a { text-decoration:none; } .bar nav { display:flex; gap:22px; font-size:14px; color:var(--muted); }
+main { max-width:900px; margin:0 auto; padding:16px 16px 80px; }
+h1 { font-size:clamp(32px,6vw,50px); line-height:1.08; letter-spacing:-.03em; font-weight:600; margin:16px 0 10px; }
+.lede { font-size:18px; color:var(--body); max-width:660px; margin:0 0 22px; }
+.pick { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:26px; }
+select { appearance:none; font:600 16px var(--sans); color:var(--ink); background:var(--surface) url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%236e6e80'/></svg>") no-repeat right 14px center; border:1px solid var(--rule); border-radius:10px; padding:11px 38px 11px 14px; min-width:240px; }
+.btn { font:500 14px var(--sans); border:1px solid var(--rule); background:#fff; border-radius:999px; padding:9px 16px; cursor:pointer; color:var(--ink); text-decoration:none; }
+.btn:hover { background:var(--surface); }
+.top { display:grid; grid-template-columns:1.2fr 1fr; gap:14px; margin-bottom:34px; }
+.card { background:var(--surface); border-radius:14px; padding:18px 20px; }
+.card h3 { margin:0 0 6px; font-size:13px; font-weight:600; color:var(--muted); letter-spacing:.03em; text-transform:uppercase; }
+.big { font-size:34px; font-weight:700; letter-spacing:-.02em; }
+.cls { display:inline-block; font-size:13px; font-weight:600; color:#fff; border-radius:999px; padding:2px 10px; margin-left:8px; vertical-align:middle; }
+.nums { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+.nums a { font-size:24px; font-weight:700; text-decoration:none; background:#fff; border:1px solid var(--rule); border-radius:10px; padding:4px 14px; }
+.note { font-size:13px; color:var(--muted); margin:8px 0 0; }
+h2 { font-size:26px; letter-spacing:-.02em; font-weight:600; margin:40px 0 6px; }
+.sub { color:var(--muted); margin:0 0 16px; }
+details.hz { border:1px solid var(--rule); border-radius:14px; margin-bottom:10px; background:#fff; }
+details.hz > summary { list-style:none; display:grid; grid-template-columns:34px 1fr 150px 54px; align-items:center; gap:12px; padding:14px 18px; cursor:pointer; }
+details.hz > summary::-webkit-details-marker { display:none; }
+.ic { font-size:24px; } .hn { font-weight:600; } .hn small { display:block; font-weight:400; color:var(--muted); font-size:13px; }
+.meter { height:8px; background:var(--rule); border-radius:4px; overflow:hidden; } .meter i { display:block; height:100%; border-radius:4px; }
+.sc { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+.steps { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:0 18px 18px; }
+.steps h4 { margin:0 0 6px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.steps ul { margin:0; padding-left:18px; color:var(--body); font-size:14.5px; } .steps li { margin-bottom:5px; }
+.kit { columns:2; column-gap:28px; padding-left:18px; color:var(--body); } .kit li { margin-bottom:6px; break-inside:avoid; }
+footer { max-width:900px; margin:0 auto; padding:24px 16px 48px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); line-height:1.6; }
+@media (max-width:680px) {
+  .top { grid-template-columns:1fr; } .steps { grid-template-columns:1fr; } .kit { columns:1; }
+  details.hz > summary { grid-template-columns:30px 1fr 54px; } .meter { display:none; }
+}
+@media print {
+  .bar, .pick .btn, footer a { display:none; } details.hz { break-inside:avoid; }
+  details.hz:not([open]) .steps { display:grid; } body { font-size:12px; }
+}
+</style>
+</head>
+<body>
+<header class="bar"><a href="../"><b>CIV FM</b></a><nav><a href="../?ch=earth">Globe</a><a href="../guide/">Guide</a><a href="../civic/">Civic</a></nav></header>
+<main>
+<h1 id="title">Survival plan</h1>
+<p class="lede">What is most likely to go wrong where you live, ranked, and the right thing to do before, during and after each. Print it, talk it through with the people you live with, and pack the kit.</p>
+<div class="pick">
+  <select id="country" aria-label="Country"></select>
+  <button class="btn" onclick="window.print()">Print plan</button>
+  <a class="btn" id="globe" href="../?ch=earth&sub=risk">See on the globe ↗</a>
+</div>
+
+<div class="top">
+  <div class="card"><h3>Overall risk</h3><div id="risk"></div><p class="note" id="riskNote"></p></div>
+  <div class="card"><h3>Emergency numbers</h3><div class="nums" id="nums"></div><p class="note">112 also connects from any mobile phone in most of the world, even without a SIM in many countries.</p></div>
+</div>
+
+<h2>Your threats, ranked</h2>
+<p class="sub">Hazard and exposure scores from 0 to 10, INFORM Risk Index 2025. Open any threat for what to do.</p>
+<div id="threats"></div>
+
+<h2>Anywhere on Earth</h2>
+<p class="sub">Not scored by country, because they can reach anyone.</p>
+<div id="global"></div>
+
+<h2>The 72-hour kit</h2>
+<p class="sub">Most help arrives within three days. Keep this ready in one bag by the door.</p>
+<ul class="kit">
+  <li>Water: 4 litres per person per day, for three days</li>
+  <li>Food that needs no cooking, and a manual can opener</li>
+  <li>Medicines for two weeks, copies of prescriptions, glasses</li>
+  <li>First-aid kit, and know how to stop bleeding</li>
+  <li>Torch, battery or wind-up radio, spare batteries, power bank</li>
+  <li>Cash in small notes: card machines fail when the grid does</li>
+  <li>Copies of passports and IDs: paper in a zip bag, and digital</li>
+  <li>Phone numbers written on paper, including one contact outside your region</li>
+  <li>Warm layer, rain cover, sturdy shoes, gloves</li>
+  <li>N95 or FFP2 masks, for smoke, ash and disease</li>
+  <li>Whistle, to signal if you are trapped</li>
+  <li>Sanitation: wet wipes, bin bags, water purification tablets</li>
+  <li>Spare keys for home and car; keep the car's tank at least half full</li>
+  <li>For children, older people and pets: their food, medicines and comfort items</li>
+</ul>
+
+<h2>The family plan</h2>
+<p class="sub">Ten minutes of talking now saves hours of panic later.</p>
+<ul class="kit">
+  <li>Agree two meeting points: one near home, one outside your neighbourhood</li>
+  <li>Pick one out-of-area contact everyone calls or texts to say they are safe</li>
+  <li>Know two ways out of your home and your street</li>
+  <li>Learn where to shut off gas, water and electricity</li>
+  <li>Find your nearest shelter, high ground and evacuation route</li>
+  <li>Sign up for your country's official alert app or SMS service</li>
+  <li>Text rather than call after a disaster: texts get through when networks jam</li>
+  <li>Foreign citizens: register with your embassy</li>
+</ul>
+</main>
+<footer>
+Hazard scores: <a href="https://data.humdata.org/dataset/inform-risk-index">INFORM Risk Index 2025</a> (European Commission Joint Research Centre and IASC, CC BY). Emergency numbers: <a href="https://www.wikidata.org/wiki/Property:P2852">Wikidata</a> (CC0). Guidance adapted from <a href="https://www.ready.gov">Ready.gov</a> (FEMA), the <a href="https://www.ifrc.org">IFRC</a> and the <a href="https://www.who.int">WHO</a>. This is general preparedness advice: in an emergency, follow your local authorities first.
+</footer>
+
+<script>
+// What to do, per hazard. Keys match plan/build_plan.py.
+const G = {
+  earthquake: ["🫨", "Earthquake", "The ground shakes without warning.",
+    ["Fix tall furniture, shelves and the water heater to the wall", "Know the safe spot in each room: under a sturdy table, away from glass", "Keep shoes and a torch by the bed", "Learn how to turn off the gas"],
+    ["Drop, cover and hold on until the shaking stops", "Stay inside; do not run out during shaking", "Outside: get away from buildings, trees and power lines", "Driving: stop in the open and stay in the car"],
+    ["Expect aftershocks", "Smell gas? Leave, and shut the valve if you can", "Text, do not call", "Near the coast after long or strong shaking: go to high ground now"]],
+  flood: ["🌊", "River flood", "Rivers burst after heavy rain or snowmelt.",
+    ["Find out if your home is in a flood zone", "Keep documents and valuables high up", "Plan a route to higher ground", "Have sandbags or flood barriers if you are exposed"],
+    ["Leave when told to; do not wait for the water", "Never walk or drive through flood water: 15 cm knocks you over, 30 cm floats a car", "Switch off electricity at the mains if it is safe", "Trapped: go to the highest floor, not a closed attic"],
+    ["Go home only when authorities say it is safe", "Flood water is contaminated: boil or treat drinking water", "Watch for live wires and weakened floors", "Photograph damage for insurance"]],
+  tsunami: ["🌊", "Tsunami", "A wall of sea water, usually minutes to hours after an undersea earthquake.",
+    ["Learn your tsunami evacuation route and the nearest high ground", "Know the natural warnings: strong shaking, the sea pulling back, a loud roar"],
+    ["Do not wait for an official warning if you feel a strong quake near the coast", "Go to ground 30 m above sea level or 3 km inland, on foot if roads jam", "No high ground: climb to the upper floors of a concrete building"],
+    ["Stay away until officials give the all-clear: waves come for hours", "The first wave is often not the biggest", "Stay out of damaged buildings"]],
+  cyclone: ["🌀", "Tropical cyclone", "Hurricane or typhoon: wind, rain and a storm surge.",
+    ["Know your evacuation zone", "Board or tape windows, bring in loose objects", "Store three days of water and food, charge power banks, fill the car", "Trim trees near the house"],
+    ["Leave if told to, especially from surge zones on the coast", "Stay indoors in an inner room on the lowest safe floor, away from windows", "The calm eye is not the end: the other side of the storm follows"],
+    ["Avoid downed power lines and flood water", "Run generators outside only: exhaust kills indoors", "Check on neighbours, especially older people"]],
+  coastal: ["🏖️", "Coastal flood and storm surge", "The sea pushed inland by storms and high tides.",
+    ["Check whether you live below sea level or in a surge zone", "Know the official warning levels and your evacuation route"],
+    ["Storm surge is the deadliest part of a storm: leave early when told", "Move to higher ground, not just upstairs, if the warning is severe"],
+    ["Salt water damages wiring: have electrics checked before use", "Boil or treat water until it is declared safe"]],
+  drought: ["🏜️", "Drought", "Months without enough rain: water and food become scarce.",
+    ["Store drinking water: 4 litres per person per day", "Fix leaks and collect rain water where allowed", "Keep a reserve of staple foods"],
+    ["Follow water restrictions", "Heat and wildfires often come with drought: avoid outdoor fires", "Watch for food price spikes and plan ahead"],
+    ["Use water carefully until reservoirs recover", "Support local farmers and food banks"]],
+  epidemic: ["🦠", "Epidemic", "Cholera, dengue, measles, flu and new diseases.",
+    ["Keep vaccinations up to date", "Keep two weeks of food and essential medicines", "Have masks and hand sanitiser at home"],
+    ["Wash hands with soap often", "Wear a mask in crowded indoor places during outbreaks", "Stay home when sick and follow the health authority", "Drink only safe water: boil or treat it"],
+    ["Finish any course of treatment", "Watch for official all-clears before crowding again"]],
+  conflict: ["⚠️", "Risk of violent conflict", "The chance of armed conflict breaking out.",
+    ["Keep passports valid and copies of all documents, paper and digital", "Hold cash in small notes, and some in a second currency", "Know two ways out of your city and where you would go", "Fuel half full, go-bag packed, family plan agreed"],
+    ["Follow official alerts and trusted news, not rumours", "Avoid crowds, demonstrations and checkpoints", "If you will leave, leave early, before roads close"],
+    ["Register with your embassy if you are abroad", "Help neighbours who cannot move on their own"]],
+  war: ["🚨", "Active war", "Air raids, shelling and attacks on power and water.",
+    ["Install the official air-raid alert app and know the siren", "Find the nearest shelter: basement, metro station or a corridor with two walls between you and the street", "Store water, food, power banks and a battery radio for blackouts", "Tape windows and keep curtains closed against flying glass"],
+    ["On an alert, go to shelter at once; do not film the sky", "No shelter: two-walls rule, away from windows, lie low", "In the open: lie flat in a ditch or behind something solid, cover your head"],
+    ["Never touch unexploded ammunition: mark the spot, step back the way you came, report it", "Check on neighbours and give first aid", "Expect power and water cuts: keep reserves topped up"]],
+};
+const GLOBAL = {
+  nuclear: ["☢️", "Nuclear blast or fallout", "",
+    ["Know the most solid building near home and work: basements and centres of large buildings protect best"],
+    ["Get inside, stay inside, stay tuned: reach the middle of a solid building or a basement within minutes", "Do not look at the flash; lie face down if outside", "Stay inside at least 24 hours: fallout drops fastest in the first day"],
+    ["Remove outer clothing and shower before entering a clean space", "Take potassium iodide only if authorities tell you to", "Follow official guidance before leaving"]],
+  blackout: ["🔌", "Grid collapse, cyberattack or solar storm", "",
+    ["Battery radio, torches, power banks, cash and a manual can opener", "Keep the car's tank at least half full", "Know how to open electric gates and garage doors by hand"],
+    ["Unplug electronics to protect them from the surge when power returns", "Keep fridges and freezers closed: food stays cold for about a day", "Never use grills or generators indoors"],
+    ["Throw away food that was above 4°C for more than two hours", "Check on neighbours who rely on medical equipment"]],
+  heat: ["🌡️", "Extreme heat", "",
+    ["Know a cool public place: library, mall, cooling centre", "Fit fans or shades; know which room stays coolest"],
+    ["Drink water before you feel thirsty", "Stay out of the sun from 11 to 16; never leave anyone in a parked car", "Confusion, hot dry skin, no sweating: heatstroke, call for help and cool the person now"],
+    ["Check on older neighbours, babies and anyone living alone"]],
+  wildfire: ["🔥", "Wildfire and smoke", "",
+    ["Clear dry plants and gutters within 10 m of the house", "Know two escape routes and keep N95 masks"],
+    ["Leave early: fire moves faster than people expect", "Smoke: close windows, run air purifiers, wear N95 outside"],
+    ["Go home only when authorities say so", "Watch for hot spots and fallen trees"]],
+  volcano: ["🌋", "Volcano and ash", "",
+    ["If you live near a volcano, know its exclusion zones and alert levels"],
+    ["Follow evacuation orders immediately", "Ash: stay indoors, N95 mask, goggles, cover vents"],
+    ["Clear ash from roofs carefully: wet ash can collapse them", "Do not drive in heavy ash"]],
+};
+
+const CLASS_COL = { "Very High": "var(--vh)", "High": "var(--hi)", "Medium": "var(--me)", "Low": "var(--lo)", "Very Low": "var(--vl)" };
+const colFor = (s) => s >= 6.5 ? "var(--vh)" : s >= 5 ? "var(--hi)" : s >= 3.5 ? "var(--me)" : s >= 2 ? "var(--lo)" : "var(--vl)";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+const block = ([ic, name, tag, before, during, after], score, open) => `
+  <details class="hz"${open ? " open" : ""}><summary><span class="ic">${ic}</span><span class="hn">${esc(name)}${tag ? `<small>${esc(tag)}</small>` : ""}</span>` +
+  (score != null ? `<span class="meter"><i style="width:${score * 10}%;background:${colFor(score)}"></i></span><span class="sc">${score.toFixed(1)}</span>` : "<span></span><span></span>") +
+  `</summary><div class="steps"><div><h4>Before</h4>${list(before)}</div><div><h4>During</h4>${list(during)}</div><div><h4>After</h4>${list(after)}</div></div></details>`;
+
+(async () => {
+  const [P, W] = await Promise.all([fetch("plan.json").then((r) => r.json()), fetch("../vendor/world-countries.json").then((r) => r.json())]);
+  const name = Object.fromEntries(W.map((c) => [c.cca3, c.name.common]));
+  const sel = document.getElementById("country");
+  sel.innerHTML = Object.keys(P).filter((k) => name[k]).sort((a, b) => name[a].localeCompare(name[b]))
+    .map((k) => `<option value="${k}">${esc(name[k])}</option>`).join("");
+  document.getElementById("global").innerHTML = Object.values(GLOBAL).map((g) => block(g, null, false)).join("");
+
+  function show(iso) {
+    const p = P[iso] || {};
+    sel.value = iso;
+    history.replaceState(null, "", "#" + iso);
+    document.title = `Survival plan: ${name[iso]} — CIV FM`;
+    document.getElementById("title").textContent = `Survival plan: ${name[iso]}`;
+    document.getElementById("globe").href = `../?ch=earth&sub=risk&c=${iso}`;
+    document.getElementById("risk").innerHTML = p.risk != null
+      ? `<span class="big">${p.risk.toFixed(1)}</span><span style="color:var(--muted)"> / 10</span><span class="cls" style="background:${CLASS_COL[p.cls] || "var(--muted)"}">${esc(p.cls)}</span>`
+      : `<span class="big">—</span>`;
+    document.getElementById("riskNote").textContent = p.risk != null
+      ? `Ranked ${p.rank} of 191 on the INFORM Risk Index, which weighs hazards against vulnerability (${p.vuln}/10) and how well the country copes with a disaster (lack of coping capacity ${p.cope}/10).`
+      : "INFORM does not score this place; the threats below are general.";
+    document.getElementById("nums").innerHTML = (p.n && p.n.length ? p.n : ["112"]).map((n) => `<a href="tel:${esc(n)}">${esc(n)}</a>`).join("");
+    // INFORM conflict intensity also counts lower-level violence; air-raid advice only fits real war
+    const ranked = Object.entries(p.h || {}).filter(([k, s]) => G[k] && s >= (k === "war" ? 6.5 : 1)).sort((a, b) => b[1] - a[1]);
+    document.getElementById("threats").innerHTML = ranked.length
+      ? ranked.map(([k, s], i) => block(G[k], s, i === 0)).join("")
+      : `<p class="sub">No hazard scores above 1 for this place. The threats below still apply everywhere.</p>`;
+  }
+  sel.addEventListener("change", () => show(sel.value));
+
+  let iso = location.hash.slice(1).toUpperCase();
+  if (!P[iso]) {
+    // default to the visitor's country by IP, as the country card does
+    try { const w = await fetch("https://civfm-proxy.boogaav.workers.dev/whereami").then((r) => r.json()); iso = W.find((c) => c.cca2 === w.country)?.cca3; } catch (e) {}
+  }
+  show(P[iso] ? iso : "UKR");
+})();
+</script>
+<script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
+<script src="../track.js" defer></script>
+</body>
+</html>

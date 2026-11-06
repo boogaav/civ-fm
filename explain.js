@@ -23,6 +23,10 @@ const EXPLAIN = {
     what: "Earthquakes of the last 24 hours, plus storms, wildfires, volcanoes and floods that are active now.",
     src: "USGS earthquake feed (magnitude 2.5 and up), NASA EONET open natural events, and GDACS, the UN and EU disaster alert system. Refreshed every few minutes.",
   },
+  "earth/risk": {
+    what: "How likely a country is to be hit by a disaster or crisis it cannot handle: natural hazards and conflict, weighed against how vulnerable people are and how well the state copes. Click a country for its top threats and emergency numbers; the survival plan says what to do.",
+    src: "INFORM Risk Index 2025 (EU Joint Research Centre and IASC), CC BY, via the Humanitarian Data Exchange. Emergency numbers from Wikidata.",
+  },
   "earth/water": {
     what: "Water stress: the share of a country's renewable freshwater that people withdraw each year. Above 25% is stressed. Above 100% means taking more than nature puts back.",
     src: WB("ER.H2O.FWST.ZS") + " Originally from FAO AQUASTAT. Local rain, soil moisture and river flow come from Open-Meteo.",
