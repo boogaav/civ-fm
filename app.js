@@ -2472,7 +2472,7 @@ const CHANNELS = {
 
   state: {
     num: "100.5", name: "State",
-    rooms: [{ href: "civic/", label: "Civic" }],
+    rooms: [{ href: "civic/", label: "Civic" }, { href: "passport/", label: "Two passports" }],
     q: "Who governs here, by what rules, and when do people vote?",
     subs: [
       { id: "system", label: "System" },

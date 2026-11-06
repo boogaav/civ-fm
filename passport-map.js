@@ -25,6 +25,13 @@
   const { CATS, OPEN_CATS, NATURALIZATION, IMM_APPROACH, IMMIGRATION, CIT_BUCKETS, citBucket, classify } = window.PASSPORT_DATA;
   const MODE_LABEL = { visa: "Visa", tax: "Tax", citizenship: "Citizenship", immigration: "Immigration" };
   const TAX_RAMP = [[5, "#30d158"], [12, "#ffd60a"], [20, "#ff9f0a"], [30, "#ff453a"]];
+  // two passports travelling together: who can enter without a pre-arranged visa
+  const PAIR = {
+    both: ["#30d158", "Both of you, no visa"],
+    you: ["#ff9f0a", "Only you"],
+    partner: ["#bf5af2", "Only your partner"],
+    neither: ["#ff453a", "Both need a visa"],
+  };
 
   async function getJSON(url) {
     const r = await fetch(url);
@@ -36,6 +43,7 @@
     constructor(container, opts = {}) {
       this.el = typeof container === "string" ? document.querySelector(container) : container;
       this.passport = opts.passport || "UKR";
+      this.partner = opts.partner || "";
       this.modes = opts.modes || ["visa"];
       this.mode = this.modes[0];
       this.showHeader = opts.showHeader !== false;
@@ -53,6 +61,7 @@
         ${this.showHeader ? `<div class="pm-header"><span class="pm-title">Passport</span><span class="pm-sub">where a passport can take you</span></div>` : ""}
         <div class="pm-controls">
           <select class="pm-passport" aria-label="Passport"></select>
+          <select class="pm-passport pm-partner" aria-label="Partner's passport"></select>
           ${this.modes.length > 1 ? `<div class="pm-modes">${this.modes.map((m) => `<button data-mode="${m}">${MODE_LABEL[m] || m}</button>`).join("")}</div>` : ""}
         </div>
         <div class="pm-map"></div>
@@ -90,14 +99,15 @@
     }
 
     _buildPicker() {
-      const sel = this.el.querySelector(".pm-passport");
-      const opts = Object.keys(this.visa)
-        .filter((c) => this.names[c])
-        .sort((a, b) => this.names[a].localeCompare(this.names[b]))
-        .map((c) => `<option value="${c}"${c === this.passport ? " selected" : ""}>${this.names[c]}</option>`);
-      sel.innerHTML = opts.join("");
-      sel.addEventListener("change", () => {
-        this.passport = sel.value;
+      const sel = this.el.querySelector(".pm-passport"), par = this.el.querySelector(".pm-partner");
+      const isos = Object.keys(this.visa).filter((c) => this.names[c]).sort((a, b) => this.names[a].localeCompare(this.names[b]));
+      const opts = (cur) => isos.map((c) => `<option value="${c}"${c === cur ? " selected" : ""}>${this.names[c]}</option>`).join("");
+      sel.innerHTML = opts(this.passport);
+      par.innerHTML = `<option value="">+ Partner's passport</option>` + opts(this.partner);
+      sel.addEventListener("change", () => { this.passport = sel.value; this.render(); });
+      par.addEventListener("change", () => {
+        this.partner = par.value;
+        if (this.partner) this.mode = "visa"; // the pair view is a visa view
         this.render();
       });
     }
@@ -173,7 +183,38 @@
       if (this.mode === "tax") return this._renderTax();
       if (this.mode === "citizenship") return this._renderCitizenship();
       if (this.mode === "immigration") return this._renderImmigration();
+      if (this.partner && this.partner !== this.passport) return this._renderPair();
       this._renderVisa();
+    }
+
+    // open for one person: visa-free, on arrival, eTA, or their own country
+    _open(passport, dest) {
+      if (dest === passport) return { open: true, label: "home country" };
+      const req = (this.visa[passport] || {})[dest];
+      if (req == null) return null;
+      const info = classify(req);
+      return { open: OPEN_CATS.includes(info.cat), label: info.label };
+    }
+
+    _renderPair() {
+      const counts = {}, features = [];
+      const you = this.names[this.passport], them = this.names[this.partner];
+      for (const f of this.shapes.features) {
+        const a = this._open(this.passport, f.id), b = this._open(this.partner, f.id);
+        if (!a || !b) continue;
+        const k = a.open && b.open ? "both" : a.open ? "you" : b.open ? "partner" : "neither";
+        counts[k] = (counts[k] || 0) + 1;
+        features.push({ ...f, properties: { name: f.properties.name, iso3: f.id, req: `pair:${k}`, color: PAIR[k][0],
+          detail: `<b style="color:${PAIR[k][0]}">${PAIR[k][1]}</b><br><span style="opacity:.6">${you}</span> ${a.label}<br><span style="opacity:.6">${them}</span> ${b.label}` } });
+      }
+      this.map.getSource("pm").setData({ type: "FeatureCollection", features });
+      this.el.querySelector(".pm-summary").innerHTML =
+        `<b>${you}</b> + <b>${them}</b> passports: <b>${counts.both || 0}</b> destinations you can both enter without a pre-arranged visa` +
+        `<br><span style="opacity:.75">Only you: ${counts.you || 0} · only your partner: ${counts.partner || 0} · both need a visa: ${counts.neither || 0}</span>`;
+      this.el.querySelector(".pm-legend").innerHTML = Object.entries(PAIR)
+        .filter(([k]) => counts[k])
+        .map(([k, [col, label]]) => `<span class="pm-key"><i style="background:${col}"></i>${label} · ${counts[k]}</span>`)
+        .join("");
     }
 
     _renderImmigration() {

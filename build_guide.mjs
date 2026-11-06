@@ -28,7 +28,8 @@ const LAYERS = [
     { system: "System", vote: "Vote", parties: "Parties", power: "Power", tax: "Tax", passport: "Passport", citizenship: "Citizenship", immigration: "Immigration" },
     [["civic/", "Civic", "Every national constitution: read, compare, find a country's constitutional brother."],
      ["civic/atlas/", "Constitution Atlas", "What the world's constitutions agree on and where they split."],
-     ["card/", "Country card", "Any country in one shareable image."]]],
+     ["card/", "Country card", "Any country in one shareable image."],
+     ["passport/", "Two passports", "Pick yours and your partner's: where you can both travel without a visa."]]],
   ["mind", "Mind", "103.0", "The meaning", "Above the rules sit beliefs: what people worship, read, listen to and talk about.",
     "What do people here believe, read and listen to, right now?", { faith: "Faith", reading: "Reading", radio: "Radio", signal: "Signal" }, []],
   ["future", "Future", "106.5", "The trajectory", "All of it is moving. The last layer asks where a place is heading this century.",
@@ -164,7 +165,7 @@ Free, no key. Every answer names its sources and links back to the globe.
 `);
 
 /* ---------- sitemap.xml + robots.txt ---------- */
-const pages = ["", "guide/", "civic/", "civic/atlas/", "civic/compare/", "civic/constitution/", "card/", "relief/", "about/"];
+const pages = ["", "guide/", "civic/", "civic/atlas/", "civic/compare/", "civic/constitution/", "card/", "passport/", "relief/", "about/"];
 fs.writeFileSync("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map((p) => `  <url><loc>${SITE}/${p}</loc></url>`).join("\n")}

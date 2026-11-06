@@ -27,19 +27,19 @@
 <script src="../passport-data.js"></script>
 <script src="../passport-map.js"></script>
 <script>
-  // permalink: /passport/#ESP opens the Spanish passport
-  const initial = /^#[A-Z]{3}$/.test(location.hash) ? location.hash.slice(1) : "UKR";
+  // permalink: /passport/#ESP opens the Spanish passport, #UKR+DEU a couple
+  const [initial, partner] = /^#[A-Z]{3}(\+[A-Z]{3})?$/.test(location.hash) ? location.hash.slice(1).split("+") : ["UKR"];
 
   const pm = new PassportMap(document.getElementById("pm-root"), {
     passport: initial,
+    partner,
     modes: ["visa", "tax", "citizenship", "immigration"],
     showHeader: true,
     // dataBaseUrl: "https://passport.booga.me/data/",  // once the subdomain exists
     onSelectCountry: (iso3, req) => console.log("selected", iso3, req),
     onReady: (m) => {
-      m.el.querySelector(".pm-passport").addEventListener("change", (e) => {
-        history.replaceState(null, "", "#" + e.target.value);
-      });
+      const sync = () => history.replaceState(null, "", "#" + m.passport + (m.partner ? "+" + m.partner : ""));
+      m.el.querySelectorAll(".pm-passport").forEach((sel) => sel.addEventListener("change", sync));
     },
   });
 </script>
