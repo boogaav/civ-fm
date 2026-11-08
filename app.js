@@ -1558,8 +1558,7 @@ async function hereState(el) {
     (K.local ? `<a class="ro wide pm-link" href="civic/compare/?c=${c.cca3}">How it compares with every other constitution →</a>` : "") +
     `<a class="ro wide pm-link" href="civic/#${c.cca3}">${c.name.common}'s constitutional brother and family →</a>` +
     `<a class="ro wide pm-link" href="passport/#${c.cca3}">Passport map — where ${c.name.common}'s passport can take you →</a>` +
-    // shortcut: only Ukraine has a government-and-budget page so far; add countries here as gov/ grows
-    (c.cca3 === "UKR" ? `<a class="ro wide pm-link" href="gov/">Government and budget — every minister, every hryvnia →</a>` : "") +
+    `<a class="ro wide pm-link" href="gov/#${c.cca3}">Government and budget — who governs ${c.name.common}, where its money goes →</a>` +
     civicRow("Independence", v.indep) +
     civicRow("National day", v.holiday) +
     `<div class="psrc">CIA World Factbook, public domain${K.local ? " · constitution text: Constitute Project, CC BY-NC" : ""}</div>` +

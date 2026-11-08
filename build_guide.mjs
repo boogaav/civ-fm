@@ -30,7 +30,7 @@ const LAYERS = [
      ["civic/atlas/", "Constitution Atlas", "What the world's constitutions agree on and where they split."],
      ["card/", "Country card", "Any country in one shareable image."],
      ["passport/", "Two passports", "Pick yours and your partner's: where you can both travel without a visa."],
-     ["gov/", "Ukraine: government and budget", "Every minister, their ministry's money and programmes; where the state's money comes from and goes; city and regional budgets."]]],
+     ["gov/", "Government and budget", "For every country: today's leaders and cabinet, how the state is built, where its money comes from and goes. Ukraine in full depth: each ministry's budget and programmes, city and regional budgets."]]],
   ["mind", "Mind", "103.0", "The meaning", "Above the rules sit beliefs: what people worship, read, listen to and talk about.",
     "What do people here believe, read and listen to, right now?", { faith: "Faith", reading: "Reading", radio: "Radio", signal: "Signal" }, []],
   ["future", "Future", "106.5", "The trajectory", "All of it is moving. The last layer asks where a place is heading this century.",

@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ukraine: who governs and where the money goes — CIV FM</title>
+<title>Who governs, and where the money goes — CIV FM</title>
 <meta name="description" content="Ukraine's government, minister by minister, with each ministry's budget and its biggest programmes; where the state's money comes from and where it goes; and the budgets of Kyiv, every regional capital and every region. Official Open Budget data.">
 <link rel="canonical" href="https://civ.fm/gov/">
+<meta name="robots" content="index,follow">
 <meta property="og:title" content="Ukraine: who governs and where the money goes">
 <meta property="og:description" content="Every minister, every hryvnia: the state budget, ministries and city budgets from official Open Budget data.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
@@ -64,12 +65,29 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 </style>
 </head>
 <body>
-<header class="bar"><a href="../"><b>CIV FM</b></a><nav><a href="../?ch=state&c=UKR">Globe</a><a href="../civic/#UKR">Constitution</a><a href="../guide/">Guide</a></nav></header>
+<header class="bar"><a href="../"><b>CIV FM</b></a><nav><a id="toGlobe" href="../?ch=state">Globe</a><a id="toCivic" href="../civic/">Constitution</a><a href="../guide/">Guide</a></nav></header>
 <main>
-<p class="kicker">🇺🇦 Ukraine · government and public money</p>
-<h1>Who governs Ukraine, and where every hryvnia goes.</h1>
-<p class="lede">The Cabinet minister by minister, with the money each one controls and what it buys; where the state's money comes from and where it goes; and the budgets of Kyiv, every regional capital and every region. All figures are actual spending reported to the Treasury, not promises.</p>
+<div class="pick" style="margin:8px 0 0"><select id="country" aria-label="Country"></select></div>
+<p class="kicker" id="kicker"></p>
+<h1 id="h1"></h1>
+<p class="lede" id="lede"></p>
 
+<div id="world" hidden>
+<div class="big" id="wbig"></div>
+<h2>Who governs</h2>
+<p class="sub" id="wsys"></p>
+<div class="cab" id="wcab"></div>
+<p class="note" id="wcabNote"></p>
+<h2>Where the money comes from</h2>
+<p class="sub" id="wrevSub"></p>
+<div class="rows" id="wrev"></div>
+<h2>Where the money goes</h2>
+<p class="sub" id="wfnSub"></p>
+<div class="rows" id="wfn"></div>
+<p class="note">Ministry-by-ministry budgets and city budgets need each country's own open-budget portal. Ukraine has them already; more countries are being added.</p>
+</div>
+
+<div id="ua" hidden>
 <div class="big" id="big"></div>
 
 <h2>Where the money comes from</h2>
@@ -101,9 +119,11 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 <h2>All local budgets by region</h2>
 <p class="sub" id="regSub">Everything spent by the region's councils and communities together, 2026 so far.</p>
 <table><thead><tr><th>Region</th><th class="n">Revenue</th><th class="n">Spending</th></tr></thead><tbody id="regions"></tbody></table>
+</div>
 </main>
 <footer>
-Money: <a href="https://openbudget.gov.ua">Open Budget</a>, Ministry of Finance of Ukraine (Treasury execution reports, state budget 2025 full year and 2026 to 30 September; local budgets 2025). Cabinet: Wikipedia, <a href="https://en.wikipedia.org/wiki/Koretskyi_Government">Koretskyi Government</a> (CC BY-SA). Ministry descriptions are CIV FM summaries. ₴ = Ukrainian hryvnia. <span id="upd"></span>
+<span id="srcWorld">Leaders and cabinets: CIA <a href="https://www.cia.gov/resources/world-leaders/">World Leaders</a> directory (public domain), dated per country. Government system and parliament: CIA World Factbook (public domain, frozen February 2026). Money: World Bank Open Data (CC BY 4.0), central government only, each figure from the latest year the country reported. </span>
+<span id="srcUA">Money: <a href="https://openbudget.gov.ua">Open Budget</a>, Ministry of Finance of Ukraine (Treasury execution reports, state budget 2025 full year and 2026 to 30 September; local budgets 2025). Cabinet: Wikipedia, <a href="https://en.wikipedia.org/wiki/Koretskyi_Government">Koretskyi Government</a> (CC BY-SA). Ministry descriptions are CIV FM summaries. ₴ = Ukrainian hryvnia. <span id="upd"></span></span>
 </footer>
 <script>
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -111,13 +131,97 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const uah = (bn) => bn >= 1000 ? `₴${(bn / 1000).toFixed(2)}T` : bn >= 100 ? `₴${Math.round(bn)}bn` : bn >= 1 ? `₴${bn.toFixed(1)}bn` : `₴${Math.round(bn * 1000)}M`;
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const COLORS = ["#2f6fdf", "#d9a21b", "#1a9e77", "#c2417a", "#7a5cd6", "#e8590c", "#2aa5b8", "#6b7a8f", "#5aa02c", "#c43c3c", "#a0782a"];
-const bars = (el, items, total, color) => {
+const bars = (el, items, total, color, fmt = uah) => {
   const max = Math.max(...items.map((x) => x.value));
-  el.innerHTML = items.map((x, i) => `<div class="row"><span>${esc(x.name)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span><span class="bar2"><i style="width:${(x.value / max) * 100}%;background:${color || COLORS[i % COLORS.length]}"></i></span><span class="v">${uah(x.value)}<small>${pct(x.value, total)}%</small></span></div>`).join("");
+  el.innerHTML = items.map((x, i) => `<div class="row"><span>${esc(x.name)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span><span class="bar2"><i style="width:${(x.value / max) * 100}%;background:${color || COLORS[i % COLORS.length]}"></i></span><span class="v">${fmt(x.value)}<small>${pct(x.value, total)}%</small></span></div>`).join("");
 };
+// US dollars → $27.5T / $412bn / $8.3bn / $640M
+const usd = (v) => v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e11 ? `$${Math.round(v / 1e9)}bn` : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}bn` : `$${Math.round(v / 1e6)}M`;
+const PROXY = "https://civfm-proxy.boogaav.workers.dev";
+const WB = { gdp: "NY.GDP.MKTP.CD", rev: "GC.REV.XGRT.GD.ZS", exp: "GC.XPN.TOTL.GD.ZS", debt: "GC.DOD.TOTL.GD.ZS", inc: "GC.TAX.YPKG.RV.ZS",
+  gds: "GC.TAX.GSRV.RV.ZS", trd: "GC.TAX.INTT.RV.ZS", oth: "GC.TAX.OTHR.RV.ZS", soc: "GC.REV.SOCL.ZS", hea: "SH.XPD.GHED.GD.ZS",
+  edu: "SE.XPD.TOTL.GD.ZS", mil: "MS.MIL.XPND.GD.ZS", int: "GC.XPN.INTP.RV.ZS" };
+const wbCache = {};
+const wbAll = () => Promise.all(Object.entries(WB).map(async ([k, code]) => {
+  if (!wbCache[k]) wbCache[k] = await fetch(`${PROXY}/wb/${code}`).then((r) => r.json()).catch(() => ({}));
+  return [k, wbCache[k]];
+})).then(Object.fromEntries);
+// CIA writes surnames in capitals: "Reem ALABALI-RADOVAN" → "Reem Alabali-Radovan"
+const titleCase = (n) => n.replace(/\b[A-ZÀ-Ý][A-ZÀ-Ý']+\b/g, (w) => w[0] + w.slice(1).toLowerCase());
+const show = (id, on) => { document.getElementById(id).hidden = !on; };
+
+async function renderWorld(iso, C, L, civic) {
+  const name = C.name.common, v = civic.c[iso] || {}, lead = L[iso];
+  document.getElementById("kicker").textContent = `${C.flag || ""} ${name} · government and public money`;
+  document.getElementById("h1").textContent = `Who governs ${name}, and where the money goes.`;
+  document.getElementById("lede").textContent = `The people who run ${name}'s state today, how its government is built, and the shape of its public money: where it comes from and what it pays for.`;
+  document.getElementById("wsys").textContent = [v.gov && `${v.gov[0].toUpperCase()}${v.gov.slice(1)}.`, v.legis?.name && `Parliament: ${v.legis.name}${v.legis.seats ? `, ${v.legis.seats}` : ""}.`, v.suffrage && `Voting: ${v.suffrage}.`].filter(Boolean).join(" ");
+  const people = lead ? lead.people : [];
+  document.getElementById("wcab").innerHTML = people.length
+    ? people.map((x) => `<div class="card" style="padding:12px 14px;gap:2px"><div class="office">${esc(x.title)}</div><div class="who" style="font-size:16px">${esc(titleCase(x.name))}</div></div>`).join("")
+    : `<p class="sub">The CIA directory does not list this government${iso === "USA" ? " (it covers foreign governments only)" : ""}. Head of state: ${esc(v.chief || "—")}. Head of government: ${esc(v.head || "—")}.</p>`;
+  document.getElementById("wcabNote").textContent = lead ? `${people.length} officials, as listed by the CIA World Leaders directory on ${lead.updated}. Governments change: check the date.` : "";
+
+  const W = await wbAll(), g = (k) => W[k]?.[iso];
+  const gdp = g("gdp"), rev = g("rev"), exp = g("exp"), debt = g("debt");
+  const R = rev && gdp ? (rev.value / 100) * gdp.value : null, E = exp && gdp ? (exp.value / 100) * gdp.value : null;
+  document.getElementById("wbig").innerHTML =
+    stat(E ? usd(E) : "—", E ? `central government spending (${Math.round(exp.value)}% of GDP, ${exp.year})` : "spending not reported") +
+    stat(R ? usd(R) : "—", R ? `revenue (${Math.round(rev.value)}% of GDP, ${rev.year})` : "revenue not reported") +
+    // a gap is only honest when both sides come from the same year
+    (R && E && rev.year === exp.year ? stat(usd(Math.abs(E - R)), E > R ? `gap covered by borrowing (${exp.year})` : `surplus (${exp.year})`)
+      : stat("—", "deficit: spending and revenue reported for different years")) +
+    stat(debt ? `${Math.round(debt.value)}%` : "—", debt ? `government debt to GDP (${debt.year})` : "debt not reported");
+
+  const share = (k) => g(k) ? g(k).value : 0;
+  const parts = [["inc", "Income and profit taxes"], ["gds", "VAT, sales and excise taxes"], ["soc", "Social contributions"], ["trd", "Customs and trade taxes"], ["oth", "Other taxes"]]
+    .map(([k, n]) => ({ name: n, value: R ? (share(k) / 100) * R : share(k), sub: g(k) ? `${g(k).value.toFixed(1)}% of revenue · ${g(k).year}` : "" })).filter((x) => x.value > 0);
+  const known = parts.reduce((a, x) => a + (R ? x.value / R : x.value / 100), 0);
+  if (R && known < 0.98) parts.push({ name: "Other revenue", value: (1 - known) * R, sub: "Fees, state property and enterprise income, grants" });
+  document.getElementById("wrevSub").textContent = R ? `Revenue of ${usd(R)} a year, by source. Shares from the World Bank, applied to total revenue.` : "This country does not report revenue to the World Bank.";
+  if (R) bars(document.getElementById("wrev"), parts.sort((a, b) => b.value - a.value), R, null, usd); else document.getElementById("wrev").innerHTML = "";
+
+  const fn = [["mil", "Defence", "gdp"], ["hea", "Health", "gdp"], ["edu", "Education", "gdp"], ["int", "Interest on debt", "rev"]]
+    .map(([k, n, base]) => g(k) && gdp ? { name: n, value: base === "gdp" ? (g(k).value / 100) * gdp.value : R ? (g(k).value / 100) * R : 0, sub: `${g(k).value.toFixed(1)}% of ${base === "gdp" ? "GDP" : "revenue"} · ${g(k).year}` } : null)
+    .filter((x) => x && x.value > 0);
+  const named = fn.reduce((a, x) => a + x.value, 0);
+  if (E && E > named) fn.push({ name: "Everything else", value: E - named, sub: "Pensions and welfare, police, transport, administration and more (not itemised by the World Bank)" });
+  document.getElementById("wfnSub").textContent = E ? `Spending of ${usd(E)} a year. Health and education include all levels of government, so they can exceed central spending in federal countries.` : "Spending by purpose, where reported.";
+  bars(document.getElementById("wfn"), fn.sort((a, b) => b.value - a.value), E || named, "var(--blue)", usd);
+}
 const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
 
+let uaDone = false;
+async function route(iso, C, L, civic) {
+  document.getElementById("country").value = iso;
+  history.replaceState(null, "", "#" + iso);
+  document.title = `${C.name.common}: who governs and where the money goes — CIV FM`;
+  document.getElementById("toGlobe").href = `../?ch=state&c=${iso}`;
+  document.getElementById("toCivic").href = `../civic/#${iso}`;
+  const ua = iso === "UKR";
+  show("ua", ua); show("world", !ua); show("srcUA", ua); show("srcWorld", !ua);
+  if (!ua) return renderWorld(iso, C, L, civic);
+  document.getElementById("kicker").textContent = "🇺🇦 Ukraine · government and public money";
+  document.getElementById("h1").textContent = "Who governs Ukraine, and where every hryvnia goes.";
+  document.getElementById("lede").textContent = "The Cabinet minister by minister, with the money each one controls and what it buys; where the state's money comes from and where it goes; and the budgets of Kyiv, every regional capital and every region. All figures are actual spending reported to the Treasury, not promises.";
+  if (!uaDone) { uaDone = true; await renderUA(); }
+}
+
 (async () => {
+  const [W, L, civic] = await Promise.all([fetch("../vendor/world-countries.json").then((r) => r.json()), fetch("leaders.json").then((r) => r.json()), fetch("../civic/civic.json").then((r) => r.json()).catch(() => ({ c: {} }))]);
+  const by3 = Object.fromEntries(W.map((c) => [c.cca3, c]));
+  const list = W.filter((c) => L[c.cca3] || civic.c[c.cca3]).sort((a, b) => a.name.common.localeCompare(b.name.common));
+  const sel = document.getElementById("country");
+  sel.innerHTML = list.map((c) => `<option value="${c.cca3}">${esc(c.name.common)}${c.cca3 === "UKR" ? " — full budget" : ""}</option>`).join("");
+  sel.onchange = () => route(sel.value, by3[sel.value], L, civic);
+  let iso = location.hash.slice(1).toUpperCase();
+  if (!by3[iso]) {
+    try { const w = await fetch(`${PROXY}/whereami`).then((r) => r.json()); iso = W.find((c) => c.cca2 === w.country)?.cca3; } catch (e) {}
+  }
+  route(by3[iso] && list.includes(by3[iso]) ? iso : "UKR", by3[by3[iso] ? iso : "UKR"], L, civic);
+})();
+
+async function renderUA() {
   const D = await fetch("ua.json").then((r) => r.json());
   const N = D.national, Y = D.y2026;
   const borrow = Math.max(0, N.spending - N.revenue);
@@ -157,7 +261,7 @@ const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
   sel.innerHTML = Object.entries(groups).map(([k, g]) => `<optgroup label="${g}">${D.locals.filter((l) => l.kind === k).map((l) => `<option value="${l.code}">${esc(l.name)}</option>`).join("")}</optgroup>`).join("");
   const showLocal = (code) => {
     const l = D.locals.find((x) => x.code === code); if (!l) return;
-    sel.value = code; history.replaceState(null, "", "#" + code);
+    sel.value = code;
     document.getElementById("lbig").innerHTML = stat(uah(l.revenue), "revenue, 2025") + stat(uah(l.spending), "spending, 2025") +
       stat(uah(l.spending - l.revenue), l.spending > l.revenue ? "spent beyond revenue (reserves, loans)" : "left over") +
       stat(l.functions[0] ? esc(l.functions[0].name) : "—", "biggest area of spending");
@@ -166,11 +270,11 @@ const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
     bars(document.getElementById("lprog"), l.departments.slice(0, 10).map((x) => ({ name: x.name, value: x.value })), l.spending, "var(--gold)");
   };
   sel.onchange = () => showLocal(sel.value);
-  showLocal(D.locals.some((l) => l.code === location.hash.slice(1)) ? location.hash.slice(1) : "2600000000");
+  showLocal("2600000000");
 
   document.getElementById("regions").innerHTML = D.regions.slice().sort((a, b) => b.spending - a.spending)
     .map((r) => `<tr><td>${esc(r.name)}</td><td class="n">${uah(r.revenue)}</td><td class="n">${uah(r.spending)}</td></tr>`).join("");
-})();
+}
 </script>
 <script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
 <script src="../track.js" defer></script>
