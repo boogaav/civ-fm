@@ -10,6 +10,8 @@
 <meta property="og:title" content="Ukraine: who governs and where the money goes">
 <meta property="og:description" content="Every minister, every hryvnia: the state budget, ministries and city budgets from official Open Budget data.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root { --bg:#fff; --surface:#f7f7f8; --ink:#0d0d0d; --body:#353740; --muted:#6e6e80; --faint:#acacbe; --rule:#ececf1;
@@ -60,6 +62,23 @@ select { appearance:none; font:600 15px var(--sans); color:var(--ink); backgroun
 .btn { font:500 14px var(--sans); border:1px solid var(--rule); background:#fff; border-radius:999px; padding:8px 14px; cursor:pointer; }
 .btn:hover { background:var(--surface); }
 .note { font-size:12.5px; color:var(--muted); margin-top:10px; }
+.viz { width:100%; overflow-x:auto; margin:6px 0 4px; }
+.viz svg { display:block; min-width:640px; width:100%; height:auto; font-family:var(--sans); }
+.viz .nd rect { fill:#fff; stroke:var(--rule); stroke-width:1.2; rx:10; }
+.viz .nd.k rect { fill:var(--ink); stroke:var(--ink); } .viz .nd.k text { fill:#fff; }
+.viz .nd.a rect { fill:#fdf6e3; stroke:#e5cf8f; }
+.viz .nd { cursor:default; } .viz .nd[data-go] { cursor:pointer; } .viz .nd[data-go]:hover rect { stroke:var(--blue); }
+.viz text.t { font-size:13px; font-weight:600; fill:var(--ink); } .viz text.s { font-size:11px; fill:var(--muted); }
+.viz path.e { fill:none; stroke:#b9bccb; stroke-width:1.4; } .viz path.e.d { stroke-dasharray:4 4; }
+.viz text.el { font-size:10.5px; fill:var(--muted); paint-order:stroke; stroke:#fff; stroke-width:4px; }
+details.list { margin-top:8px; } details.list > summary { cursor:pointer; color:var(--muted); font-size:13px; }
+#tree { position:relative; height:420px; border-radius:14px; overflow:hidden; }
+#tree div { position:absolute; box-sizing:border-box; border:2px solid #fff; border-radius:10px; padding:8px 10px; color:#fff; overflow:hidden; cursor:pointer; font-size:12.5px; line-height:1.3; }
+#tree div b { display:block; font-size:14px; } #tree div:hover { filter:brightness(1.1); }
+#cabDetail .card { max-width:520px; margin-top:12px; }
+#uamap { height:520px; border-radius:14px; overflow:hidden; border:1px solid var(--rule); }
+.seg { display:inline-flex; border:1px solid var(--rule); border-radius:999px; overflow:hidden; } .seg button { font:500 13px var(--sans); border:0; background:#fff; padding:7px 14px; cursor:pointer; } .seg button.on { background:var(--ink); color:#fff; }
+.legend { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--muted); margin-top:8px; flex-wrap:wrap; } .legend i { width:26px; height:10px; border-radius:3px; display:inline-block; }
 footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); line-height:1.6; }
 @media (max-width:760px) { .big { grid-template-columns:1fr 1fr; } .two { grid-template-columns:1fr; } .row { grid-template-columns:1fr 80px; } .row .bar2 { display:none; } .hide-m { display:none; } }
 </style>
@@ -95,25 +114,37 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 <div id="place" class="card" hidden style="margin-top:10px"></div>
 <div class="big" id="big" style="margin-top:28px"></div>
 
-<h2>Where the money comes from</h2>
+<h2>Who manages who</h2>
+<p class="sub">How power is arranged in Ukraine: who elects whom, who appoints whom, who answers to whom. Solid lines elect or appoint; dashed lines nominate or oversee. Tap a box to jump to its money.</p>
+<div class="viz" id="org"></div>
+
+<h2>How the money flows</h2>
 <p class="sub" id="revSub"></p>
-<div class="stack" id="revStack"></div>
-<div class="rows" id="rev"></div>
+<div class="viz" id="flow"></div>
+<details class="list"><summary>Show as a list</summary>
+<h3 style="font-size:15px;margin:14px 0 4px">Comes from</h3><div class="stack" id="revStack"></div><div class="rows" id="rev"></div>
+<h3 style="font-size:15px;margin:18px 0 4px">Goes to</h3><div class="rows" id="fn"></div>
+</details>
 
-<h2>Where the money goes</h2>
-<p class="sub">State budget spending in 2025 by purpose, using the international functional classification.</p>
-<div class="rows" id="fn"></div>
-
-<h2>The Cabinet of Ministers</h2>
-<p class="sub">Every member of the Koretskyi Government, what their ministry does, what it spent in 2025, and how much of its 2026 budget it has used by the end of September. Open a card for the biggest programmes behind the number.</p>
-<div class="cab" id="cab"></div>
+<h2 id="cabinet">The Cabinet of Ministers</h2>
+<p class="sub">Each tile is a minister; its size is the ministry's 2026 budget. Colour shows how much of it was spent by 30 September. Tap a tile for the minister, what the ministry does and its biggest programmes.</p>
+<div id="tree"></div>
+<div class="legend"><span>2026 money used:</span><i style="background:#9db8ea"></i>under 50% <i style="background:#5b8ae0"></i>50–70% <i style="background:#2f6fdf"></i>70–85% <i style="background:#1d4fa8"></i>over 85%</div>
+<div id="cabDetail"></div>
+<details class="list"><summary>All cabinet members as cards</summary><div class="cab" id="cab" style="margin-top:10px"></div></details>
 
 <h2>Every spending body</h2>
 <p class="sub">All 97 bodies funded by the state budget in 2025: ministries, agencies, courts, the security services. Names are official, in Ukrainian.</p>
 <table><thead><tr><th>Body</th><th class="n">Spent 2025</th><th class="n hide-m">Plan</th><th class="n hide-m">Done</th></tr></thead><tbody id="units"></tbody></table>
 <button class="btn" id="more" style="margin-top:12px">Show all 97</button>
 
-<h2>Cities and regions</h2>
+<h2 id="map">Budgets on the map</h2>
+<p class="sub">What every region's councils and communities spend, 2026 so far, and the budgets of Kyiv and the regional capitals in 2025 (circles). Tap a region or a city.</p>
+<div class="pick"><div class="seg" id="mapMode"><button data-m="pc" class="on">Per person</button><button data-m="spending">Total</button></div></div>
+<div id="uamap"></div>
+<div class="legend" id="mapLegend"></div>
+
+<h2 id="cities">Cities and regions</h2>
 <p class="sub">Each city and regional council runs its own budget. Choose one to see where its money comes from, where it goes, and its biggest programmes (2025, full year).</p>
 <div class="pick"><select id="local" aria-label="City or region"></select></div>
 <div class="big" id="lbig"></div>
@@ -121,9 +152,8 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 <h3 style="margin:24px 0 6px;font-size:16px">Biggest programmes</h3>
 <div class="rows" id="lprog"></div>
 
-<h2>All local budgets by region</h2>
-<p class="sub" id="regSub">Everything spent by the region's councils and communities together, 2026 so far.</p>
-<table><thead><tr><th>Region</th><th class="n">Revenue</th><th class="n">Spending</th></tr></thead><tbody id="regions"></tbody></table>
+<details class="list"><summary>All local budgets by region, as a table</summary>
+<table><thead><tr><th>Region</th><th class="n">Revenue</th><th class="n">Spending</th></tr></thead><tbody id="regions"></tbody></table></details>
 </div>
 </main>
 <footer>
@@ -255,6 +285,142 @@ async function showPlace(id) {
   el.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+
+/* ---------- Ukraine visuals ---------- */
+const svgEl = (w, h, inner) => `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" role="img">${inner}</svg>`;
+
+// Who manages who: boxes and labelled arrows; positions are fixed so the picture reads top to bottom
+function drawOrg(D) {
+  const nCab = D.cabinet.length, nUnits = D.national.units.length;
+  const N = {
+    people: [500, 40, "Citizens of Ukraine", "vote every 5 years", "k"],
+    pres:   [160, 150, "President", "head of state, commander-in-chief"],
+    rada:   [500, 150, "Verkhovna Rada", "parliament, 450 seats"],
+    local:  [850, 150, "Local councils and heads", "regions, districts, 1,469 communities"],
+    opu:    [95, 280, "Office of the President", "", "", "#"],
+    nsdc:   [290, 280, "NSDC and Armed Forces", "security and defence"],
+    cab:    [500, 280, `Cabinet of Ministers`, `Prime Minister + ${nCab - 1} members`, "", "cabinet"],
+    nbu:    [710, 280, "National Bank", "money and inflation"],
+    mil:    [905, 280, "Military administrations", "run regions and some cities in wartime", "a"],
+    min:    [500, 400, "Ministries", "spend the state budget", "", "cabinet"],
+    agency: [500, 510, `${nUnits} budget bodies`, "agencies, services, courts, security", "", "units"],
+    comm:   [850, 510, "Communities and cities", "schools, roads, utilities, local budgets", "", "map"],
+  };
+  const E = [
+    ["people", "pres", "elect"], ["people", "rada", "elect"], ["people", "local", "elect"],
+    ["pres", "opu", "runs"], ["pres", "nsdc", "chairs"], ["rada", "cab", "appoints, sets budget"],
+    ["pres", "cab", "nominates 2 ministers", 1], ["rada", "nbu", "appoints governor", 0, 0.88],
+    ["pres", "mil", "appoints heads", 1, 0.92], ["cab", "min", "directs"], ["min", "agency", "funds, coordinates"],
+    ["local", "comm", "run"], ["mil", "comm", "oversee in wartime", 1], ["rada", "local", "sets their powers by law", 1],
+  ];
+  const W = 170, H = 52;
+  const edge = ([a, b, label, dash, at = 0.72]) => {
+    const [x1, y1] = N[a], [x2, y2] = N[b];
+    const sy = y1 + H / 2, ey = y2 - H / 2, my = (sy + ey) / 2;
+    const side = y1 === y2;
+    const d = side ? `M${x1 + W / 2},${y1} L${x2 - W / 2},${y2}` : `M${x1},${sy} C${x1},${my} ${x2},${my} ${x2},${ey}`;
+    const lx = side ? (x1 + x2) / 2 : x1 + (x2 - x1) * at, ly = side ? y1 - 8 : sy + (ey - sy) * (x1 === x2 ? 0.5 : 0.7);
+    return `<path class="e${dash ? " d" : ""}" d="${d}" marker-end="url(#ar)"/><text class="el" x="${lx + (x1 === x2 ? 8 : 0)}" y="${ly}" text-anchor="${x1 === x2 ? "start" : "middle"}">${label}</text>`;
+  };
+  const node = (k) => {
+    const [x, y, t, sub, cls = "", go] = N[k];
+    return `<g class="nd ${cls}"${go && go !== "#" ? ` data-go="${go}"` : ""} transform="translate(${x - W / 2},${y - H / 2})"><rect width="${W}" height="${H}"/>` +
+      `<text class="t" x="${W / 2}" y="${sub ? 21 : 31}" text-anchor="middle">${t}</text>${sub ? `<text class="s" x="${W / 2}" y="38" text-anchor="middle">${sub.length > 30 ? sub.slice(0, 29) + "…" : sub}</text>` : ""}<title>${t}${sub ? ": " + sub : ""}</title></g>`;
+  };
+  const el = document.getElementById("org");
+  el.innerHTML = svgEl(1000, 545, `<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#b9bccb"/></marker></defs>` +
+    E.map(edge).join("") + Object.keys(N).map(node).join(""));
+  el.querySelectorAll("[data-go]").forEach((g) => (g.onclick = () => document.getElementById(g.dataset.go)?.scrollIntoView({ behavior: "smooth" })));
+}
+
+// How the money flows: sources → state budget → purposes, band widths to scale
+function drawFlow(D) {
+  const N = D.national, borrow = Math.max(0, N.spending - N.revenue);
+  let L = N.revenueParts.filter((r) => r.value >= 1).map((r) => ({ n: r.name.replace(/ from the EU.*$/, " from the EU and allies"), v: r.value }));
+  L.push({ n: "Borrowing", v: borrow, b: 1 });
+  let R = N.functions.slice().sort((a, b) => b.value - a.value).map((f) => ({ n: f.name, v: f.value }));
+  const top = R.slice(0, 7), rest = R.slice(7).reduce((a, x) => a + x.v, 0);
+  R = rest > 0 ? [...top, { n: "Everything else", v: rest }] : top;
+  const Wd = 1000, Hd = 470, gap = 10, total = Math.max(L.reduce((a, x) => a + x.v, 0), N.spending);
+  const scale = (Hd - 20 - gap * (Math.max(L.length, R.length) - 1)) / total;
+  const col = (items, x, w) => { let y = 10; return items.map((it) => { const h = Math.max(3, it.v * scale); const o = { ...it, x, y, h, w }; y += h + gap; return o; }); };
+  const Ls = col(L, 235, 14), Rs = col(R, 730, 14);
+  const midH = N.spending * scale, midY = (Hd - midH) / 2, mid = { x: 493, y: midY, h: midH, w: 14 };
+  const band = (x1, y1, h1, x2, y2, h2, c) => `<path d="M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2} L${x2},${y2 + h2} C${(x1 + x2) / 2},${y2 + h2} ${(x1 + x2) / 2},${y1 + h1} ${x1},${y1 + h1} Z" fill="${c}" opacity=".35"/>`;
+  let inY = mid.y, outY = mid.y, bands = "";
+  const inScale = midH / L.reduce((a, x) => a + x.v, 0);
+  Ls.forEach((s, i) => { const h = s.v * inScale; bands += band(s.x + s.w, s.y, s.h, mid.x, inY, h, s.b ? "#c43c3c" : COLORS[i % COLORS.length]); inY += h; });
+  Rs.forEach((t) => { bands += band(mid.x + mid.w, outY, t.h, t.x, t.y, t.h, "#2f6fdf"); outY += t.h; });
+  const bar = (o, c) => `<rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}" fill="${c}" rx="3"/>`;
+  const lab = (o, right) => `<text x="${right ? o.x + o.w + 8 : o.x - 8}" y="${o.y + o.h / 2 + 4}" text-anchor="${right ? "start" : "end"}" font-size="12.5"><tspan font-weight="600">${uah(o.v)}</tspan><tspan fill="#6e6e80"> ${o.n.length > 24 ? o.n.slice(0, 23) + "…" : o.n}</tspan></text>`;
+  document.getElementById("flow").innerHTML = svgEl(Wd, Hd, bands + Ls.map((s, i) => bar(s, s.b ? "#c43c3c" : COLORS[i % COLORS.length]) + lab(s)).join("") +
+    bar(mid, "#0d0d0d") + `<text x="${mid.x + 7}" y="${mid.y - 8}" text-anchor="middle" font-size="13" font-weight="700">State budget ${uah(N.spending)}</text>` +
+    Rs.map((t) => bar(t, "#2f6fdf") + lab(t, 1)).join(""));
+}
+
+// Cabinet treemap (squarified): area = 2026 budget, colour = share used by September
+function drawTree(D) {
+  const items = D.cabinet.map((c, i) => ({ c, i, v: c.plan2026 })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
+  const el = document.getElementById("tree"), W = el.clientWidth, H = el.clientHeight;
+  const total = items.reduce((a, x) => a + x.v, 0), out = [];
+  const worst = (row, side) => { const s = row.reduce((a, x) => a + x.a, 0); return Math.max(...row.map((x) => Math.max((side * side * x.a) / (s * s), (s * s) / (side * side * x.a)))); };
+  let rect = { x: 0, y: 0, w: W, h: H }, rest = items.map((x) => ({ ...x, a: (x.v / total) * W * H }));
+  while (rest.length) {
+    const side = Math.min(rect.w, rect.h); let row = [rest[0]], k = 1;
+    while (k < rest.length && worst([...row, rest[k]], side) <= worst(row, side)) row.push(rest[k++]);
+    rest = rest.slice(k);
+    const s = row.reduce((a, x) => a + x.a, 0), horiz = rect.w >= rect.h, thick = s / side;
+    let off = 0;
+    row.forEach((x) => { const len = x.a / thick; out.push(horiz ? { ...x, x: rect.x, y: rect.y + off, w: thick, h: len } : { ...x, x: rect.x + off, y: rect.y, w: len, h: thick }); off += len; });
+    rect = horiz ? { x: rect.x + thick, y: rect.y, w: rect.w - thick, h: rect.h } : { x: rect.x, y: rect.y + thick, w: rect.w, h: rect.h - thick };
+  }
+  const shade = (u) => (u > 85 ? "#1d4fa8" : u > 70 ? "#2f6fdf" : u > 50 ? "#5b8ae0" : "#9db8ea");
+  el.innerHTML = out.map((r) => {
+    const used = pct(r.c.spent2026, r.c.plan2026), big = r.w > 90 && r.h > 46;
+    const short = r.c.office.replace(/^Minister (of|for) /, "").replace(/^Deputy PM for .*?, Minister of /, "").replace(/^First Deputy PM, Minister of /, "");
+    return `<div data-i="${r.i}" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${shade(used)}" title="${esc(r.c.office)}: ${esc(r.c.person)} · 2026 budget ${uah(r.c.plan2026)} · ${used}% used">${big ? `<b>${esc(short)}</b>${esc(r.c.person)}<br>${uah(r.c.plan2026)} · ${used}% used` : r.w > 40 && r.h > 22 ? esc(short.split(/[ ,]/)[0]) : ""}</div>`;
+  }).join("");
+  el.querySelectorAll("[data-i]").forEach((t) => (t.onclick = () => {
+    const card = document.querySelectorAll("#cab .card")[+t.dataset.i];
+    const box = document.getElementById("cabDetail"); box.innerHTML = ""; if (card) box.appendChild(card.cloneNode(true));
+    box.querySelector("details")?.setAttribute("open", "");
+  }));
+}
+
+// Budgets on the map: regions shaded, city budgets as circles
+let uaMap; // also window.uaMap for debugging
+function drawMap(D) {
+  if (!window.maplibregl || uaMap) return;
+  uaMap = window.uaMap = new maplibregl.Map({ container: "uamap", style: "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json", bounds: [[22, 44.2], [40.3, 52.4]], attributionControl: { compact: true }, cooperativeGestures: true });
+  new ResizeObserver(() => uaMap.resize()).observe(document.getElementById("uamap"));
+  const RAMP = { pc: [[0, "#e8eefb"], [10000, "#b6c9f1"], [15000, "#7fa2e6"], [20000, "#3f74d8"], [30000, "#1d4fa8"]],
+                 spending: [[0, "#e8eefb"], [10, "#b6c9f1"], [20, "#7fa2e6"], [40, "#3f74d8"], [70, "#1d4fa8"]] };
+  const fill = (m) => ["case", ["get", "occupied"], "#d9d9de", ["==", ["get", m], null], "#eeeeef", ["step", ["get", m], ...RAMP[m].flatMap(([v, c], i) => (i ? [v, c] : [c]))]];
+  const legend = (m) => { document.getElementById("mapLegend").innerHTML = RAMP[m].map(([v, c], i) => `<i style="background:${c}"></i>${m === "pc" ? `₴${(v / 1000).toFixed(0)}k` : `₴${v}bn`}${i === RAMP[m].length - 1 ? "+" : ""}`).join(" ") + ` <span>${m === "pc" ? "spent per person, 2026 to September" : "total spent, 2026 to September"} · <i style="background:#d9d9de"></i> occupied</span>`; };
+  uaMap.on("load", async () => {
+    const G = await fetch("ua/map.geojson").then((r) => r.json());
+    uaMap.addSource("ua", { type: "geojson", data: G });
+    uaMap.addLayer({ id: "reg", type: "fill", source: "ua", filter: ["==", ["get", "kind"], "region"], paint: { "fill-color": fill("pc"), "fill-opacity": 0.85 } });
+    uaMap.addLayer({ id: "reg-line", type: "line", source: "ua", filter: ["==", ["get", "kind"], "region"], paint: { "line-color": "#fff", "line-width": 1.2 } });
+    uaMap.addLayer({ id: "city", type: "circle", source: "ua", filter: ["==", ["get", "kind"], "city"],
+      paint: { "circle-radius": ["interpolate", ["linear"], ["sqrt", ["get", "spending"]], 1, 5, 11, 26], "circle-color": "#d9a21b", "circle-opacity": 0.75, "circle-stroke-color": "#fff", "circle-stroke-width": 1.5 } });
+    legend("pc");
+    const pop = new maplibregl.Popup({ closeButton: false, offset: 8 });
+    const html = (p) => `<b>${esc(p.uk || p.en)}</b>${p.en && p.uk ? ` <span style="color:#6e6e80">${esc(p.en)}</span>` : ""}<br>` + (p.occupied ? "Under Russian occupation" :
+      `${p.kind === "city" ? "City budget 2025" : "All local budgets, 2026 to Sept."}: <b>${p.spending ? uah(p.spending) : "—"}</b>${p.pc ? `<br>₴${Math.round(p.pc).toLocaleString("en")} per person` : ""}${p.kind === "city" ? "<br><i>Tap for its budget below</i>" : ""}`);
+    for (const id of ["reg", "city"]) {
+      uaMap.on("mousemove", id, (e) => { uaMap.getCanvas().style.cursor = "pointer"; pop.setLngLat(e.lngLat).setHTML(html(e.features[0].properties)).addTo(uaMap); });
+      uaMap.on("mouseleave", id, () => { uaMap.getCanvas().style.cursor = ""; pop.remove(); });
+    }
+    uaMap.on("click", "city", (e) => { const sel = document.getElementById("local"); sel.value = e.features[0].properties.budget; sel.onchange(); document.getElementById("cities").scrollIntoView({ behavior: "smooth" }); });
+    uaMap.on("click", "reg", (e) => pop.setLngLat(e.lngLat).setHTML(html(e.features[0].properties)).addTo(uaMap));
+    document.querySelectorAll("#mapMode button").forEach((b) => (b.onclick = () => {
+      document.querySelectorAll("#mapMode button").forEach((x) => x.classList.toggle("on", x === b));
+      uaMap.setPaintProperty("reg", "fill-color", fill(b.dataset.m)); legend(b.dataset.m);
+    }));
+  });
+}
+
 async function renderUA() {
   const D = await fetch("ua.json").then((r) => r.json());
   const N = D.national, Y = D.y2026;
@@ -308,6 +474,8 @@ async function renderUA() {
 
   document.getElementById("regions").innerHTML = D.regions.slice().sort((a, b) => b.spending - a.spending)
     .map((r) => `<tr><td>${esc(r.name)}</td><td class="n">${uah(r.revenue)}</td><td class="n">${uah(r.spending)}</td></tr>`).join("");
+  drawOrg(D); drawFlow(D); drawTree(D); drawMap(D);
+  addEventListener("resize", () => drawTree(D));
 }
 </script>
 <script src="https://booga-sdk.boogaav.workers.dev/v1.js" data-app="civfm" defer></script>
