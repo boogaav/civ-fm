@@ -247,7 +247,7 @@ async function uaTree() {
   for (const t of rows) if (t.parent) (kids.get(t.parent) || kids.set(t.parent, []).get(t.parent)).push(t);
   return (UA_T = { rows, by, kids });
 }
-const uaBrief = (t) => ({ id: t.id, level: t.level, name: t.name, population: t.population ?? null });
+const uaBrief = (t) => ({ id: t.id, level: t.level, name: t.name, population: t.population ?? null, centre: t.centre ?? null, status: t.status ?? null });
 async function uaTerritory(code) {
   const { by, kids } = await uaTree();
   const t = by.get(String(code).toUpperCase());
@@ -340,7 +340,7 @@ const INDEX = {
     "GET /v1/links/{country}?type=trade|migration": "strongest partners",
     "GET /v1/constitution/{country}?q=freedom of speech": "search the constitution's text",
     "GET /v1/topic?q=right to health": "which constitutions cover a topic",
-    "GET /v1/ua/territories?q=Бровари": "Ukraine: find any region, district, community or village",
+    "GET /v1/ua/territories?q=Бровари": "Ukraine: find any region, district, community or village (no q: the 27 regions)",
     "GET /v1/ua/territories/{KATOTTG}": "Ukraine: one unit with its parents and children (31,428 units)",
   },
   guide: SITE + "/guide/", llms: SITE + "/llms.txt",
@@ -363,6 +363,7 @@ export default {
       if ((m = p.match(/^\/v1\/links\/(.+)$/))) return json(await links(m[1], q.get("type") || "trade"), 200, 3600);
       if ((m = p.match(/^\/v1\/constitution\/(.+)$/))) return json(await constitutionSearch(m[1], q.get("q") || "", Math.min(30, Number(q.get("limit")) || 8)), 200, 3600);
       if (p === "/v1/topic") return json(await constitutionTopic(q.get("q") || ""), 200, 3600);
+      if (p === "/v1/ua/territories" && !q.get("q")) return json((await uaTree()).rows.filter((t) => t.level === "region").map(uaBrief), 200, 86400);
       if (p === "/v1/ua/territories") return json(await uaSearch(q.get("q") || "", Math.min(100, Number(q.get("limit")) || 20)), 200, 3600);
       if ((m = p.match(/^\/v1\/ua\/territories\/(UA\d{17})$/i))) return json(await uaTerritory(m[1]), 200, 3600);
       return json({ error: "Not found", see: "/" }, 404);

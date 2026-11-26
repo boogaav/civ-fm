@@ -79,6 +79,27 @@ details.list { margin-top:8px; } details.list > summary { cursor:pointer; color:
 #uamap { height:520px; border-radius:14px; overflow:hidden; border:1px solid var(--rule); }
 .seg { display:inline-flex; border:1px solid var(--rule); border-radius:999px; overflow:hidden; } .seg button { font:500 13px var(--sans); border:0; background:#fff; padding:7px 14px; cursor:pointer; } .seg button.on { background:var(--ink); color:#fff; }
 .legend { display:flex; gap:6px; align-items:center; font-size:12px; color:var(--muted); margin-top:8px; flex-wrap:wrap; } .legend i { width:26px; height:10px; border-radius:3px; display:inline-block; }
+body.ua-on main { max-width:1320px; display:grid; grid-template-columns:250px minmax(0,1fr); gap:32px; align-items:start; }
+body.ua-on main > :not(#ua) { grid-column:2; }
+body.ua-on #ua { display:contents; }
+#tnav { grid-column:1; grid-row:1 / span 20; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; font-size:13.5px; border-right:1px solid var(--rule); padding:4px 12px 20px 0; }
+#tnav a { display:block; padding:4px 8px; border-radius:7px; text-decoration:none; color:var(--body); line-height:1.3; }
+#tnav a:hover { background:var(--surface); } #tnav a.on { background:var(--ink); color:#fff; font-weight:600; }
+#tnav .lv { font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:10px 8px 2px; }
+#tnav .kid { padding-left:18px; color:var(--muted); } #tnav .anc { font-weight:500; }
+#tnav small { color:var(--faint); margin-left:4px; }
+#uaBody { grid-column:2; min-width:0; }
+#placeMap { height:380px; border-radius:14px; overflow:hidden; border:1px solid var(--rule); }
+.crumb { font-size:13px; color:var(--muted); } .crumb a { color:var(--muted); text-decoration:none; } .crumb a:hover { color:var(--ink); text-decoration:underline; }
+.kids { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+.kids a { display:block; border:1px solid var(--rule); border-radius:10px; padding:9px 12px; text-decoration:none; font-size:14px; }
+.kids a:hover { border-color:var(--ink); } .kids a small { display:block; color:var(--muted); font-size:12px; }
+.pill { display:inline-block; font-size:12px; font-weight:600; border-radius:999px; padding:2px 10px; background:var(--surface); color:var(--muted); }
+@media (max-width:900px) {
+  body.ua-on main { display:block; }
+  #tnav { position:static; max-height:none; border-right:0; border-bottom:1px solid var(--rule); padding:0 0 10px; margin:12px 0 4px; display:flex; flex-wrap:wrap; gap:2px; }
+  #tnav .lv, #tnav .kid { display:none; } #tnav a { padding:3px 8px; } #tnav a.anc::after, #tnav a.root::after { content:" ›"; color:var(--faint); }
+}
 footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); line-height:1.6; }
 @media (max-width:760px) { .big { grid-template-columns:1fr 1fr; } .two { grid-template-columns:1fr; } .row { grid-template-columns:1fr 80px; } .row .bar2 { display:none; } .hide-m { display:none; } }
 </style>
@@ -107,11 +128,32 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 </div>
 
 <div id="ua" hidden>
+<nav id="tnav" aria-label="Places in Ukraine"></nav>
+<div id="uaBody">
 <h2 style="margin-top:8px">Find your community</h2>
 <p class="sub">Any of Ukraine's 31,428 regions, districts, communities and villages: where it sits, how many people live there, and what it contains.</p>
 <div class="pick"><input id="placeQ" type="search" placeholder="Village, town or community: Бровари, Lviv, Ірпінь…" aria-label="Find a place" style="font:500 15px var(--sans);padding:10px 14px;border:1px solid var(--rule);border-radius:10px;min-width:min(420px,100%);background:var(--surface)"></div>
 <div id="placeHits" class="rows"></div>
-<div id="place" class="card" hidden style="margin-top:10px"></div>
+<div id="placeView" hidden>
+  <p class="crumb" id="pCrumb"></p>
+  <h2 style="margin:4px 0 2px;font-size:34px" id="pName"></h2>
+  <p class="sub" id="pSub" style="margin-bottom:14px"></p>
+  <div class="big" id="pBig"></div>
+  <h2>Where it is</h2>
+  <div id="placeMap"></div>
+  <h2>Who governs</h2>
+  <p class="sub" id="pGovSub"></p>
+  <div class="viz" id="pGov"></div>
+  <h2>Budget</h2>
+  <p class="sub" id="pBudSub"></p>
+  <div class="big" id="pBudBig"></div>
+  <div class="two" style="margin-top:18px" id="pBudTwo"><div><h3 style="margin:0 0 6px;font-size:16px">Comes from</h3><div class="rows" id="pRev"></div></div><div><h3 style="margin:0 0 6px;font-size:16px">Goes to</h3><div class="rows" id="pFn"></div></div></div>
+  <h3 style="margin:24px 0 6px;font-size:16px" id="pProgH">Biggest programmes</h3>
+  <div class="rows" id="pProg"></div>
+  <h2 id="pKidsH">Inside</h2>
+  <div class="kids" id="pKids"></div>
+</div>
+<div id="uaNation">
 <div class="big" id="big" style="margin-top:28px"></div>
 
 <h2>Who manages who</h2>
@@ -154,6 +196,8 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 
 <details class="list"><summary>All local budgets by region, as a table</summary>
 <table><thead><tr><th>Region</th><th class="n">Revenue</th><th class="n">Spending</th></tr></thead><tbody id="regions"></tbody></table></details>
+</div>
+</div>
 </div>
 </main>
 <footer>
@@ -229,8 +273,9 @@ const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
 let uaDone = false;
 async function route(iso, C, L, civic) {
   document.getElementById("country").value = iso;
-  history.replaceState(null, "", "#" + iso);
+  if (!location.hash.toUpperCase().startsWith("#" + iso)) history.replaceState(null, "", "#" + iso);
   document.title = `${C.name.common}: who governs and where the money goes — CIV FM`;
+  document.body.classList.toggle("ua-on", iso === "UKR");
   document.getElementById("toGlobe").href = `../?ch=state&c=${iso}`;
   document.getElementById("toCivic").href = `../civic/#${iso}`;
   const ua = iso === "UKR";
@@ -240,7 +285,14 @@ async function route(iso, C, L, civic) {
   document.getElementById("h1").textContent = "Who governs Ukraine, and where every hryvnia goes.";
   document.getElementById("lede").textContent = "The Cabinet minister by minister, with the money each one controls and what it buys; where the state's money comes from and where it goes; and the budgets of Kyiv, every regional capital and every region. All figures are actual spending reported to the Treasury, not promises.";
   if (!uaDone) { uaDone = true; await renderUA(); }
+  openFromHash();
 }
+// #UKR/UA32060050000030591 opens that place; #UKR is the whole country
+function openFromHash() {
+  const id = location.hash.slice(1).split("/")[1];
+  if (id && /^UA\d{17}$/i.test(id)) showPlace(id.toUpperCase(), false); else showNation();
+}
+addEventListener("hashchange", () => { if (location.hash.toUpperCase().startsWith("#UKR")) openFromHash(); });
 
 (async () => {
   const [W, L, civic] = await Promise.all([fetch("../vendor/world-countries.json").then((r) => r.json()), fetch("leaders.json").then((r) => r.json()), fetch("../civic/civic.json").then((r) => r.json()).catch(() => ({ c: {} }))]);
@@ -249,7 +301,7 @@ async function route(iso, C, L, civic) {
   const sel = document.getElementById("country");
   sel.innerHTML = list.map((c) => `<option value="${c.cca3}">${esc(c.name.common)}${c.cca3 === "UKR" ? " — full budget" : ""}</option>`).join("");
   sel.onchange = () => route(sel.value, by3[sel.value], L, civic);
-  let iso = location.hash.slice(1).toUpperCase();
+  let iso = location.hash.slice(1).split("/")[0].toUpperCase();
   if (!by3[iso]) {
     try { const w = await fetch(`${PROXY}/whereami`).then((r) => r.json()); iso = W.find((c) => c.cca2 === w.country)?.cca3; } catch (e) {}
   }
@@ -268,21 +320,149 @@ document.getElementById("placeQ").addEventListener("input", (e) => {
     if (q.length < 2) { box.innerHTML = ""; return; }
     const hits = await fetch(`${API}/v1/ua/territories?q=${encodeURIComponent(q)}&limit=8`).then((r) => r.json()).catch(() => []);
     box.innerHTML = Array.isArray(hits) && hits.length ? hits.map((h) => `<div class="row" style="cursor:pointer" data-id="${h.id}"><span>${esc(h.name.uk)}<small>${LEVEL[h.level]}${h.in ? ` · ${esc(h.in)}` : ""}</small></span><span></span><span class="v">${h.population ? h.population.toLocaleString("en") : ""}</span></div>`).join("") : `<p class="note">Nothing found.</p>`;
-    box.querySelectorAll("[data-id]").forEach((r) => (r.onclick = () => showPlace(r.dataset.id)));
+    box.querySelectorAll("[data-id]").forEach((r) => (r.onclick = () => { location.hash = `UKR/${r.dataset.id}`; e.target.value = ""; }));
   }, 250);
 });
-async function showPlace(id) {
-  const t = await fetch(`${API}/v1/ua/territories/${id}`).then((r) => r.json());
-  const el = document.getElementById("place"); el.hidden = false;
+const T_CACHE = {}, getPlace = async (id) => (T_CACHE[id] ||= await fetch(`${API}/v1/ua/territories/${id}`).then((r) => r.json()));
+let REGIONS, MAPGEO, UAD, placeMap;
+const fmtN = (n) => (n == null ? "—" : n.toLocaleString("en"));
+const ZOOM = { region: 6.4, district: 8, hromada: 9.4, settlement: 11.5, city_district: 12 };
+
+const headline = (on) => ["kicker", "h1", "lede"].forEach((id) => (document.getElementById(id).hidden = !on));
+function showNation() {
+  headline(true);
+  document.getElementById("placeView").hidden = true; document.getElementById("uaNation").hidden = false;
+  drawNav(null);
+}
+
+// Left tree: Ukraine › ancestors › this place, then what is inside it
+async function drawNav(t) {
+  REGIONS ||= await fetch(`${API}/v1/ua/territories`).then((r) => r.json());
+  const link = (id, label, cls, small) => `<a href="#UKR${id ? "/" + id : ""}" class="${cls}">${esc(label)}${small ? `<small>${small}</small>` : ""}</a>`;
+  let h = link("", "🇺🇦 Ukraine", "root" + (t ? "" : " on"));
+  if (!t) {
+    h += `<div class="lv">Regions</div>` + REGIONS.slice().sort((a, b) => a.name.uk.localeCompare(b.name.uk, "uk")).map((r) => link(r.id, r.name.uk, "kid")).join("");
+  } else {
+    h += t.parents.map((p) => link(p.id, p.name.uk, "anc")).join("") + link(t.id, t.name.uk, "on");
+    if (t.children.length) h += `<div class="lv">${t.children_count} inside</div>` + t.children.slice(0, 60).map((c) => link(c.id, c.name.uk, "kid", c.population ? fmtN(c.population) : "")).join("") +
+      (t.children_count > 60 ? `<div class="lv">and ${t.children_count - 60} more below</div>` : "");
+  }
+  document.getElementById("tnav").innerHTML = h;
+}
+
+// the budget that belongs to a place, or the nearest one above it
+function budgetFor(t) {
+  const cities = MAPGEO.features.filter((f) => f.properties.kind === "city").map((f) => f.properties);
+  const regionOf = (id) => MAPGEO.features.find((f) => f.properties.kind === "region" && f.properties.code === id)?.properties;
+  const local = (code) => UAD.locals.find((l) => l.code === code);
+  const city = cities.find((c) => c.katottg === t.id || c.hromada === t.id || (t.level === "region" && c.katottg === t.id));
+  if (city) return { exact: true, local: local(city.budget), label: `${city.uk} city budget` };
+  if (t.level === "region") {
+    const r = regionOf(t.id), en = (t.name.en || "").replace(/ Oblast$/, " region");
+    return { exact: true, region: r, local: UAD.locals.find((l) => l.kind === "oblast" && l.name === en), label: "regional council budget" };
+  }
+  // walk up: the community this place belongs to, else its region
+  for (const p of t.parents.slice().reverse()) {
+    const c = cities.find((x) => x.hromada === p.id || x.katottg === p.id);
+    if (c) return { exact: false, local: local(c.budget), label: `${c.uk} community budget, which covers this place`, up: p };
+  }
+  const reg = t.parents[0] && regionOf(t.parents[0].id);
+  return { exact: false, region: reg, local: reg && UAD.locals.find((l) => l.kind === "oblast" && l.name === (t.parents[0].name.en || "").replace(/ Oblast$/, " region")), label: "the region it belongs to", up: t.parents[0] };
+}
+
+// Who governs a place: elected bodies and the wartime administration, by level
+function govDiagram(t) {
+  const W = 1000, box = (x, y, title, sub, cls = "", w = 260) => `<g class="nd ${cls}" transform="translate(${x - w / 2},${y - 26})"><rect width="${w}" height="52"/><text class="t" x="${w / 2}" y="${sub ? 21 : 31}" text-anchor="middle">${esc(title)}</text>${sub ? `<text class="s" x="${w / 2}" y="38" text-anchor="middle">${esc(sub)}</text>` : ""}</g>`;
+  const arrow = (x1, y1, x2, y2, label, dash) => `<path class="e${dash ? " d" : ""}" d="M${x1},${y1} C${x1},${(y1 + y2) / 2} ${x2},${(y1 + y2) / 2} ${x2},${y2}" marker-end="url(#ar2)"/><text class="el" x="${(x1 + x2) / 2 + (x1 === x2 ? 8 : 0)}" y="${(y1 + y2) / 2 + 4}" text-anchor="${x1 === x2 ? "start" : "middle"}">${label}</text>`;
+  const who = t.head ? `${t.head.name}${t.head.since ? " · since " + t.head.since.slice(0, 4) : ""}` : "elected every 5 years";
+  const L = {
+    region: ["Residents of the region", "Regional council", "elected deputies, regional budget", "Regional military administration", "head appointed by the President", "Regional head"],
+    district: ["Residents of the district", "District council", "elected deputies", "District military administration", "head appointed by the President", "District head"],
+    hromada: ["Residents of the community", "Community council", "elected deputies, community budget", "Community head (mayor or village head)", who, ""],
+    settlement: ["Residents", "Community council", "decides for every village in it", "Community head", who, "Village head (starosta)"],
+    city_district: ["Residents", "City council", "", "District administration", "", ""],
+  }[t.level];
+  const [res, council, cSub, exec, eSub, extra] = L;
+  const local = t.level === "hromada" || t.level === "settlement";
+  let g = box(500, 40, res, local ? "vote every 5 years" : "vote for the council", "k") + box(300, 170, council, cSub) +
+    box(700, 170, exec, t.level === "region" && t.head ? `${t.head.name}` : eSub, local ? "" : "a") +
+    arrow(500, 66, 300, 144, "elect") + arrow(500, 66, 700, 144, local ? "elect" : "", !local) +
+    `<path class="e d" d="M384,170 L612,170"/><text class="el" x="500" y="162" text-anchor="middle">${local ? "accountable to" : "runs the region in wartime"}</text>`;
+  if (t.level === "settlement") g += box(700, 290, "Village head (starosta)", "for this village, chosen by the council") + arrow(700, 196, 700, 264, "appoints");
+  if (!local) g += box(700, 290, "President of Ukraine", "appoints, on the Cabinet's proposal", "") + arrow(700, 264, 700, 196, "appoints", 1);
+  document.getElementById("pGov").innerHTML = svgEl(W, 330, `<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#b9bccb"/></marker></defs>` + g);
+  document.getElementById("pGovSub").textContent = t.status === "occupied"
+    ? "Under Russian occupation: Ukraine's lawful bodies for this territory work from free territory."
+    : t.head ? `Head on record: ${t.head.name}. From Wikidata; check with the council's own site.`
+    : "Ukraine elected its councils and heads in 2020; under martial law no elections are held, and in many front-line places a military administration has taken over.";
+}
+
+async function showPlace(id, push = true) {
+  const t = await getPlace(id);
+  if (t.error) { delete T_CACHE[id]; history.replaceState(null, "", "#UKR"); return showNation(); }
+  if (push) history.pushState(null, "", `#UKR/${t.id}`);
+  UAD ||= await fetch("ua.json").then((r) => r.json());
+  MAPGEO ||= await fetch("ua/map.geojson").then((r) => r.json());
+  document.getElementById("uaNation").hidden = true;
+  document.getElementById("placeView").hidden = false;
+  headline(false);
   document.getElementById("placeHits").innerHTML = "";
-  el.innerHTML = `<div class="office">${[...t.parents.map((p) => esc(p.name.uk)), LEVEL[t.level]].join(" › ")}</div>
-    <div class="who">${esc(t.name.uk)}${t.name.en ? ` <span class="meta">${esc(t.name.en)}</span>` : ""}</div>
-    <div class="meta">${t.population ? `Population ${t.population.toLocaleString("en")} · ` : ""}code ${t.id}${t.status === "occupied" ? " · under Russian occupation" : ""}</div>` +
-    (t.head ? `<div class="does">Head: <b>${esc(t.head.name)}</b>${t.head.since ? ` since ${t.head.since}` : ""} <span class="meta">(Wikidata; verify locally)</span></div>` : "") +
-    (t.children_count ? `<details class="p" open><summary>Contains ${t.children_count} ${t.children_count === 1 ? "unit" : "units"} ›</summary><ul>${t.children.slice(0, 40).map((c) => `<li style="cursor:pointer" data-id="${c.id}"><span>${esc(c.name.uk)} <span class="meta">${LEVEL[c.level]}</span></span><b>${c.population ? c.population.toLocaleString("en") : ""}</b></li>`).join("")}</ul></details>` : "") +
-    `<p class="note">Budgets, councils and contracts for every community are next; today the regional capitals and regional councils below have full budgets.</p>`;
-  el.querySelectorAll("li[data-id]").forEach((li) => (li.onclick = () => showPlace(li.dataset.id)));
-  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  document.title = `${t.name.uk} — who governs and where the money goes — CIV FM`;
+  drawNav(t);
+
+  document.getElementById("pCrumb").innerHTML = [`<a href="#UKR">Ukraine</a>`, ...t.parents.map((p) => `<a href="#UKR/${p.id}">${esc(p.name.uk)}</a>`)].join(" › ");
+  document.getElementById("pName").textContent = t.name.uk;
+  document.getElementById("pSub").innerHTML = `${t.name.en ? esc(t.name.en) + " · " : ""}<span class="pill">${LEVEL[t.level]}</span>${t.status === "occupied" ? ` <span class="pill" style="background:#fdecea;color:#c43c3c">occupied</span>` : ""} <span class="meta">code ${t.id}</span>`;
+  const parentPop = t.parents.length && t.parents[t.parents.length - 1].population;
+  document.getElementById("pBig").innerHTML = stat(fmtN(t.population), "people live here") +
+    stat(fmtN(t.children_count), t.children_count === 1 ? "unit inside" : "units inside") +
+    stat(parentPop && t.population ? `${Math.round((t.population / parentPop) * 100)}%` : "—", parentPop ? `of ${esc(t.parents[t.parents.length - 1].name.uk)}` : "of its parent") +
+    stat(t.head ? esc(t.head.name.split(" ").slice(0, 2).join(" ")) : "—", t.head ? "head on record" : "head not on record yet");
+
+  // map: the place, what is inside it, the region shaded
+  const c = t.centre || t.parents.slice().reverse().find((p) => p.centre)?.centre;
+  if (!placeMap) {
+    placeMap = new maplibregl.Map({ container: "placeMap", style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json", center: [31, 49], zoom: 5, attributionControl: { compact: true }, cooperativeGestures: true });
+    await new Promise((r) => placeMap.on("load", r));
+    placeMap.addSource("reg", { type: "geojson", data: { type: "FeatureCollection", features: MAPGEO.features.filter((f) => f.properties.kind === "region") } });
+    placeMap.addLayer({ id: "reg", type: "fill", source: "reg", paint: { "fill-color": "#2f6fdf", "fill-opacity": ["case", ["==", ["get", "code"], ""], 0.18, 0] } });
+    placeMap.addLayer({ id: "reg-l", type: "line", source: "reg", paint: { "line-color": "#2f6fdf", "line-width": 1, "line-opacity": 0.35 } });
+    placeMap.addSource("pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    placeMap.addLayer({ id: "kids", type: "circle", source: "pts", filter: ["==", ["get", "k"], "kid"], paint: { "circle-radius": ["interpolate", ["linear"], ["sqrt", ["coalesce", ["get", "pop"], 100]], 10, 4, 1000, 16], "circle-color": "#d9a21b", "circle-opacity": 0.7, "circle-stroke-color": "#fff", "circle-stroke-width": 1 } });
+    placeMap.addLayer({ id: "me", type: "circle", source: "pts", filter: ["==", ["get", "k"], "me"], paint: { "circle-radius": 9, "circle-color": "#0d0d0d", "circle-stroke-color": "#fff", "circle-stroke-width": 3 } });
+    const pop = new maplibregl.Popup({ closeButton: false, offset: 8 });
+    placeMap.on("mousemove", "kids", (e) => { placeMap.getCanvas().style.cursor = "pointer"; const p = e.features[0].properties; pop.setLngLat(e.lngLat).setHTML(`<b>${esc(p.name)}</b>${p.pop ? `<br>${fmtN(+p.pop)} people` : ""}`).addTo(placeMap); });
+    placeMap.on("mouseleave", "kids", () => { placeMap.getCanvas().style.cursor = ""; pop.remove(); });
+    placeMap.on("click", "kids", (e) => showPlace(e.features[0].properties.id));
+  }
+  const regionId = t.level === "region" ? t.id : t.parents[0]?.id;
+  placeMap.setPaintProperty("reg", "fill-opacity", ["case", ["==", ["get", "code"], regionId || ""], 0.14, 0]);
+  placeMap.getSource("pts").setData({ type: "FeatureCollection", features: [
+    ...t.children.filter((k) => k.centre).map((k) => ({ type: "Feature", geometry: { type: "Point", coordinates: [k.centre[1], k.centre[0]] }, properties: { k: "kid", id: k.id, name: k.name.uk, pop: k.population } })),
+    ...(c ? [{ type: "Feature", geometry: { type: "Point", coordinates: [c[1], c[0]] }, properties: { k: "me" } }] : []) ] });
+  if (c) placeMap.jumpTo({ center: [c[1], c[0]], zoom: ZOOM[t.level] || 8 });
+
+  govDiagram(t);
+
+  // budget: its own, or the nearest one above it
+  const B = budgetFor(t), l = B.local;
+  document.getElementById("pBudSub").innerHTML = t.status === "occupied" ? "No budget data: the territory is occupied." :
+    B.exact ? `Its own budget: ${esc(B.label)}, 2025 full year.` :
+    `This place's own budget isn't loaded yet${B.up ? `. Shown instead: <a href="#UKR/${B.up.id}">${esc(B.label)}</a>` : ""}. Community-level budgets for all 1,469 communities are next.`;
+  const has = !!l && t.status !== "occupied";
+  ["pBudTwo", "pProgH", "pProg"].forEach((x) => (document.getElementById(x).hidden = !has));
+  document.getElementById("pBudBig").innerHTML = (B.region && B.region.spending ? stat(uah(B.region.spending), "all local budgets in the region, 2026 to Sept.") + (B.region.pc ? stat(`₴${fmtN(B.region.pc)}`, "per person") : "") : "") +
+    (has ? stat(uah(l.revenue), "revenue, 2025") + stat(uah(l.spending), "spending, 2025") : "");
+  if (has) {
+    bars(document.getElementById("pRev"), l.revenueParts.filter((x) => x.value >= 0.01), l.revenue);
+    bars(document.getElementById("pFn"), l.functions.filter((x) => x.value >= 0.01), l.spending, "var(--blue)");
+    bars(document.getElementById("pProg"), l.departments.slice(0, 10).map((x) => ({ name: x.name, value: x.value })), l.spending, "var(--gold)");
+  }
+
+  document.getElementById("pKidsH").hidden = !t.children_count;
+  document.getElementById("pKids").innerHTML = t.children.map((k) => `<a href="#UKR/${k.id}">${esc(k.name.uk)}<small>${LEVEL[k.level]}${k.population ? " · " + fmtN(k.population) : ""}</small></a>`).join("") +
+    (t.children_count > t.children.length ? `<p class="note">and ${t.children_count - t.children.length} more</p>` : "");
+  scrollTo({ top: 0, behavior: "smooth" });
 }
 
 

@@ -51,7 +51,7 @@ for l in D["locals"]:
     if not c: print("no coords for", l["name"]); continue
     lat, lng = c["centre"]
     feats.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lng, lat]},
-                  "properties": {"kind": "city", "en": l["name"], "uk": c["name"]["uk"], "budget": l["code"], "revenue": l["revenue"],
+                  "properties": {"kind": "city", "en": l["name"], "uk": c["name"]["uk"], "budget": l["code"], "katottg": c["id"], "hromada": c.get("parent"), "revenue": l["revenue"],
                                  "spending": l["spending"], "population": c.get("population"),
                                  "pc": round(l["spending"] * 1e9 / c["population"]) if c.get("population") else None}})
 
