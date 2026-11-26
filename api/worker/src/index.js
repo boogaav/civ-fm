@@ -237,6 +237,39 @@ async function compare(env, list) {
   return { countries: ps.map((p) => ({ ...p.country, system: p.state.system, head_of_government: p.state.head_of_government, constitution_year: p.state.constitution?.year ?? null, top_income_tax_pct: p.taxes?.top_personal_income_rate_pct ?? null, corporate_tax_pct: p.taxes?.corporate_rate_pct ?? null, ...Object.fromEntries(Object.entries(p.indicators).map(([k, v]) => [k, v ? v.value : null])) })), indicator_years_vary: true, sources: ps[0].sources };
 }
 
+/* ---------------- Ukraine: territory tree (KATOTTG) ---------------- */
+
+let UA_T = null;
+async function uaTree() {
+  if (UA_T) return UA_T;
+  const rows = await site("/gov/ua/territories.json", 86400);
+  const by = new Map(rows.map((t) => [t.id, t])), kids = new Map();
+  for (const t of rows) if (t.parent) (kids.get(t.parent) || kids.set(t.parent, []).get(t.parent)).push(t);
+  return (UA_T = { rows, by, kids });
+}
+const uaBrief = (t) => ({ id: t.id, level: t.level, name: t.name, population: t.population ?? null });
+async function uaTerritory(code) {
+  const { by, kids } = await uaTree();
+  const t = by.get(String(code).toUpperCase());
+  if (!t) throw fail(404, `No Ukrainian territorial unit with KATOTTG code ${code}.`);
+  const chain = [];
+  for (let p = t.parent && by.get(t.parent); p; p = p.parent && by.get(p.parent)) chain.unshift(uaBrief(p));
+  const children = (kids.get(t.id) || []).map(uaBrief).sort((a, b) => (b.population || 0) - (a.population || 0));
+  return { ...t, parents: chain, children_count: children.length, children: children.slice(0, 500),
+    head_note: t.head ? "From Wikidata; verify locally. Heads are recorded for few communities so far." : null,
+    budgets: t.level === "region" || t.level === "hromada" ? `${SITE}/gov/#UKR` : null,
+    source: "Official KATOTTG codifier via Wikidata (CC0); population and heads from Wikidata" };
+}
+async function uaSearch(qs, limit = 20) {
+  const { rows, by } = await uaTree();
+  const n = norm(qs);
+  if (n.length < 2) throw fail(400, "Give at least two letters, e.g. q=Бровари or q=Brovary.");
+  const rank = { region: 0, hromada: 1, district: 2, city_district: 3, settlement: 4 };
+  return rows.filter((t) => norm(t.name.uk).includes(n) || norm(t.name.en).includes(n))
+    .sort((a, b) => rank[a.level] - rank[b.level] || (b.population || 0) - (a.population || 0))
+    .slice(0, limit).map((t) => ({ ...uaBrief(t), in: t.parent && by.get(t.parent)?.name.uk }));
+}
+
 /* ---------------- MCP (Streamable HTTP, stateless JSON responses) ---------------- */
 
 const TOOLS = [
@@ -307,6 +340,8 @@ const INDEX = {
     "GET /v1/links/{country}?type=trade|migration": "strongest partners",
     "GET /v1/constitution/{country}?q=freedom of speech": "search the constitution's text",
     "GET /v1/topic?q=right to health": "which constitutions cover a topic",
+    "GET /v1/ua/territories?q=Бровари": "Ukraine: find any region, district, community or village",
+    "GET /v1/ua/territories/{KATOTTG}": "Ukraine: one unit with its parents and children (31,428 units)",
   },
   guide: SITE + "/guide/", llms: SITE + "/llms.txt",
 };
@@ -328,6 +363,8 @@ export default {
       if ((m = p.match(/^\/v1\/links\/(.+)$/))) return json(await links(m[1], q.get("type") || "trade"), 200, 3600);
       if ((m = p.match(/^\/v1\/constitution\/(.+)$/))) return json(await constitutionSearch(m[1], q.get("q") || "", Math.min(30, Number(q.get("limit")) || 8)), 200, 3600);
       if (p === "/v1/topic") return json(await constitutionTopic(q.get("q") || ""), 200, 3600);
+      if (p === "/v1/ua/territories") return json(await uaSearch(q.get("q") || "", Math.min(100, Number(q.get("limit")) || 20)), 200, 3600);
+      if ((m = p.match(/^\/v1\/ua\/territories\/(UA\d{17})$/i))) return json(await uaTerritory(m[1]), 200, 3600);
       return json({ error: "Not found", see: "/" }, 404);
     } catch (e) {
       return json({ error: e.message, ...(e.extra || {}) }, e.status || 502);
