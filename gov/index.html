@@ -88,7 +88,12 @@ footer { max-width:1040px; margin:0 auto; padding:24px 16px 48px; color:var(--mu
 </div>
 
 <div id="ua" hidden>
-<div class="big" id="big"></div>
+<h2 style="margin-top:8px">Find your community</h2>
+<p class="sub">Any of Ukraine's 31,428 regions, districts, communities and villages: where it sits, how many people live there, and what it contains.</p>
+<div class="pick"><input id="placeQ" type="search" placeholder="Village, town or community: Бровари, Lviv, Ірпінь…" aria-label="Find a place" style="font:500 15px var(--sans);padding:10px 14px;border:1px solid var(--rule);border-radius:10px;min-width:min(420px,100%);background:var(--surface)"></div>
+<div id="placeHits" class="rows"></div>
+<div id="place" class="card" hidden style="margin-top:10px"></div>
+<div class="big" id="big" style="margin-top:28px"></div>
 
 <h2>Where the money comes from</h2>
 <p class="sub" id="revSub"></p>
@@ -220,6 +225,35 @@ async function route(iso, C, L, civic) {
   }
   route(by3[iso] && list.includes(by3[iso]) ? iso : "UKR", by3[by3[iso] ? iso : "UKR"], L, civic);
 })();
+
+// Find your community: the civ.fm API's Ukraine territory tree
+const API = "https://civfm-api.boogaav.workers.dev";
+const LEVEL = { region: "Region", district: "District", hromada: "Community (hromada)", settlement: "Settlement", city_district: "City district" };
+let placeT;
+document.getElementById("placeQ").addEventListener("input", (e) => {
+  clearTimeout(placeT);
+  const q = e.target.value.trim();
+  placeT = setTimeout(async () => {
+    const box = document.getElementById("placeHits");
+    if (q.length < 2) { box.innerHTML = ""; return; }
+    const hits = await fetch(`${API}/v1/ua/territories?q=${encodeURIComponent(q)}&limit=8`).then((r) => r.json()).catch(() => []);
+    box.innerHTML = Array.isArray(hits) && hits.length ? hits.map((h) => `<div class="row" style="cursor:pointer" data-id="${h.id}"><span>${esc(h.name.uk)}<small>${LEVEL[h.level]}${h.in ? ` · ${esc(h.in)}` : ""}</small></span><span></span><span class="v">${h.population ? h.population.toLocaleString("en") : ""}</span></div>`).join("") : `<p class="note">Nothing found.</p>`;
+    box.querySelectorAll("[data-id]").forEach((r) => (r.onclick = () => showPlace(r.dataset.id)));
+  }, 250);
+});
+async function showPlace(id) {
+  const t = await fetch(`${API}/v1/ua/territories/${id}`).then((r) => r.json());
+  const el = document.getElementById("place"); el.hidden = false;
+  document.getElementById("placeHits").innerHTML = "";
+  el.innerHTML = `<div class="office">${[...t.parents.map((p) => esc(p.name.uk)), LEVEL[t.level]].join(" › ")}</div>
+    <div class="who">${esc(t.name.uk)}${t.name.en ? ` <span class="meta">${esc(t.name.en)}</span>` : ""}</div>
+    <div class="meta">${t.population ? `Population ${t.population.toLocaleString("en")} · ` : ""}code ${t.id}${t.status === "occupied" ? " · under Russian occupation" : ""}</div>` +
+    (t.head ? `<div class="does">Head: <b>${esc(t.head.name)}</b>${t.head.since ? ` since ${t.head.since}` : ""} <span class="meta">(Wikidata; verify locally)</span></div>` : "") +
+    (t.children_count ? `<details class="p" open><summary>Contains ${t.children_count} ${t.children_count === 1 ? "unit" : "units"} ›</summary><ul>${t.children.slice(0, 40).map((c) => `<li style="cursor:pointer" data-id="${c.id}"><span>${esc(c.name.uk)} <span class="meta">${LEVEL[c.level]}</span></span><b>${c.population ? c.population.toLocaleString("en") : ""}</b></li>`).join("")}</ul></details>` : "") +
+    `<p class="note">Budgets, councils and contracts for every community are next; today the regional capitals and regional councils below have full budgets.</p>`;
+  el.querySelectorAll("li[data-id]").forEach((li) => (li.onclick = () => showPlace(li.dataset.id)));
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
 
 async function renderUA() {
   const D = await fetch("ua.json").then((r) => r.json());

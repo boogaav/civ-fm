@@ -53,6 +53,8 @@ for r in REGIONS:
     bs = sparql(Q % r)
     for b in bs:
         code = b["code"]["value"]
+        # some codes also sit on Wikimedia category items ("Категорія:…"); those are not places
+        if any(b.get(k, {}).get("value", "").startswith(("Категорія:", "Category:")) for k in ("uk", "en")): continue
         t = rows.setdefault(code, {"id": code, "wd": b["item"]["value"].rsplit("/", 1)[1]})
         t["name"] = {"uk": b.get("uk", {}).get("value"), "en": b.get("en", {}).get("value")}
         if "pop" in b: t["population"] = max(t.get("population", 0), int(float(b["pop"]["value"])))
@@ -88,6 +90,7 @@ for code, t in rows.items():
         t["status"] = "occupied"; t.pop("head", None)
     elif code[2:4] in ("14", "44", "23", "65") and t["level"] != "region":
         t.pop("head", None)
+assert not any((t["name"]["uk"] or "").startswith("Категорія") for t in rows.values()), "category items leaked"
 assert not any("head" in t for c, t in rows.items() if c[2:4] in ("01", "85")), "occupation heads leaked"
 
 assert sum(1 for t in rows.values() if t["level"] == "hromada") > 1300, "too few hromadas"
